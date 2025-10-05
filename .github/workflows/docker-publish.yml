@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME_WORKER: doomedra men/autopwn-worker
+  IMAGE_NAME_WORKER: doomedramen/autopwn-worker
   IMAGE_NAME_WEB: doomedramen/autopwn-web
 
 jobs:
