@@ -65,6 +65,7 @@ docker-compose.override.yml
 /.turbo
 /playwright-report
 /test-results
-tests/fixtures
-!tests/fixtures/pcaps
+tests/fixtures/*
+!tests/fixtures/pcaps/
+!tests/fixtures/dictionaries/
 !tests/fixtures/README.md
