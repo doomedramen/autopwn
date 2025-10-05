@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  worker:
+    extends:
+      file: docker-compose.yml
+      service: worker
+    environment:
+      - HASHCAT_DEVICE_TYPE=nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

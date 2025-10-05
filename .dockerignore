@@ -1,0 +1,15 @@
+node_modules
+.next
+dist
+.git
+.env
+.env.local
+volumes/input/*
+volumes/intermediate/*
+volumes/completed/*
+volumes/failed/*
+volumes/hashes/*
+volumes/db/*
+*.log
+.DS_Store
+README.md

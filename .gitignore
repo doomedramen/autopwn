@@ -1,0 +1,15 @@
+node_modules
+dist
+.next
+*.log
+.env
+.env.local
+volumes/input/*
+volumes/intermediate/*
+volumes/completed/*
+volumes/failed/*
+volumes/hashes/*
+volumes/db/*
+volumes/dictionaries/*
+!volumes/**/.gitkeep
+.DS_Store
