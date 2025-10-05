@@ -44,7 +44,7 @@ test.describe('Test 5: Error Handling', () => {
     }
 
     // Verify file was NOT added to job queue
-    await page.locator('h2:has-text("Job Queue")').scrollIntoViewIfNeeded();
+    await page.locator('text=Job Queue').first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(1000);
 
     console.log('✓ Invalid file upload handled');
@@ -90,7 +90,7 @@ test.describe('Test 5: Error Handling', () => {
     await page.goto('/');
 
     // Scroll to wordlist generator
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
 
     // Clear textarea (should be empty by default)
     await page.locator('#base-words-textarea').fill('');
@@ -115,7 +115,7 @@ test.describe('Test 5: Error Handling', () => {
     await page.goto('/');
 
     // Generate dictionary to test API errors
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
 
     // Fill with valid data
     await page.locator('#base-words-textarea').fill('test\nnetwork');

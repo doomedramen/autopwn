@@ -40,7 +40,7 @@ test.describe('Test 4: Batch Operations', () => {
     console.log(`  Upload message: ${uploadMessage}`);
 
     // Scroll to job queue to see if multiple jobs were created
-    await page.locator('h2:has-text("Job Queue")').scrollIntoViewIfNeeded();
+    await page.locator('text=Job Queue').first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(2000);
 
     const jobRows = page.locator('table tbody tr');
@@ -54,14 +54,14 @@ test.describe('Test 4: Batch Operations', () => {
     await page.goto('/');
 
     // First generate a dictionary
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
     await page.locator('#base-words-textarea').fill('batch\ntest\nretry');
     await page.locator('#generate-wordlist-button').click();
     await expect(page.locator('#wordlist-result')).toBeVisible({ timeout: 30000 });
     console.log('✓ Dictionary generated for batch retry');
 
     // Go to job queue
-    await page.locator('h2:has-text("Job Queue")').scrollIntoViewIfNeeded();
+    await page.locator('text=Job Queue').first().scrollIntoViewIfNeeded();
 
     // Look for "Select All" or multiple selection capability
     const selectAllCheckbox = page.locator('input[type="checkbox"][aria-label*="Select all"]').or(

@@ -19,10 +19,10 @@ test.describe('Test 6: Results Table', () => {
     await page.goto('/');
 
     // Scroll to results section
-    await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
+    await page.locator('text=Cracked Passwords').first().scrollIntoViewIfNeeded();
 
     // Verify results table is visible
-    await expect(page.locator('h2:has-text("Cracked Passwords")')).toBeVisible();
+    await expect(page.locator('text=Cracked Passwords').first()).toBeVisible();
     console.log('✓ Results section visible');
 
     // Check for table
@@ -74,7 +74,7 @@ test.describe('Test 6: Results Table', () => {
     await page.goto('/');
 
     // Scroll to results
-    await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
+    await page.locator('text=Cracked Passwords').first().scrollIntoViewIfNeeded();
 
     // Look for search input
     const searchInput = page.locator('input[placeholder*="Search"]').or(
@@ -114,7 +114,7 @@ test.describe('Test 6: Results Table', () => {
     await page.goto('/');
 
     // Scroll to results
-    await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
+    await page.locator('text=Cracked Passwords').first().scrollIntoViewIfNeeded();
 
     // Look for export button
     const exportButton = page.locator('button:has-text("Export")').or(
@@ -139,7 +139,7 @@ test.describe('Test 6: Results Table', () => {
     await page.goto('/');
 
     // Scroll to results
-    await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
+    await page.locator('text=Cracked Passwords').first().scrollIntoViewIfNeeded();
 
     // Wait for results to load (API fetches on mount)
     await page.waitForTimeout(2000);
@@ -187,7 +187,7 @@ test.describe('Test 6: Results Table', () => {
     await page.goto('/');
 
     // Scroll to results
-    await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
+    await page.locator('text=Cracked Passwords').first().scrollIntoViewIfNeeded();
 
     // Look for pagination controls
     const paginationNext = page.locator('button:has-text("Next")').or(

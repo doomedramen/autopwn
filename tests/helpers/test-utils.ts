@@ -194,6 +194,9 @@ export class TestUtils {
    */
   clearAppDatabase() {
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../volumes/db/autopwn.db');
+    console.log(`[DEBUG] Attempting to clear database at: ${dbPath}`);
+    console.log(`[DEBUG] Database exists: ${fs.existsSync(dbPath)}`);
+    
     if (fs.existsSync(dbPath)) {
       try {
         const db = new Database(dbPath);
@@ -211,9 +214,21 @@ export class TestUtils {
         console.log('✓ Application database cleared');
       } catch (error: any) {
         console.warn('Failed to clear app database:', error?.message || error);
+        console.warn('[DEBUG] Database error details:', error);
       }
     } else {
       console.warn('App database not found at', dbPath);
+      // Try to create the database directory if it doesn't exist
+      const dbDir = path.dirname(dbPath);
+      if (!fs.existsSync(dbDir)) {
+        console.log(`[DEBUG] Creating database directory: ${dbDir}`);
+        try {
+          fs.mkdirSync(dbDir, { recursive: true });
+          console.log(`[DEBUG] Database directory created successfully`);
+        } catch (mkdirError: any) {
+          console.warn(`[DEBUG] Failed to create database directory: ${mkdirError?.message || mkdirError}`);
+        }
+      }
     }
   }
 
@@ -222,18 +237,33 @@ export class TestUtils {
    */
   clearDictionariesFolder() {
     const dictPath = process.env.DICTIONARIES_PATH || path.join(__dirname, '../../volumes/dictionaries');
+    console.log(`[DEBUG] Attempting to clear dictionaries at: ${dictPath}`);
+    console.log(`[DEBUG] Dictionaries directory exists: ${fs.existsSync(dictPath)}`);
+    
     if (fs.existsSync(dictPath)) {
       try {
         const files = fs.readdirSync(dictPath);
+        console.log(`[DEBUG] Found ${files.length} files in dictionaries directory`);
         for (const file of files) {
           // Only delete custom-generated files, keep system dictionaries
           if (file.startsWith('custom-')) {
             fs.unlinkSync(path.join(dictPath, file));
+            console.log(`[DEBUG] Deleted custom dictionary: ${file}`);
           }
         }
         console.log('✓ Custom dictionaries cleared');
       } catch (error) {
         console.warn('Failed to clear dictionaries folder:', error);
+        console.warn('[DEBUG] Dictionaries error details:', error);
+      }
+    } else {
+      console.warn('Dictionaries directory not found at', dictPath);
+      // Try to create the dictionaries directory if it doesn't exist
+      try {
+        fs.mkdirSync(dictPath, { recursive: true });
+        console.log(`[DEBUG] Dictionaries directory created: ${dictPath}`);
+      } catch (mkdirError: any) {
+        console.warn(`[DEBUG] Failed to create dictionaries directory: ${mkdirError?.message || mkdirError}`);
       }
     }
   }
@@ -243,15 +273,30 @@ export class TestUtils {
    */
   clearUploadsFolder() {
     const uploadsPath = process.env.UPLOADS_PATH || path.join(__dirname, '../../volumes/uploads');
+    console.log(`[DEBUG] Attempting to clear uploads at: ${uploadsPath}`);
+    console.log(`[DEBUG] Uploads directory exists: ${fs.existsSync(uploadsPath)}`);
+    
     if (fs.existsSync(uploadsPath)) {
       try {
         const files = fs.readdirSync(uploadsPath);
+        console.log(`[DEBUG] Found ${files.length} files in uploads directory`);
         for (const file of files) {
           fs.unlinkSync(path.join(uploadsPath, file));
+          console.log(`[DEBUG] Deleted upload file: ${file}`);
         }
         console.log('✓ Uploads folder cleared');
       } catch (error) {
         console.warn('Failed to clear uploads folder:', error);
+        console.warn('[DEBUG] Uploads error details:', error);
+      }
+    } else {
+      console.warn('Uploads directory not found at', uploadsPath);
+      // Try to create the uploads directory if it doesn't exist
+      try {
+        fs.mkdirSync(uploadsPath, { recursive: true });
+        console.log(`[DEBUG] Uploads directory created: ${uploadsPath}`);
+      } catch (mkdirError: any) {
+        console.warn(`[DEBUG] Failed to create uploads directory: ${mkdirError?.message || mkdirError}`);
       }
     }
   }
@@ -270,6 +315,9 @@ export class TestUtils {
    */
   addTestResults() {
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../volumes/db/autopwn.db');
+    console.log(`[DEBUG] Attempting to add test results to database at: ${dbPath}`);
+    console.log(`[DEBUG] Database exists: ${fs.existsSync(dbPath)}`);
+    
     if (fs.existsSync(dbPath)) {
       try {
         const db = new Database(dbPath);
@@ -278,6 +326,7 @@ export class TestUtils {
         // Insert test jobs
         const job1 = db.prepare('INSERT INTO jobs (filename, hash_count, status) VALUES (?, ?, ?)').run('test1.pcap', 1, 'completed');
         const job2 = db.prepare('INSERT INTO jobs (filename, hash_count, status) VALUES (?, ?, ?)').run('test2.pcap', 1, 'completed');
+        console.log(`[DEBUG] Inserted test jobs with IDs: ${job1.lastInsertRowid}, ${job2.lastInsertRowid}`);
 
         // Insert test results (need enough for pagination - 15 results)
         for (let i = 1; i <= 15; i++) {
@@ -294,7 +343,10 @@ export class TestUtils {
         console.log('✓ Test results added to database');
       } catch (error: any) {
         console.warn('Failed to add test results:', error?.message || error);
+        console.warn('[DEBUG] Test results error details:', error);
       }
+    } else {
+      console.warn('[DEBUG] Cannot add test results - database does not exist');
     }
   }
 

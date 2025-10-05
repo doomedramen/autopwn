@@ -33,10 +33,10 @@ test.describe('Test 2: Job Queue Management', () => {
     console.log('✓ File uploaded, job created');
 
     // Scroll to job queue
-    await page.locator('h2:has-text("Job Queue")').scrollIntoViewIfNeeded();
+    await page.locator('text=Job Queue').first().scrollIntoViewIfNeeded();
 
     // Check that job queue is visible
-    await expect(page.locator('h2:has-text("Job Queue")')).toBeVisible();
+    await expect(page.locator('text=Job Queue').first()).toBeVisible();
 
     // Look for job rows in the table
     const jobTable = page.locator('table').first();

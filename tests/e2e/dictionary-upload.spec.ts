@@ -20,7 +20,7 @@ test.describe('Test 7: Dictionary Upload', () => {
     await page.goto('/');
 
     // Scroll to dictionaries section
-    await page.locator('h2:has-text("Dictionaries")').scrollIntoViewIfNeeded();
+    await page.locator('text=Dictionaries').first().scrollIntoViewIfNeeded();
     console.log('✓ Dictionaries section visible');
 
     // Use test fixture dictionary
@@ -80,7 +80,7 @@ test.describe('Test 7: Dictionary Upload', () => {
     await page.goto('/');
 
     // Scroll to dictionaries section
-    await page.locator('h2:has-text("Dictionaries")').scrollIntoViewIfNeeded();
+    await page.locator('text=Dictionaries').first().scrollIntoViewIfNeeded();
 
     // Look for drag and drop area
     const dropArea = page.locator('text=Drag & drop dictionary files').locator('..');
@@ -105,7 +105,7 @@ test.describe('Test 7: Dictionary Upload', () => {
     await page.goto('/');
 
     // Scroll to dictionaries section
-    await page.locator('h2:has-text("Dictionaries")').scrollIntoViewIfNeeded();
+    await page.locator('text=Dictionaries').first().scrollIntoViewIfNeeded();
 
     // Create an invalid file (e.g., .exe)
     const config = testUtils.getTestConfig();
@@ -129,7 +129,7 @@ test.describe('Test 7: Dictionary Upload', () => {
     await page.goto('/');
 
     // Scroll to dictionaries section
-    await page.locator('h2:has-text("Dictionaries")').scrollIntoViewIfNeeded();
+    await page.locator('text=Dictionaries').first().scrollIntoViewIfNeeded();
 
     // Create multiple test dictionary files
     const config = testUtils.getTestConfig();
@@ -180,7 +180,7 @@ test.describe('Test 7: Dictionary Upload', () => {
     await page.goto('/');
 
     // Scroll to dictionaries section
-    await page.locator('h2:has-text("Dictionaries")').scrollIntoViewIfNeeded();
+    await page.locator('text=Dictionaries').first().scrollIntoViewIfNeeded();
 
     // Wait for dictionaries to load
     await page.waitForTimeout(2000);

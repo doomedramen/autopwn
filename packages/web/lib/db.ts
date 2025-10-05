@@ -2,20 +2,35 @@ import Database from 'better-sqlite3';
 import { Job, JobItem, Result, Dictionary } from '@autopwn/shared';
 
 const DATABASE_PATH = process.env.DATABASE_PATH || '/data/db/autopwn.db';
+console.log('[DEBUG] Database path:', DATABASE_PATH);
 
 let db: Database.Database | null = null;
 let writeDb: Database.Database | null = null;
 
 function getDb() {
   if (!db) {
-    db = new Database(DATABASE_PATH, { readonly: true });
+    console.log('[DEBUG] Opening read-only database connection');
+    try {
+      db = new Database(DATABASE_PATH, { readonly: true });
+      console.log('[DEBUG] Database connection opened successfully');
+    } catch (error: any) {
+      console.error('[DEBUG] Failed to open database:', error?.message || error);
+      throw error;
+    }
   }
   return db;
 }
 
 function getWriteDb() {
   if (!writeDb) {
-    writeDb = new Database(DATABASE_PATH);
+    console.log('[DEBUG] Opening read-write database connection');
+    try {
+      writeDb = new Database(DATABASE_PATH);
+      console.log('[DEBUG] Write database connection opened successfully');
+    } catch (error: any) {
+      console.error('[DEBUG] Failed to open write database:', error?.message || error);
+      throw error;
+    }
   }
   return writeDb;
 }
@@ -56,13 +71,22 @@ export function getAllDictionaries(): Dictionary[] {
 }
 
 export function addDictionary(name: string, path: string, size: number): Dictionary {
+  console.log('[DEBUG] Adding dictionary to database:', { name, path, size });
   const database = getWriteDb();
-  const stmt = database.prepare(
-    'INSERT INTO dictionaries (name, path, size) VALUES (?, ?, ?)'
-  );
-  const result = stmt.run(name, path, size);
-  const getStmt = database.prepare('SELECT * FROM dictionaries WHERE id = ?');
-  return getStmt.get(result.lastInsertRowid) as Dictionary;
+  try {
+    const stmt = database.prepare(
+      'INSERT INTO dictionaries (name, path, size) VALUES (?, ?, ?)'
+    );
+    const result = stmt.run(name, path, size);
+    console.log('[DEBUG] Dictionary inserted with ID:', result.lastInsertRowid);
+    const getStmt = database.prepare('SELECT * FROM dictionaries WHERE id = ?');
+    const dict = getStmt.get(result.lastInsertRowid) as Dictionary;
+    console.log('[DEBUG] Dictionary retrieved from database:', dict);
+    return dict;
+  } catch (error: any) {
+    console.error('[DEBUG] Failed to add dictionary to database:', error?.message || error);
+    throw error;
+  }
 }
 
 export function getDictionaryCoverage(dictionaryId: number, jobIds: number[]): number {

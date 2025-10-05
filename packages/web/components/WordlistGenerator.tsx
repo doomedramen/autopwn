@@ -13,6 +13,7 @@ export default function WordlistGenerator() {
   const [includeNumbers, setIncludeNumbers] = useState(true);
   const [includeSpecialChars, setIncludeSpecialChars] = useState(true);
   const [includeCaps, setIncludeCaps] = useState(true);
+  const [includeLeet, setIncludeLeet] = useState(false);
   const [minLength, setMinLength] = useState(8);
   const [maxLength, setMaxLength] = useState(63);
   const [customPattern, setCustomPattern] = useState('');
@@ -37,6 +38,7 @@ export default function WordlistGenerator() {
           includeNumbers,
           includeSpecialChars,
           includeCaps,
+          includeLeet,
           minLength,
           maxLength,
           customPattern,
@@ -133,6 +135,16 @@ export default function WordlistGenerator() {
             />
             <Label htmlFor="include-caps-checkbox" className="text-sm font-normal">
               Capitalize variations (Password, PASSWORD, pAssWord)
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="include-leet-checkbox"
+              checked={includeLeet}
+              onCheckedChange={(checked) => setIncludeLeet(checked as boolean)}
+            />
+            <Label htmlFor="include-leet-checkbox" className="text-sm font-normal">
+              L33t variations (p4ssw0rd, h4ck3r, etc.)
             </Label>
           </div>
         </div>

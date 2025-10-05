@@ -22,14 +22,14 @@ test.describe('Test 3: Retry Functionality', () => {
     // We can simulate this by checking the job queue for failed status
 
     // Generate a dictionary first
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
     await page.locator('#base-words-textarea').fill('testdict\nretry');
     await page.locator('#generate-wordlist-button').click();
     await expect(page.locator('#wordlist-result')).toBeVisible({ timeout: 30000 });
     console.log('✓ Dictionary generated for retry');
 
     // Go to job queue
-    await page.locator('h2:has-text("Job Queue")').scrollIntoViewIfNeeded();
+    await page.locator('text=Job Queue').first().scrollIntoViewIfNeeded();
 
     // Look for "Retry Selected" button or similar
     const retryButton = page.locator('button:has-text("Retry")');

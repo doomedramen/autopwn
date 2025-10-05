@@ -10,6 +10,7 @@ interface GenerateRequest {
   includeNumbers: boolean;
   includeSpecialChars: boolean;
   includeCaps: boolean;
+  includeLeet: boolean;
   minLength: number;
   maxLength: number;
   customPattern?: string;
@@ -17,10 +18,23 @@ interface GenerateRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[DEBUG] Wordlist generation API called');
     const body: GenerateRequest = await request.json();
-    const { baseWords, includeNumbers, includeSpecialChars, includeCaps, minLength, maxLength, customPattern } = body;
+    const { baseWords, includeNumbers, includeSpecialChars, includeCaps, includeLeet, minLength, maxLength, customPattern } = body;
+    
+    console.log('[DEBUG] Wordlist request params:', {
+      baseWordsCount: baseWords?.length || 0,
+      includeNumbers,
+      includeSpecialChars,
+      includeCaps,
+      includeLeet,
+      minLength,
+      maxLength,
+      customPattern
+    });
 
     if (!baseWords || baseWords.length === 0) {
+      console.log('[DEBUG] No base words provided');
       return NextResponse.json({ error: 'No base words provided' }, { status: 400 });
     }
 
@@ -61,10 +75,44 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Leet speak
-      const leetWord = leetSpeak(word);
-      if (leetWord !== word && leetWord.length >= minLength && leetWord.length <= maxLength) {
-        wordlist.add(leetWord);
+      // Leet speak variations
+      if (includeLeet) {
+        const leetWord = leetSpeak(word);
+        if (leetWord !== word && leetWord.length >= minLength && leetWord.length <= maxLength) {
+          wordlist.add(leetWord);
+        }
+        
+        // Leet with capitalization
+        if (includeCaps) {
+          const capLeetWord = capitalize(leetWord);
+          const upperLeetWord = allCaps(leetWord);
+          if (capLeetWord.length >= minLength && capLeetWord.length <= maxLength) {
+            wordlist.add(capLeetWord);
+          }
+          if (upperLeetWord.length >= minLength && upperLeetWord.length <= maxLength) {
+            wordlist.add(upperLeetWord);
+          }
+        }
+        
+        // Leet with numbers
+        if (includeNumbers) {
+          for (const num of numbers.slice(0, 10)) {
+            const combo = leetWord + num;
+            if (combo.length >= minLength && combo.length <= maxLength) {
+              wordlist.add(combo);
+            }
+          }
+        }
+        
+        // Leet with special chars
+        if (includeSpecialChars) {
+          for (const special of specialChars.slice(0, 5)) {
+            const combo = leetWord + special;
+            if (combo.length >= minLength && combo.length <= maxLength) {
+              wordlist.add(combo);
+            }
+          }
+        }
       }
 
       // With numbers
@@ -128,8 +176,10 @@ export async function POST(request: NextRequest) {
       // Custom pattern
       if (customPattern) {
         let generated = customPattern;
+        
+        // Apply pattern to base word
         generated = generated.replace(/\{word\}/g, word);
-
+        
         if (generated.includes('{number}')) {
           for (const num of numbers.slice(0, 10)) {
             const patternWord = generated.replace(/\{number\}/g, num);
@@ -149,6 +199,35 @@ export async function POST(request: NextRequest) {
             wordlist.add(generated);
           }
         }
+        
+        // Apply pattern to leet word if l33t is enabled
+        if (includeLeet) {
+          const leetWord = leetSpeak(word);
+          if (leetWord !== word) {
+            let leetGenerated = customPattern;
+            leetGenerated = leetGenerated.replace(/\{word\}/g, leetWord);
+            
+            if (leetGenerated.includes('{number}')) {
+              for (const num of numbers.slice(0, 10)) {
+                const patternWord = leetGenerated.replace(/\{number\}/g, num);
+                if (patternWord.length >= minLength && patternWord.length <= maxLength) {
+                  wordlist.add(patternWord);
+                }
+              }
+            } else if (leetGenerated.includes('{year}')) {
+              for (const year of years) {
+                const patternWord = leetGenerated.replace(/\{year\}/g, year);
+                if (patternWord.length >= minLength && patternWord.length <= maxLength) {
+                  wordlist.add(patternWord);
+                }
+              }
+            } else {
+              if (leetGenerated.length >= minLength && leetGenerated.length <= maxLength) {
+                wordlist.add(leetGenerated);
+              }
+            }
+          }
+        }
       }
     }
 
@@ -159,6 +238,13 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
     const filename = `custom-${timestamp}-${wordlistArray.length}.txt`;
     const filePath = path.join(DICTIONARIES_PATH, filename);
+    
+    console.log('[DEBUG] Writing wordlist to:', filePath);
+    console.log('[DEBUG] Dictionaries path:', DICTIONARIES_PATH);
+    console.log('[DEBUG] Wordlist size:', wordlistArray.length);
+
+    // Ensure directory exists
+    await fs.mkdir(DICTIONARIES_PATH, { recursive: true });
 
     // Write to file
     const content = wordlistArray.join('\n') + '\n';
@@ -166,16 +252,24 @@ export async function POST(request: NextRequest) {
 
     // Get file size and add to database
     const stats = await fs.stat(filePath);
-    addDictionary(filename, filePath, stats.size);
+    console.log('[DEBUG] File written successfully, size:', stats.size);
+    
+    try {
+      addDictionary(filename, filePath, stats.size);
+      console.log('[DEBUG] Dictionary added to database');
+    } catch (dbError: any) {
+      console.error('[DEBUG] Failed to add dictionary to database:', dbError?.message || dbError);
+    }
 
     return NextResponse.json({
       filename,
       count: wordlistArray.length,
     });
   } catch (error) {
-    console.error('Error generating wordlist:', error);
+    console.error('[DEBUG] Error generating wordlist:', error);
+    console.error('[DEBUG] Error details:', error instanceof Error ? error.stack : error);
     return NextResponse.json(
-      { error: 'Failed to generate wordlist' },
+      { error: 'Failed to generate wordlist', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -33,7 +33,7 @@ test.describe('Test 1: Complete Cracking Workflow', () => {
     console.log('✓ File uploaded');
 
     // Step 2: Generate dictionary with correct password
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
     const baseWordsInput = page.locator('#base-words-textarea');
     await baseWordsInput.waitFor({ state: 'visible', timeout: 10000 });
 
@@ -46,13 +46,13 @@ test.describe('Test 1: Complete Cracking Workflow', () => {
 
     // Step 3: Wait for job to process (this might take a while)
     // Check job queue for the uploaded file
-    await page.locator('h2:has-text("Job Queue")').scrollIntoViewIfNeeded();
+    await page.locator('text=Job Queue').first().scrollIntoViewIfNeeded();
 
     // Wait for job to appear in queue (might be processing)
     await page.waitForTimeout(5000);
 
     // Step 4: Check Results Table for cracked password
-    await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
+    await page.locator('text=Cracked Passwords').first().scrollIntoViewIfNeeded();
 
     // The password should eventually appear in results
     // Note: This depends on the worker actually running

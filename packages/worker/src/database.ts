@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database from "better-sqlite3";
 import {
   DB_SCHEMA,
   Job,
@@ -10,11 +10,11 @@ import {
   CreateJobItemInput,
   UpdateJobInput,
   UpdateJobItemInput,
-  CreateResultInput
-} from '@autopwn/shared';
-import { config } from './config.js';
-import { existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+  CreateResultInput,
+} from "@autopwn/shared";
+import { config } from "./config";
+import { existsSync, mkdirSync } from "fs";
+import { dirname } from "path";
 
 class DatabaseManager {
   private db: Database.Database;
@@ -26,18 +26,68 @@ class DatabaseManager {
     }
 
     this.db = new Database(config.databasePath);
-    this.db.pragma('journal_mode = WAL');
+    this.db.pragma("journal_mode = WAL");
     this.initialize();
   }
 
   private initialize() {
-    this.db.exec(DB_SCHEMA);
+    try {
+      // Check if jobs table exists and migrate if needed
+      const tableInfo = this.db
+        .prepare(
+          "SELECT sql FROM sqlite_master WHERE type='table' AND name='jobs'"
+        )
+        .get() as any;
+      if (tableInfo) {
+        // Get current table structure
+        const pragma = this.db
+          .prepare("PRAGMA table_info(jobs)")
+          .all() as any[];
+
+        // Add missing columns if they don't exist
+        const requiredColumns = [
+          {
+            name: "priority",
+            sql: "ALTER TABLE jobs ADD COLUMN priority INTEGER NOT NULL DEFAULT 0",
+          },
+          {
+            name: "paused",
+            sql: "ALTER TABLE jobs ADD COLUMN paused INTEGER NOT NULL DEFAULT 0",
+          },
+          {
+            name: "batch_mode",
+            sql: "ALTER TABLE jobs ADD COLUMN batch_mode INTEGER NOT NULL DEFAULT 0",
+          },
+          {
+            name: "items_total",
+            sql: "ALTER TABLE jobs ADD COLUMN items_total INTEGER",
+          },
+          {
+            name: "items_cracked",
+            sql: "ALTER TABLE jobs ADD COLUMN items_cracked INTEGER",
+          },
+        ];
+
+        for (const column of requiredColumns) {
+          const hasColumn = pragma.some((col) => col.name === column.name);
+          if (!hasColumn) {
+            this.db.exec(column.sql);
+          }
+        }
+      }
+
+      // Execute the full schema to ensure all tables and indexes exist
+      this.db.exec(DB_SCHEMA);
+    } catch (error) {
+      console.error("Database initialization error:", error);
+      throw error;
+    }
   }
 
   // Jobs
   createJob(input: CreateJobInput): Job {
     const stmt = this.db.prepare(
-      'INSERT INTO jobs (filename, hash_count, batch_mode, items_total) VALUES (?, ?, ?, ?)'
+      "INSERT INTO jobs (filename, hash_count, batch_mode, items_total) VALUES (?, ?, ?, ?)"
     );
     const result = stmt.run(
       input.filename,
@@ -49,7 +99,7 @@ class DatabaseManager {
   }
 
   getJob(id: number): Job | null {
-    const stmt = this.db.prepare('SELECT * FROM jobs WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM jobs WHERE id = ?");
     return stmt.get(id) as Job | null;
   }
 
@@ -61,12 +111,14 @@ class DatabaseManager {
   }
 
   getAllJobs(): Job[] {
-    const stmt = this.db.prepare('SELECT * FROM jobs ORDER BY created_at DESC');
+    const stmt = this.db.prepare("SELECT * FROM jobs ORDER BY created_at DESC");
     return stmt.all() as Job[];
   }
 
   updateJob(id: number, input: UpdateJobInput): void {
-    const fields = Object.keys(input).map(key => `${key} = ?`).join(', ');
+    const fields = Object.keys(input)
+      .map((key) => `${key} = ?`)
+      .join(", ");
     const values = Object.values(input);
     const stmt = this.db.prepare(`UPDATE jobs SET ${fields} WHERE id = ?`);
     stmt.run(...values, id);
@@ -75,32 +127,34 @@ class DatabaseManager {
   // Results
   createResult(input: CreateResultInput): Result {
     const stmt = this.db.prepare(
-      'INSERT INTO results (job_id, essid, password) VALUES (?, ?, ?)'
+      "INSERT INTO results (job_id, essid, password) VALUES (?, ?, ?)"
     );
     const result = stmt.run(input.job_id, input.essid, input.password);
     return this.getResult(result.lastInsertRowid as number)!;
   }
 
   getResult(id: number): Result | null {
-    const stmt = this.db.prepare('SELECT * FROM results WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM results WHERE id = ?");
     return stmt.get(id) as Result | null;
   }
 
   getResultsByJobId(jobId: number): Result[] {
-    const stmt = this.db.prepare('SELECT * FROM results WHERE job_id = ?');
+    const stmt = this.db.prepare("SELECT * FROM results WHERE job_id = ?");
     return stmt.all(jobId) as Result[];
   }
 
   getAllResults(): Result[] {
-    const stmt = this.db.prepare('SELECT * FROM results ORDER BY cracked_at DESC');
+    const stmt = this.db.prepare(
+      "SELECT * FROM results ORDER BY cracked_at DESC"
+    );
     return stmt.all() as Result[];
   }
 
   // Dictionaries
-  syncDictionaries(dictionaries: Omit<Dictionary, 'id'>[]): void {
-    this.db.exec('DELETE FROM dictionaries');
+  syncDictionaries(dictionaries: Omit<Dictionary, "id">[]): void {
+    this.db.exec("DELETE FROM dictionaries");
     const stmt = this.db.prepare(
-      'INSERT INTO dictionaries (name, path, size) VALUES (?, ?, ?)'
+      "INSERT INTO dictionaries (name, path, size) VALUES (?, ?, ?)"
     );
     for (const dict of dictionaries) {
       stmt.run(dict.name, dict.path, dict.size);
@@ -108,14 +162,16 @@ class DatabaseManager {
   }
 
   getAllDictionaries(): Dictionary[] {
-    const stmt = this.db.prepare('SELECT * FROM dictionaries ORDER BY name ASC');
+    const stmt = this.db.prepare(
+      "SELECT * FROM dictionaries ORDER BY name ASC"
+    );
     return stmt.all() as Dictionary[];
   }
 
   // Job Items
   createJobItem(input: CreateJobItemInput): JobItem {
     const stmt = this.db.prepare(
-      'INSERT INTO job_items (job_id, filename, essid, bssid) VALUES (?, ?, ?, ?)'
+      "INSERT INTO job_items (job_id, filename, essid, bssid) VALUES (?, ?, ?, ?)"
     );
     const result = stmt.run(
       input.job_id,
@@ -127,24 +183,32 @@ class DatabaseManager {
   }
 
   getJobItem(id: number): JobItem | null {
-    const stmt = this.db.prepare('SELECT * FROM job_items WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM job_items WHERE id = ?");
     return stmt.get(id) as JobItem | null;
   }
 
   getJobItemsByJobId(jobId: number): JobItem[] {
-    const stmt = this.db.prepare('SELECT * FROM job_items WHERE job_id = ? ORDER BY id ASC');
+    const stmt = this.db.prepare(
+      "SELECT * FROM job_items WHERE job_id = ? ORDER BY id ASC"
+    );
     return stmt.all(jobId) as JobItem[];
   }
 
-  getJobItemByEssidBssid(jobId: number, essid: string, bssid: string): JobItem | null {
+  getJobItemByEssidBssid(
+    jobId: number,
+    essid: string,
+    bssid: string
+  ): JobItem | null {
     const stmt = this.db.prepare(
-      'SELECT * FROM job_items WHERE job_id = ? AND essid = ? AND bssid = ? LIMIT 1'
+      "SELECT * FROM job_items WHERE job_id = ? AND essid = ? AND bssid = ? LIMIT 1"
     );
     return stmt.get(jobId, essid, bssid) as JobItem | null;
   }
 
   updateJobItem(id: number, input: UpdateJobItemInput): void {
-    const fields = Object.keys(input).map(key => `${key} = ?`).join(', ');
+    const fields = Object.keys(input)
+      .map((key) => `${key} = ?`)
+      .join(", ");
     const values = Object.values(input);
     const stmt = this.db.prepare(`UPDATE job_items SET ${fields} WHERE id = ?`);
     stmt.run(...values, id);
@@ -153,26 +217,32 @@ class DatabaseManager {
   // Job Dictionaries
   createJobDictionary(jobId: number, dictionaryId: number): void {
     const stmt = this.db.prepare(
-      'INSERT OR IGNORE INTO job_dictionaries (job_id, dictionary_id, status) VALUES (?, ?, ?)'
+      "INSERT OR IGNORE INTO job_dictionaries (job_id, dictionary_id, status) VALUES (?, ?, ?)"
     );
-    stmt.run(jobId, dictionaryId, 'pending');
+    stmt.run(jobId, dictionaryId, "pending");
   }
 
-  updateJobDictionary(jobId: number, dictionaryId: number, status: string): void {
+  updateJobDictionary(
+    jobId: number,
+    dictionaryId: number,
+    status: string
+  ): void {
     const stmt = this.db.prepare(
-      'UPDATE job_dictionaries SET status = ? WHERE job_id = ? AND dictionary_id = ?'
+      "UPDATE job_dictionaries SET status = ? WHERE job_id = ? AND dictionary_id = ?"
     );
     stmt.run(status, jobId, dictionaryId);
   }
 
   getJobDictionaries(jobId: number): JobDictionary[] {
-    const stmt = this.db.prepare('SELECT * FROM job_dictionaries WHERE job_id = ?');
+    const stmt = this.db.prepare(
+      "SELECT * FROM job_dictionaries WHERE job_id = ?"
+    );
     return stmt.all(jobId) as JobDictionary[];
   }
 
   getDictionaryCoverage(dictionaryId: number, jobIds: number[]): number {
     if (jobIds.length === 0) return 0;
-    const placeholders = jobIds.map(() => '?').join(',');
+    const placeholders = jobIds.map(() => "?").join(",");
     const stmt = this.db.prepare(
       `SELECT COUNT(DISTINCT job_id) as count FROM job_dictionaries
        WHERE dictionary_id = ? AND job_id IN (${placeholders})`

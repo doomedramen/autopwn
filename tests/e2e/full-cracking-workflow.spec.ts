@@ -28,7 +28,7 @@ test.describe('Full Cracking Workflow E2E', () => {
     await page.goto('/');
 
     // Verify page loaded
-    await expect(page.locator('h2:has-text("Upload Captures")')).toBeVisible();
+    await expect(page.locator('text=Upload Captures').first()).toBeVisible();
 
     // Step 1: Upload the pcap file
     const config = testUtils.getTestConfig();
@@ -43,7 +43,7 @@ test.describe('Full Cracking Workflow E2E', () => {
 
     // Step 2: Generate a dictionary that SHOULD work (contains the correct password)
     // Scroll to the wordlist generator section
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
 
     // Wait for the textarea to be visible
     const baseWordsInput = page.locator('#base-words-textarea');
@@ -68,7 +68,7 @@ test.describe('Full Cracking Workflow E2E', () => {
     console.log(`  Dictionary filename: ${successDictFilename}`);
 
     // Step 3: Generate a dictionary that SHOULD fail (doesn't contain the correct password)
-    await page.locator('h2:has-text("Custom Wordlist Generator")').scrollIntoViewIfNeeded();
+    await page.locator('text=Custom Wordlist Generator').first().scrollIntoViewIfNeeded();
     await baseWordsInput.fill('wrongpassword\nincorrect\nbadpass');
 
     await page.locator('#generate-wordlist-button').click();
