@@ -5,6 +5,9 @@ Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` f
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-24.x-green.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)
+[![Docker Worker](https://img.shields.io/docker/v/doomedramen/autopwn-worker?label=worker)](https://hub.docker.com/r/doomedramen/autopwn-worker)
+[![Docker Web](https://img.shields.io/docker/v/doomedramen/autopwn-web?label=web)](https://hub.docker.com/r/doomedramen/autopwn-web)
+[![Docker Pulls](https://img.shields.io/docker/pulls/doomedramen/autopwn-worker)](https://hub.docker.com/r/doomedramen/autopwn-worker)
 
 ![AutoPWN Dashboard](screenshot.png)
 
@@ -75,19 +78,28 @@ cp /path/to/Super-WPA.gz volumes/dictionaries/
 
 ### 3. Run with Docker Compose
 
-**CPU Mode** (default):
+#### Option A: Pre-built Images (Recommended)
+
+Pull and run pre-built images from Docker Hub:
+
 ```bash
+# CPU Mode (default)
 docker-compose up -d
-```
 
-**NVIDIA GPU**:
-```bash
+# NVIDIA GPU
 docker-compose -f docker-compose.yml -f docker-compose.nvidia.yml up -d
+
+# AMD GPU
+docker-compose -f docker-compose.yml -f docker-compose.amd.yml up -d
 ```
 
-**AMD GPU**:
+#### Option B: Build Locally
+
+Build from source instead of pulling from Docker Hub:
+
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.amd.yml up -d
+# Add --build flag
+docker-compose up -d --build
 ```
 
 ### 4. Access Dashboard

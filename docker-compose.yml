@@ -2,9 +2,11 @@ version: '3.8'
 
 services:
   worker:
-    build:
-      context: .
-      dockerfile: packages/worker/Dockerfile
+    image: doomedramen/autopwn-worker:latest
+    # Uncomment to build locally instead of using pre-built image:
+    # build:
+    #   context: .
+    #   dockerfile: packages/worker/Dockerfile
     container_name: autopwn-worker
     environment:
       - DATABASE_PATH=/data/db/autopwn.db
