@@ -70,13 +70,13 @@ export default function ResultsTable() {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <h2 className="text-xl font-bold text-gray-100">Cracked Passwords</h2>
         {filteredResults.length > 0 && (
           <button
             onClick={exportResults}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+            className="w-full sm:w-auto px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
             aria-label="Export results to CSV"
           >
             Export CSV
@@ -85,7 +85,7 @@ export default function ResultsTable() {
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
         <input
           type="search"
           placeholder="Search by ESSID, password, or ID..."
@@ -97,7 +97,7 @@ export default function ResultsTable() {
         <select
           value={filterEssid}
           onChange={(e) => setFilterEssid(e.target.value)}
-          className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 focus:outline-none focus:border-blue-500 text-sm"
+          className="w-full sm:w-auto px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 focus:outline-none focus:border-blue-500 text-sm"
           aria-label="filter by ESSID"
         >
           <option value="all">All Networks</option>
