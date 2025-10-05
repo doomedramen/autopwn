@@ -5,10 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const jobId = parseInt(params.id);
+    const { id } = await params;
+    const jobId = parseInt(id);
     const items = getJobItems(jobId);
     return NextResponse.json(items);
   } catch (error) {

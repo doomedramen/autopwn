@@ -186,8 +186,8 @@ export class FileWatcher {
       db.createJobItem({
         job_id: job.id,
         filename,
-        essid: itemInfo.essid,
-        bssid: itemInfo.bssid,
+        essid: itemInfo.essid || undefined,
+        bssid: itemInfo.bssid || undefined,
       });
     }
 

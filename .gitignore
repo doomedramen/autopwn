@@ -60,3 +60,4 @@ volumes/dictionaries/*
 
 # Docker
 docker-compose.override.yml
+/.turbo

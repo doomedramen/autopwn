@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Job, JobItem } from '@autopwn/shared';
+import { Job, JobItem, Dictionary } from '@autopwn/shared';
 
 export default function JobQueue() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -12,6 +12,10 @@ export default function JobQueue() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expandedBatchJobs, setExpandedBatchJobs] = useState<Set<number>>(new Set());
   const [batchItems, setBatchItems] = useState<Map<number, JobItem[]>>(new Map());
+  const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set());
+  const [dictionaries, setDictionaries] = useState<Dictionary[]>([]);
+  const [selectedDictionaries, setSelectedDictionaries] = useState<Set<number>>(new Set());
+  const [showRetryModal, setShowRetryModal] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -30,7 +34,20 @@ export default function JobQueue() {
       }
     };
 
+    const fetchDictionaries = async () => {
+      try {
+        const res = await fetch('/api/dictionaries');
+        if (res.ok) {
+          const data = await res.json();
+          setDictionaries(data);
+        }
+      } catch (error) {
+        console.error('Error fetching dictionaries:', error);
+      }
+    };
+
     fetchJobs();
+    fetchDictionaries();
     const interval = setInterval(fetchJobs, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -175,6 +192,65 @@ export default function JobQueue() {
     }
   };
 
+  const toggleJobSelection = (jobId: number) => {
+    const newSelected = new Set(selectedJobs);
+    if (newSelected.has(jobId)) {
+      newSelected.delete(jobId);
+    } else {
+      newSelected.add(jobId);
+    }
+    setSelectedJobs(newSelected);
+  };
+
+  const toggleDictionarySelection = (dictId: number) => {
+    const newSelected = new Set(selectedDictionaries);
+    if (newSelected.has(dictId)) {
+      newSelected.delete(dictId);
+    } else {
+      newSelected.add(dictId);
+    }
+    setSelectedDictionaries(newSelected);
+  };
+
+  const openRetryModal = () => {
+    if (selectedJobs.size === 0) {
+      alert('Please select at least one failed job to retry');
+      return;
+    }
+    setShowRetryModal(true);
+  };
+
+  const retrySelectedJobs = async () => {
+    if (selectedDictionaries.size === 0) {
+      alert('Please select at least one dictionary');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/jobs/retry-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobIds: Array.from(selectedJobs),
+          dictionaryIds: Array.from(selectedDictionaries),
+        }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        alert(`Retry batch job created successfully! ${result.message}`);
+        setShowRetryModal(false);
+        setSelectedJobs(new Set());
+        setSelectedDictionaries(new Set());
+      } else {
+        const error = await res.json();
+        alert(`Failed to create retry batch: ${error.error}`);
+      }
+    } catch (error) {
+      alert('Failed to create retry batch');
+    }
+  };
+
   return (
     <>
       {showLogs && selectedJob && (
@@ -199,6 +275,86 @@ export default function JobQueue() {
           </div>
         </div>
       )}
+      {showRetryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="text-lg font-bold text-gray-100">
+                Retry Selected Jobs with Custom Dictionaries
+              </h3>
+              <button
+                onClick={() => setShowRetryModal(false)}
+                className="text-gray-400 hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 overflow-auto flex-1">
+              <div className="mb-4">
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">
+                  Selected Jobs ({selectedJobs.size})
+                </h4>
+                <div className="bg-gray-800 rounded p-3 text-sm text-gray-400">
+                  {Array.from(selectedJobs).map(jobId => {
+                    const job = jobs.find(j => j.id === jobId);
+                    return job ? (
+                      <div key={jobId} className="py-1">
+                        Job #{job.id}: {job.filename}
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">
+                  Select Dictionaries
+                </h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {dictionaries.map(dict => (
+                    <label
+                      key={dict.id}
+                      className="flex items-center gap-3 p-2 bg-gray-800 rounded hover:bg-gray-700 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedDictionaries.has(dict.id)}
+                        onChange={() => toggleDictionarySelection(dict.id)}
+                        className="rounded border-gray-600 bg-gray-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      />
+                      <div className="flex-1">
+                        <div className="text-gray-200 font-medium">{dict.name}</div>
+                        <div className="text-gray-400 text-xs">
+                          {(dict.size / 1024 / 1024).toFixed(1)} MB • {dict.path}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {dictionaries.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No dictionaries available
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-800">
+              <button
+                onClick={() => setShowRetryModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={retrySelectedJobs}
+                disabled={selectedDictionaries.size === 0}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+              >
+                Create Retry Batch ({selectedJobs.size} jobs, {selectedDictionaries.size} dictionaries)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -206,6 +362,7 @@ export default function JobQueue() {
             {jobs.length > 0 && (
               <p className="text-sm text-gray-400 mt-1">
                 Showing {filteredJobs.length} of {jobs.length} jobs
+                {selectedJobs.size > 0 && ` • ${selectedJobs.size} failed job(s) selected`}
               </p>
             )}
           </div>
@@ -228,12 +385,36 @@ export default function JobQueue() {
               <option value="completed">Completed</option>
               <option value="failed">Failed</option>
             </select>
+            {selectedJobs.size > 0 && (
+              <button
+                onClick={openRetryModal}
+                className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
+              >
+                Retry Selected ({selectedJobs.size})
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800 text-left">
+                <th className="pb-3 text-gray-400 font-medium">
+                  <input
+                    type="checkbox"
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const failedJobIds = filteredJobs
+                          .filter(job => job.status === 'failed')
+                          .map(job => job.id);
+                        setSelectedJobs(new Set(failedJobIds));
+                      } else {
+                        setSelectedJobs(new Set());
+                      }
+                    }}
+                    className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                  />
+                </th>
                 <th className="pb-3 text-gray-400 font-medium">ID</th>
                 <th className="pb-3 text-gray-400 font-medium">Filename</th>
                 <th className="pb-3 text-gray-400 font-medium">Status</th>
@@ -249,7 +430,7 @@ export default function JobQueue() {
             <tbody>
               {filteredJobs.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-gray-500">
+                  <td colSpan={11} className="py-8 text-center text-gray-500">
                     {jobs.length === 0
                       ? 'No jobs yet. Drop .pcap files in the input folder to get started.'
                       : 'No jobs match your search criteria.'}
@@ -259,6 +440,16 @@ export default function JobQueue() {
                 filteredJobs.map((job) => (
                   <>
                     <tr key={job.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                      <td className="py-3">
+                        {job.status === 'failed' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedJobs.has(job.id)}
+                            onChange={() => toggleJobSelection(job.id)}
+                            className="rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                          />
+                        )}
+                      </td>
                       <td className="py-3 text-gray-300">
                         {job.batch_mode === 1 && (
                           <button
@@ -366,7 +557,7 @@ export default function JobQueue() {
                     {/* Expanded batch items */}
                     {job.batch_mode === 1 && expandedBatchJobs.has(job.id) && (
                       <tr key={`${job.id}-items`} className="bg-gray-800/30">
-                        <td colSpan={10} className="py-4 px-6">
+                        <td colSpan={11} className="py-4 px-6">
                           <div className="ml-8">
                             <h4 className="text-sm font-semibold text-gray-300 mb-3">
                               Batch Items ({batchItems.get(job.id)?.length || 0} files)

@@ -18,20 +18,34 @@
     "penetration-testing",
     "password-cracking"
   ],
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "dev:worker": "npm run dev --workspace=@autopwn/worker",
-    "dev:web": "npm run dev --workspace=@autopwn/web",
-    "dev": "npm run dev:worker & npm run dev:web",
-    "build": "npm run build --workspaces",
-    "build:worker": "npm run build --workspace=@autopwn/worker",
-    "build:web": "npm run build --workspace=@autopwn/web",
-    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist packages/*/.next"
+    "dev": "turbo run dev",
+    "dev:worker": "turbo run dev --filter=@autopwn/worker",
+    "dev:web": "turbo run dev --filter=@autopwn/web",
+    "build": "turbo run build",
+    "build:worker": "turbo run build --filter=@autopwn/worker",
+    "build:web": "turbo run build --filter=@autopwn/web",
+    "type-check": "turbo run type-check",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "clean:all": "rm -rf node_modules packages/*/node_modules packages/*/dist packages/*/.next .turbo",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:codegen": "playwright codegen",
+    "test:e2e:install": "playwright install",
+    "test:unit": "turbo run test --filter=!@autopwn/web-e2e",
+    "test": "pnpm run test:unit && pnpm run test:e2e",
+    "test:report": "playwright show-report"
   },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "playwright": "^1.55.1",
+    "turbo": "^2.2.3"
+  },
+  "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=24.0.0",
-    "npm": ">=10.0.0"
+    "pnpm": ">=9.0.0"
   }
 }
