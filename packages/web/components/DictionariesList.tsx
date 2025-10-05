@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Dictionary } from '@autopwn/shared';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export default function DictionariesList() {
   const [dictionaries, setDictionaries] = useState<Dictionary[]>([]);
@@ -89,80 +93,85 @@ export default function DictionariesList() {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-100">Dictionaries</h2>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded text-sm font-medium transition-colors"
-        >
-          {uploading ? 'Uploading...' : 'Upload'}
-        </button>
-      </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".txt,.dic,.lst,.gz,.bz2,.lzma,.xz,.7z,.zip"
-        onChange={(e) => handleUpload(e.target.files)}
-        className="hidden"
-      />
-
-      {/* Upload message */}
-      {uploadMessage && (
-        <div className={`mb-4 p-3 rounded text-sm ${
-          uploadMessage.type === 'success'
-            ? 'bg-green-900/20 border border-green-700 text-green-300'
-            : 'bg-red-900/20 border border-red-700 text-red-300'
-        }`}>
-          {uploadMessage.text}
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Dictionaries</CardTitle>
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            size="sm"
+          >
+            {uploading ? 'Uploading...' : 'Upload'}
+          </Button>
         </div>
-      )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Hidden file input */}
+        <Input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".txt,.dic,.lst,.gz,.bz2,.lzma,.xz,.7z,.zip"
+          onChange={(e) => handleUpload(e.target.files)}
+          className="hidden"
+        />
 
-      {/* Drag and drop area */}
-      <div
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        className={`mb-4 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-          dragActive
-            ? 'border-blue-500 bg-blue-500/10'
-            : 'border-gray-700 hover:border-gray-600'
-        }`}
-      >
-        <p className="text-gray-400 text-sm">
-          Drag & drop dictionary files here, or click Upload
-        </p>
-        <p className="text-gray-600 text-xs mt-1">
-          Supported: .txt, .gz, .bz2, .xz, .7z, .zip
-        </p>
-      </div>
-
-      {/* Dictionary list */}
-      <div className="space-y-2">
-        {dictionaries.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">
-            No dictionaries found. Upload dictionaries or generate custom wordlists.
-          </p>
-        ) : (
-          dictionaries.map((dict) => (
-            <div
-              key={dict.id}
-              className="flex items-center justify-between p-3 bg-gray-800/50 rounded hover:bg-gray-800"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <span className="text-gray-100 font-mono text-sm">{dict.name}</span>
-              </div>
-              <span className="text-gray-400 text-sm">{formatFileSize(dict.size)}</span>
-            </div>
-          ))
+        {/* Upload message */}
+        {uploadMessage && (
+          <div className={cn(
+            "p-3 rounded text-sm",
+            uploadMessage.type === 'success'
+              ? "bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400"
+              : "bg-destructive/10 border border-destructive/20 text-destructive"
+          )}>
+            {uploadMessage.text}
+          </div>
         )}
-      </div>
-    </div>
+
+        {/* Drag and drop area */}
+        <div
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          className={cn(
+            "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+            dragActive
+              ? "border-primary bg-primary/10"
+              : "border-border hover:border-muted-foreground/50"
+          )}
+        >
+          <p className="text-muted-foreground text-sm">
+            Drag & drop dictionary files here, or click Upload
+          </p>
+          <p className="text-muted-foreground/70 text-xs mt-1">
+            Supported: .txt, .gz, .bz2, .xz, .7z, .zip
+          </p>
+        </div>
+
+        {/* Dictionary list */}
+        <div className="space-y-2">
+          {dictionaries.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">
+              No dictionaries found. Upload dictionaries or generate custom wordlists.
+            </p>
+          ) : (
+            dictionaries.map((dict) => (
+              <div
+                key={dict.id}
+                className="flex items-center justify-between p-3 bg-muted/50 rounded hover:bg-muted transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <span className="font-mono text-sm">{dict.name}</span>
+                </div>
+                <span className="text-muted-foreground text-sm">{formatFileSize(dict.size)}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -14,17 +16,20 @@ export default function Navigation() {
   return (
     <nav className="flex gap-2 sm:gap-4">
       {links.map((link) => (
-        <Link
+        <Button
           key={link.href}
-          href={link.href}
-          className={`px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${
-            pathname === link.href
-              ? 'bg-green-600 text-white'
-              : 'text-gray-300 hover:bg-gray-800'
-          }`}
+          asChild
+          variant={pathname === link.href ? 'default' : 'ghost'}
+          size="sm"
+          className={cn(
+            "text-sm sm:text-base",
+            pathname === link.href && "bg-green-600 hover:bg-green-700"
+          )}
         >
-          {link.label}
-        </Link>
+          <Link href={link.href}>
+            {link.label}
+          </Link>
+        </Button>
       ))}
     </nav>
   );

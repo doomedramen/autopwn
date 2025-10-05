@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { Result } from '@autopwn/shared';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 export default function ResultsTable() {
   const [results, setResults] = useState<Result[]>([]);
@@ -70,168 +77,151 @@ export default function ResultsTable() {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <h2 className="text-xl font-bold text-gray-100">Cracked Passwords</h2>
-        {filteredResults.length > 0 && (
-          <button
-            onClick={exportResults}
-            className="w-full sm:w-auto px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
-            aria-label="Export results to CSV"
-          >
-            Export CSV
-          </button>
-        )}
-      </div>
+    <>
+      <Dialog open={!!selectedResult} onOpenChange={() => setSelectedResult(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Password Details</DialogTitle>
+          </DialogHeader>
+          {selectedResult && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">ID</p>
+                <p className="font-mono">{selectedResult.id}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">ESSID</p>
+                <p className="font-semibold text-green-600 dark:text-green-400">{selectedResult.essid}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Password</p>
+                <p className="font-mono text-lg text-purple-600 dark:text-purple-400">{selectedResult.password}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Cracked At</p>
+                <p>{new Date(selectedResult.cracked_at).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Job ID</p>
+                <p>{selectedResult.job_id}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
-        <input
-          type="search"
-          placeholder="Search by ESSID, password, or ID..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
-          aria-label="Search results"
-        />
-        <select
-          value={filterEssid}
-          onChange={(e) => setFilterEssid(e.target.value)}
-          className="w-full sm:w-auto px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 focus:outline-none focus:border-blue-500 text-sm"
-          aria-label="filter by ESSID"
-        >
-          <option value="all">All Networks</option>
-          {uniqueEssids.map(essid => (
-            <option key={essid} value={essid}>{essid}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Results count */}
-      {filteredResults.length !== results.length && (
-        <p className="text-sm text-gray-400 mb-3">
-          Showing {filteredResults.length} of {results.length} results
-        </p>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-800 text-left">
-              <th className="pb-3 text-gray-400 font-medium">ID</th>
-              <th className="pb-3 text-gray-400 font-medium">ESSID</th>
-              <th className="pb-3 text-gray-400 font-medium">Password</th>
-              <th className="pb-3 text-gray-400 font-medium">Cracked At</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedResults.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="py-8 text-center text-gray-500">
-                  {results.length === 0 ? 'No passwords cracked yet.' : 'No results match your search.'}
-                </td>
-              </tr>
-            ) : (
-              paginatedResults.map((result) => (
-                <tr
-                  key={result.id}
-                  className="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer"
-                  onClick={() => setSelectedResult(result)}
-                >
-                  <td className="py-3 text-gray-300">{result.id}</td>
-                  <td className="py-3 text-green-400 font-semibold">{result.essid}</td>
-                  <td className="py-3 text-purple-400 font-mono">{result.password}</td>
-                  <td className="py-3 text-gray-400 text-sm">
-                    {new Date(result.cracked_at).toLocaleString()}
-                  </td>
-                </tr>
-              ))
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle>Cracked Passwords</CardTitle>
+            {filteredResults.length > 0 && (
+              <Button onClick={exportResults} variant="outline">
+                Export CSV
+              </Button>
             )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
-          <p className="text-sm text-gray-400">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 rounded text-sm transition-colors"
-              aria-label="Previous page"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 rounded text-sm transition-colors"
-              aria-label="Next page"
-            >
-              Next
-            </button>
           </div>
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {selectedResult && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedResult(null)}>
-          <div
-            role="dialog"
-            aria-labelledby="result-detail-title"
-            className="bg-gray-900 border border-gray-800 rounded-lg max-w-lg w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 id="result-detail-title" className="text-lg font-bold text-gray-100">
-                Password Details
-              </h3>
-              <button
-                onClick={() => setSelectedResult(null)}
-                className="text-gray-400 hover:text-gray-200 transition-colors"
-                aria-label="Close dialog"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-400">ID</label>
-                <p className="text-gray-100 font-mono">{selectedResult.id}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400">ESSID</label>
-                <p className="text-green-400 font-semibold">{selectedResult.essid}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400">Password</label>
-                <p className="text-purple-400 font-mono text-lg">{selectedResult.password}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400">Cracked At</label>
-                <p className="text-gray-100">{new Date(selectedResult.cracked_at).toLocaleString()}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-400">Job ID</label>
-                <p className="text-gray-100">{selectedResult.job_id}</p>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setSelectedResult(null)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded font-medium transition-colors"
-              >
-                Close
-              </button>
-            </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Input
+              type="search"
+              placeholder="Search by ESSID, password, or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={filterEssid} onValueChange={setFilterEssid}>
+              <SelectTrigger className="w-full sm:w-auto">
+                <SelectValue placeholder="Filter by network" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Networks</SelectItem>
+                {uniqueEssids.map(essid => (
+                  <SelectItem key={essid} value={essid}>{essid}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
-    </div>
+
+          {/* Results count */}
+          {filteredResults.length !== results.length && (
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredResults.length} of {results.length} results
+            </p>
+          )}
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pb-3">ID</TableHead>
+                  <TableHead className="pb-3">ESSID</TableHead>
+                  <TableHead className="pb-3">Password</TableHead>
+                  <TableHead className="pb-3">Cracked At</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedResults.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {results.length === 0 ? 'No passwords cracked yet.' : 'No results match your search.'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedResults.map((result) => (
+                    <TableRow
+                      key={result.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedResult(result)}
+                    >
+                      <TableCell className="py-3">{result.id}</TableCell>
+                      <TableCell className="py-3">
+                        <Badge variant="secondary" className="text-green-600 dark:text-green-400">
+                          {result.essid}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-3 font-mono text-purple-600 dark:text-purple-400">
+                        {result.password}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm">
+                        {new Date(result.cracked_at).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

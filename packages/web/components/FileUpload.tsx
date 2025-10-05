@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 export default function FileUpload() {
   const [isDragging, setIsDragging] = useState(false);
@@ -75,73 +79,78 @@ export default function FileUpload() {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 text-gray-100">Upload Captures</h2>
-
-      <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isDragging
-            ? 'border-green-500 bg-green-500/10'
-            : 'border-gray-700 hover:border-gray-600'
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".pcap,.pcapng,.cap"
-          onChange={handleFileSelect}
-          className="hidden"
-          id="file-upload"
-        />
-
-        {uploading ? (
-          <div className="py-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-            <p className="text-gray-400 mt-4">Uploading...</p>
-          </div>
-        ) : (
-          <>
-            <svg
-              className="mx-auto h-12 w-12 text-gray-500 mb-4"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <p className="text-gray-300 mb-2">
-              Drag and drop .pcap files here, or{' '}
-              <label htmlFor="file-upload" className="text-green-400 hover:text-green-300 cursor-pointer underline">
-                browse
-              </label>
-            </p>
-            <p className="text-sm text-gray-500">
-              Supports .pcap, .pcapng, .cap files
-            </p>
-          </>
-        )}
-      </div>
-
-      {message && (
+    <Card>
+      <CardHeader>
+        <CardTitle>Upload Captures</CardTitle>
+      </CardHeader>
+      <CardContent>
         <div
-          className={`mt-4 p-4 rounded-lg ${
-            message.type === 'success'
-              ? 'bg-green-900/30 border border-green-800 text-green-300'
-              : 'bg-red-900/30 border border-red-800 text-red-300'
-          }`}
+          className={cn(
+            "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+            isDragging
+              ? "border-green-500 bg-green-500/10"
+              : "border-border hover:border-muted-foreground/50"
+          )}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
-          {message.text}
+          <Input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pcap,.pcapng,.cap"
+            onChange={handleFileSelect}
+            className="hidden"
+            id="file-upload"
+          />
+
+          {uploading ? (
+            <div className="py-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-4">Uploading...</p>
+            </div>
+          ) : (
+            <>
+              <svg
+                className="mx-auto h-12 w-12 text-muted-foreground mb-4"
+                stroke="currentColor"
+                fill="none"
+                viewBox="0 0 48 48"
+              >
+                <path
+                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <p className="mb-2">
+                Drag and drop .pcap files here, or{' '}
+                <label htmlFor="file-upload" className="text-primary hover:text-primary/80 cursor-pointer underline">
+                  browse
+                </label>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Supports .pcap, .pcapng, .cap files
+              </p>
+            </>
+          )}
         </div>
-      )}
-    </div>
+
+        {message && (
+          <div
+            className={cn(
+              "mt-4 p-4 rounded-lg",
+              message.type === 'success'
+                ? "bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400"
+                : "bg-destructive/10 border border-destructive/20 text-destructive"
+            )}
+          >
+            {message.text}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

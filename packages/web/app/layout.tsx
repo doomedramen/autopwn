@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Navigation from '@/components/Navigation'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { ThemeProvider } from '@/components/theme-provider'
 
 export const metadata: Metadata = {
   title: 'AutoPWN (⌐■_■) - WiFi Handshake Cracker',
@@ -13,22 +15,32 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-950 text-gray-100 min-h-screen">
-        <header className="bg-gray-900 border-b border-gray-800">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-green-400">AutoPWN <span className="text-gray-100">(⌐■_■)</span></h1>
-                <p className="text-xs sm:text-sm text-gray-400">WiFi Handshake Cracker</p>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <header className="border-b">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-green-400">AutoPWN <span className="text-foreground">(⌐■_■)</span></h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground">WiFi Handshake Cracker</p>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <Navigation />
+                  <ThemeToggle />
+                </div>
               </div>
-              <Navigation />
             </div>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-6">
-          {children}
-        </main>
+          </header>
+          <main className="container mx-auto px-4 py-6">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   )

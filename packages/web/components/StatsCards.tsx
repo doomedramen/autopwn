@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Stats {
   total: number;
@@ -25,7 +26,7 @@ export default function StatsCards() {
     return () => clearInterval(interval);
   }, []);
 
-  if (!stats) return <div className="text-gray-400">Loading stats...</div>;
+  if (!stats) return <div className="text-muted-foreground">Loading stats...</div>;
 
   const cards = [
     { label: 'Total Jobs', value: stats.total, color: 'bg-blue-500' },
@@ -36,13 +37,15 @@ export default function StatsCards() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
       {cards.map((card) => (
-        <div key={card.label} className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div className={`w-3 h-3 rounded-full ${card.color} mb-2`}></div>
-          <div className="text-2xl font-bold text-gray-100">{card.value}</div>
-          <div className="text-sm text-gray-400">{card.label}</div>
-        </div>
+        <Card key={card.label}>
+          <CardContent className="p-3 sm:p-4">
+            <div className={`w-3 h-3 rounded-full ${card.color} mb-2`}></div>
+            <div className="text-xl sm:text-2xl font-bold">{card.value}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">{card.label}</div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

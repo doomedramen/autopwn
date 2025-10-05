@@ -1,6 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function WordlistGenerator() {
   const [baseWords, setBaseWords] = useState('');
@@ -53,125 +59,115 @@ export default function WordlistGenerator() {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <h2 className="text-xl font-bold text-gray-100 mb-4">Custom Wordlist Generator</h2>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Base Words (one per line)
-          </label>
-          <textarea
+    <Card>
+      <CardHeader>
+        <CardTitle>Custom Wordlist Generator</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="base-words-textarea">Base Words (one per line)</Label>
+          <Textarea
             id="base-words-textarea"
             value={baseWords}
             onChange={(e) => setBaseWords(e.target.value)}
             placeholder="password&#10;wifi&#10;network&#10;company"
             rows={6}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
+            className="font-mono text-sm"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground">
             Enter common words, company names, locations, etc.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Min Length
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="min-length-input">Min Length</Label>
+            <Input
               id="min-length-input"
               type="number"
               value={minLength}
               onChange={(e) => setMinLength(parseInt(e.target.value))}
               min={1}
               max={63}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 focus:outline-none focus:border-blue-500"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Max Length
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="max-length-input">Max Length</Label>
+            <Input
               id="max-length-input"
               type="number"
               value={maxLength}
               onChange={(e) => setMaxLength(parseInt(e.target.value))}
               min={1}
               max={63}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            <input
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Checkbox
               id="include-numbers-checkbox"
-              type="checkbox"
               checked={includeNumbers}
-              onChange={(e) => setIncludeNumbers(e.target.checked)}
-              className="w-4 h-4 bg-gray-800 border-gray-700 rounded"
+              onCheckedChange={(checked) => setIncludeNumbers(checked as boolean)}
             />
-            Append numbers (0-9, 00-99, 123, 2024, etc.)
-          </label>
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            <input
+            <Label htmlFor="include-numbers-checkbox" className="text-sm font-normal">
+              Append numbers (0-9, 00-99, 123, 2024, etc.)
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
               id="include-special-chars-checkbox"
-              type="checkbox"
               checked={includeSpecialChars}
-              onChange={(e) => setIncludeSpecialChars(e.target.checked)}
-              className="w-4 h-4 bg-gray-800 border-gray-700 rounded"
+              onCheckedChange={(checked) => setIncludeSpecialChars(checked as boolean)}
             />
-            Append special characters (!@#$%*, etc.)
-          </label>
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            <input
+            <Label htmlFor="include-special-chars-checkbox" className="text-sm font-normal">
+              Append special characters (!@#$%*, etc.)
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
               id="include-caps-checkbox"
-              type="checkbox"
               checked={includeCaps}
-              onChange={(e) => setIncludeCaps(e.target.checked)}
-              className="w-4 h-4 bg-gray-800 border-gray-700 rounded"
+              onCheckedChange={(checked) => setIncludeCaps(checked as boolean)}
             />
-            Capitalize variations (Password, PASSWORD, pAssWord)
-          </label>
+            <Label htmlFor="include-caps-checkbox" className="text-sm font-normal">
+              Capitalize variations (Password, PASSWORD, pAssWord)
+            </Label>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Custom Pattern (optional)
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="custom-pattern-input">Custom Pattern (optional)</Label>
+          <Input
             id="custom-pattern-input"
-            type="text"
             value={customPattern}
             onChange={(e) => setCustomPattern(e.target.value)}
             placeholder="e.g., {word}{year} or {word}@{number}"
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 font-mono text-sm"
+            className="font-mono text-sm"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground">
             Use {'{word}'} for base word, {'{number}'} for digits, {'{year}'} for years
           </p>
         </div>
 
-        <button
+        <Button
           id="generate-wordlist-button"
           onClick={generateWordlist}
           disabled={isGenerating}
-          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded font-medium transition-colors"
+          className="w-full"
         >
           {isGenerating ? 'Generating...' : 'Generate Wordlist'}
-        </button>
+        </Button>
 
         {result && (
-          <div id="wordlist-result" className="bg-green-900/20 border border-green-700 rounded p-4 text-green-300">
+          <div id="wordlist-result" className="bg-green-500/10 border border-green-500/20 rounded p-4 text-green-600 dark:text-green-400">
             <p className="font-medium">Wordlist generated successfully!</p>
             <p className="text-sm mt-1">File: {result.filename}</p>
             <p className="text-sm">Total entries: {result.count.toLocaleString()}</p>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
