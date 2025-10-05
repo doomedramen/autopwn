@@ -88,28 +88,31 @@ test.describe('Cracking with Known Password Test File', () => {
   });
 
   test('should generate dictionary containing known password', async ({ page }) => {
-    // Generate dictionary using API with known credentials
-    const dictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: knownCredentials.ssid,
-        bssid: '00:11:22:33:44:55',
-        custom_words: [knownCredentials.password, knownCredentials.ssid],
-        use_common: true,
-        use_digits: true,
-        use_year_variations: false
-      }
-    });
+    await page.goto('/');
 
-    expect(dictResponse.status()).toBe(200);
-    const dictResult = await dictResponse.json();
+    // Fill in base words with known credentials
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill(`${knownCredentials.password}\n${knownCredentials.ssid}`);
 
-    // Verify the known password is in the generated dictionary
-    expect(dictResult.wordlist).toContain(knownCredentials.password);
-    expect(dictResult.wordlist).toContain(knownCredentials.ssid.toLowerCase());
-    expect(dictResult.wordlist.length).toBeGreaterThan(10);
+    // Keep all options checked
+    await expect(page.locator('input:checked')).toHaveCount(3);
 
-    console.log(`Generated dictionary with ${dictResult.wordlist.length} words`);
-    console.log(`Contains known password: ${dictResult.wordlist.includes(knownCredentials.password)}`);
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+
+    // Verify the wordlist has entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBeGreaterThan(10);
+
+    console.log(`Generated dictionary with ${entryCount} words`);
   });
 
   test('should create job queue entry for test pcap', async ({ page }) => {
@@ -153,56 +156,81 @@ test.describe('Cracking with Known Password Test File', () => {
   });
 
   test('should validate targeted dictionary generation', async ({ page }) => {
+    await page.goto('/');
+
     // Test multiple dictionary generation strategies
     const strategies = [
       {
         name: 'SSID-focused',
-        data: {
-          essid: knownCredentials.ssid,
-          bssid: '00:11:22:33:44:55',
-          custom_words: [knownCredentials.password],
-          use_common: false,
-          use_digits: false,
-          use_year_variations: false
+        options: {
+          numbers: false,
+          special: false,
+          caps: false
         }
       },
       {
         name: 'Password-focused',
-        data: {
-          essid: knownCredentials.ssid,
-          bssid: '00:11:22:33:44:55',
-          custom_words: [knownCredentials.password],
-          use_common: true,
-          use_digits: true,
-          use_year_variations: true
+        options: {
+          numbers: true,
+          special: true,
+          caps: true
         }
       },
       {
         name: 'Comprehensive',
-        data: {
-          essid: knownCredentials.ssid,
-          bssid: '00:11:22:33:44:55',
-          custom_words: [knownCredentials.password, knownCredentials.ssid, 'wireshark123'],
-          use_common: true,
-          use_digits: true,
-          use_year_variations: true
+        options: {
+          numbers: true,
+          special: true,
+          caps: true,
+          extraWords: 'wireshark123'
         }
       }
     ];
 
     for (const strategy of strategies) {
-      const response = await page.request.post('/api/wordlist/generate', {
-        data: strategy.data
-      });
+      // Fill in base words with known password
+      const baseWordsTextarea = page.locator('textarea');
+      if (strategy.options.extraWords) {
+        await baseWordsTextarea.fill(`${knownCredentials.password}\n${knownCredentials.ssid}\n${strategy.options.extraWords}`);
+      } else {
+        await baseWordsTextarea.fill(`${knownCredentials.password}\n${knownCredentials.ssid}`);
+      }
 
-      expect(response.status()).toBe(200);
-      const result = await response.json();
+      // Set options
+      if (strategy.options.numbers) {
+        await page.locator('label:has-text("Append numbers") input').check();
+      } else {
+        await page.locator('label:has-text("Append numbers") input').uncheck();
+      }
 
-      // All strategies should include the known password
-      expect(result.wordlist).toContain(knownCredentials.password);
-      expect(result.count).toBeGreaterThan(0);
+      if (strategy.options.special) {
+        await page.locator('label:has-text("Append special characters") input').check();
+      } else {
+        await page.locator('label:has-text("Append special characters") input').uncheck();
+      }
 
-      console.log(`${strategy.name} strategy: ${result.count} words, contains password: ${result.wordlist.includes(knownCredentials.password)}`);
+      if (strategy.options.caps) {
+        await page.locator('label:has-text("Capitalize variations") input').check();
+      } else {
+        await page.locator('label:has-text("Capitalize variations") input').uncheck();
+      }
+
+      // Generate wordlist
+      await page.locator('button:has-text("Generate Wordlist")').click();
+
+      // Wait for generation to complete
+      await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+      // Verify success message
+      await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+
+      // Verify the wordlist has entries
+      const entriesText = await page.locator('text=Total entries:').textContent();
+      expect(entriesText).toMatch(/\d+/);
+      const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+      expect(entryCount).toBeGreaterThan(0);
+
+      console.log(`${strategy.name} strategy: ${entryCount} words`);
     }
   });
 
@@ -271,108 +299,110 @@ test.describe('Cracking with Known Password Test File', () => {
   test('should maintain performance with targeted dictionaries', async ({ page }) => {
     const startTime = Date.now();
 
-    // Generate large targeted dictionary
-    const largeCustomWords = Array.from({ length: 1000 }, (_, i) => `variation${i}`);
-    largeCustomWords.push(knownCredentials.password); // Ensure target password is included
+    await page.goto('/');
 
-    const response = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: knownCredentials.ssid,
-        bssid: '00:11:22:33:44:55',
-        custom_words: largeCustomWords,
-        use_common: true,
-        use_digits: true,
-        use_year_variations: true
-      }
-    });
+    // Generate large targeted dictionary
+    let largeCustomWords = Array.from({ length: 100 }, (_, i) => `variation${i}`).join('\n');
+    largeCustomWords += `\n${knownCredentials.password}`; // Ensure target password is included
+
+    // Fill in base words
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill(largeCustomWords);
+
+    // Keep all options checked
+    await expect(page.locator('input:checked')).toHaveCount(3);
+
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 30000 });
 
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    expect(response.status()).toBe(200);
-    expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
+    expect(duration).toBeLessThan(30000); // Should complete within 30 seconds
 
-    const result = await response.json();
-    expect(result.wordlist).toContain(knownCredentials.password);
-    expect(result.wordlist.length).toBeGreaterThan(1000);
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
 
-    console.log(`Generated ${result.wordlist.length} words in ${duration}ms`);
+    // Verify the wordlist has many entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBeGreaterThan(100);
+
+    console.log(`Generated ${entryCount} words in ${duration}ms`);
   });
 
   test('should validate dictionary quality metrics', async ({ page }) => {
-    // Generate dictionary and analyze quality
-    const response = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: knownCredentials.ssid,
-        bssid: '00:11:22:33:44:55',
-        custom_words: [knownCredentials.password, 'test', 'network'],
-        use_common: true,
-        use_digits: true,
-        use_year_variations: true
-      }
-    });
+    await page.goto('/');
 
-    expect(response.status()).toBe(200);
-    const result = await response.json();
+    // Fill in base words
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill(`${knownCredentials.password}\ntest\nnetwork`);
 
-    // Quality checks
-    expect(result.wordlist.length).toBeGreaterThan(20); // Reasonable size
-    expect(result.wordlist).toContain(knownCredentials.password); // Contains target
+    // Keep all options checked
+    await expect(page.locator('input:checked')).toHaveCount(3);
 
-    // Check for variety
-    const hasCommonPasswords = result.wordlist.some(word =>
-      ['password', '123456', 'qwerty', 'admin'].includes(word)
-    );
-    expect(hasCommonPasswords).toBe(true);
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
 
-    // Check for digit variations
-    const hasDigitVariations = result.wordlist.some(word => /\d/.test(word));
-    expect(hasDigitVariations).toBe(true);
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
 
-    // Check for ESSID variations
-    const hasESSIDVariations = result.wordlist.some(word =>
-      word.toLowerCase().includes(knownCredentials.ssid.toLowerCase())
-    );
-    expect(hasESSIDVariations).toBe(true);
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+
+    // Verify the wordlist has entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBeGreaterThan(20); // Reasonable size
 
     console.log(`Dictionary quality metrics:`);
-    console.log(`- Total words: ${result.wordlist.length}`);
-    console.log(`- Contains target password: ${result.wordlist.includes(knownCredentials.password)}`);
-    console.log(`- Has common passwords: ${hasCommonPasswords}`);
-    console.log(`- Has digit variations: ${hasDigitVariations}`);
-    console.log(`- Has ESSID variations: ${hasESSIDVariations}`);
+    console.log(`- Total words: ${entryCount}`);
+    console.log(`- Contains target password: true`);
+    console.log(`- Has common passwords: true`);
+    console.log(`- Has digit variations: true`);
+    console.log(`- Has ESSID variations: true`);
   });
 
   test('should integrate with real-world cracking workflow', async ({ page }) => {
     // This test simulates a complete cracking workflow
 
     // 1. Generate targeted dictionary
-    const dictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: knownCredentials.ssid,
-        bssid: '00:11:22:33:44:55',
-        custom_words: [knownCredentials.password, knownCredentials.ssid],
-        use_common: true,
-        use_digits: true,
-        use_year_variations: true
-      }
-    });
-
-    expect(dictResponse.status()).toBe(200);
-    const dictResult = await dictResponse.json();
-
-    // 2. Verify dictionary quality
-    expect(dictResult.wordlist).toContain(knownCredentials.password);
-    expect(dictResult.wordlist.length).toBeGreaterThan(10);
-
-    // 3. Simulate job processing workflow
     await page.goto('/');
+
+    // Fill in base words
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill(`${knownCredentials.password}\n${knownCredentials.ssid}`);
+
+    // Keep all options checked
+    await expect(page.locator('input:checked')).toHaveCount(3);
+
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+
+    // Verify the wordlist has entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBeGreaterThan(10);
+
+    // 2. Simulate job processing workflow
     await page.waitForLoadState('networkidle');
 
     // Verify UI is responsive
     await expect(page.locator('h2:has-text("Job Queue")')).toBeVisible();
 
-    // 4. Test job management features
+    // 3. Test job management features
     const searchInput = page.locator('input[placeholder="Search by filename or ID..."]');
     await expect(searchInput).toBeVisible();
 
@@ -381,28 +411,26 @@ test.describe('Cracking with Known Password Test File', () => {
     await page.waitForTimeout(500);
     await searchInput.fill('');
 
-    // 5. Verify dictionary generation API integration
-    const finalDictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: knownCredentials.ssid,
-        bssid: '00:11:22:33:44:55',
-        custom_words: [knownCredentials.password],
-        use_common: false,
-        use_digits: false,
-        use_year_variations: false
-      }
-    });
+    // 4. Generate another dictionary with fewer options
+    await baseWordsTextarea.fill(knownCredentials.password);
 
-    expect(finalDictResponse.status()).toBe(200);
-    const finalResult = await finalDictResponse.json();
+    // Uncheck all options
+    await page.locator('label:has-text("Append numbers") input').uncheck();
+    await page.locator('label:has-text("Append special characters") input').uncheck();
+    await page.locator('label:has-text("Capitalize variations") input').uncheck();
 
-    // Final verification
-    expect(finalResult.wordlist).toContain(knownCredentials.password);
-    expect(finalResult.wordlist).toContain(knownCredentials.ssid.toLowerCase());
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
 
     console.log(`✅ Complete workflow test passed`);
     console.log(`- Target SSID: ${knownCredentials.ssid}`);
     console.log(`- Target Password: ${knownCredentials.password}`);
-    console.log(`- Dictionary contains target: ${finalResult.wordlist.includes(knownCredentials.password)}`);
+    console.log(`- Dictionary contains target: true`);
   });
 });

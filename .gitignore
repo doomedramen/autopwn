@@ -61,3 +61,8 @@ volumes/dictionaries/*
 # Docker
 docker-compose.override.yml
 /.turbo
+/playwright-report
+/test-results
+tests/fixtures
+!tests/fixtures/pcaps
+!tests/fixtures/README.md

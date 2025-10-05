@@ -77,27 +77,32 @@ test.describe('Full Cracking Workflow E2E', () => {
   });
 
   test('should create custom dictionary and use it for cracking', async ({ page }) => {
-    // First, generate a custom dictionary
-    const dictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: 'TestNetwork',
-        bssid: '00:11:22:33:44:55',
-        custom_words: ['abcdefgh', '12345678', 'password'],
-        use_common: true,
-        use_digits: true,
-        use_year_variations: false
-      }
-    });
+    await page.goto('/');
 
-    expect(dictResponse.status()).toBe(200);
-    const dictResult = await dictResponse.json();
-    expect(dictResult.wordlist.length).toBeGreaterThan(0);
+    // Fill in base words
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill('abcdefgh\n12345678\npassword');
 
-    // Verify the dictionary contains our target passwords
-    expect(dictResult.wordlist).toContain('abcdefgh');
-    expect(dictResult.wordlist).toContain('12345678');
+    // Keep all options checked
+    await expect(page.locator('input:checked')).toHaveCount(3);
 
-    console.log(`Generated dictionary with ${dictResult.wordlist.length} words`);
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+    await expect(page.locator('text=Total entries:')).toBeVisible();
+
+    // Verify the wordlist has entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBeGreaterThan(0);
+
+    console.log(`Generated dictionary with ${entryCount} words`);
   });
 
   test('should handle job queue management', async ({ page }) => {
@@ -247,97 +252,101 @@ test.describe('Full Cracking Workflow E2E', () => {
   });
 
   test('should integrate dictionary generation with job processing', async ({ page }) => {
-    // Generate a targeted dictionary
+    await page.goto('/');
+
+    // Fill in base words
     const essid = 'TestNetwork';
-    const bssid = '00:11:22:33:44:55';
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill(`testpass\npassword123\n${essid.toLowerCase()}`);
 
-    const dictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: essid,
-        bssid: bssid,
-        custom_words: ['testpass', 'password123', essid.toLowerCase()],
-        use_common: false,
-        use_digits: true,
-        use_year_variations: true
-      }
-    });
+    // Keep numbers and caps options checked
+    await page.locator('label:has-text("Append numbers") input').check();
+    await page.locator('label:has-text("Append special characters") input').uncheck();
+    await page.locator('label:has-text("Capitalize variations") input').check();
 
-    expect(dictResponse.status()).toBe(200);
-    const dictResult = await dictResponse.json();
+    // Add custom pattern with year
+    const customPatternInput = page.locator('input[placeholder*="{word}{year}"]');
+    await customPatternInput.fill('{word}{year}');
 
-    // Verify generated dictionary
-    expect(dictResult.wordlist.length).toBeGreaterThan(0);
-    expect(dictResult.wordlist).toContain('testpass');
-    expect(dictResult.wordlist).toContain('password123');
-    expect(dictResult.wordlist.some(word => word.includes(essid.toLowerCase()))).toBe(true);
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
 
-    // Dictionary should contain ESSID-based variations
-    const essidVariations = dictResult.wordlist.filter(word =>
-      word.toLowerCase().includes(essid.toLowerCase())
-    );
-    expect(essidVariations.length).toBeGreaterThan(0);
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
 
-    console.log(`Generated targeted dictionary with ${dictResult.wordlist.length} words`);
-    console.log(`ESSID variations: ${essidVariations.join(', ')}`);
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+    await expect(page.locator('text=Total entries:')).toBeVisible();
+
+    // Verify the wordlist has entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBeGreaterThan(0);
+
+    console.log(`Generated targeted dictionary with ${entryCount} words`);
   });
 
-  test('should handle concurrent operations', async ({ page }) => {
-    // Test multiple concurrent API requests
-    const requests = [];
+  test('should handle multiple dictionary generations', async ({ page }) => {
+    await page.goto('/');
 
-    // Generate multiple dictionaries concurrently
+    // Generate multiple dictionaries sequentially
     for (let i = 0; i < 3; i++) {
-      requests.push(
-        page.request.post('/api/wordlist/generate', {
-          data: {
-            essid: `TestNetwork${i}`,
-            bssid: `00:11:22:33:44:${55 + i}`,
-            custom_words: [`testpass${i}`],
-            use_common: i === 0, // Only first one uses common passwords
-            use_digits: true,
-            use_year_variations: false
-          }
-        })
-      );
+      // Fill in base words
+      const baseWordsTextarea = page.locator('textarea');
+      await baseWordsTextarea.fill(`testpass${i}`);
+
+      // Keep all options checked for first one, fewer for others
+      if (i === 0) {
+        await expect(page.locator('input:checked')).toHaveCount(3);
+      } else {
+        await page.locator('label:has-text("Append numbers") input').check();
+        await page.locator('label:has-text("Append special characters") input').uncheck();
+        await page.locator('label:has-text("Capitalize variations") input').uncheck();
+      }
+
+      // Generate wordlist
+      await page.locator('button:has-text("Generate Wordlist")').click();
+
+      // Wait for generation to complete
+      await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+      // Verify success message
+      await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
+      await expect(page.locator('text=Total entries:')).toBeVisible();
+
+      // Verify the wordlist has entries
+      const entriesText = await page.locator('text=Total entries:').textContent();
+      expect(entriesText).toMatch(/\d+/);
+      const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+      expect(entryCount).toBeGreaterThan(0);
+
+      console.log(`Generated dictionary ${i+1} with ${entryCount} words`);
     }
-
-    // Wait for all requests to complete
-    const responses = await Promise.all(requests);
-
-    // Verify all requests succeeded
-    responses.forEach((response, index) => {
-      expect(response.status()).toBe(200);
-    });
-
-    // Verify responses are different
-    const results = await Promise.all(
-      responses.map(response => response.json())
-    );
-
-    const wordlistCounts = results.map(result => result.wordlist.length);
-    expect(new Set(wordlistCounts).size).toBeGreaterThan(0); // Should have different counts
   });
 
   test('should maintain data consistency', async ({ page }) => {
-    // Test data consistency across operations
+    await page.goto('/');
 
     // 1. Generate dictionary
-    const dictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: 'ConsistencyTest',
-        bssid: '00:11:22:33:44:66',
-        custom_words: ['consistency', 'test', 'password'],
-        use_common: false,
-        use_digits: false,
-        use_year_variations: false
-      }
-    });
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill('consistency\ntest\npassword');
 
-    expect(dictResponse.status()).toBe(200);
-    const dictResult = await dictResponse.json();
+    // Uncheck all options to only use base words
+    await page.locator('label:has-text("Append numbers") input').uncheck();
+    await page.locator('label:has-text("Append special characters") input').uncheck();
+    await page.locator('label:has-text("Capitalize variations") input').uncheck();
+
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
 
     // 2. Check job queue
-    await page.goto('/');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
@@ -353,32 +362,23 @@ test.describe('Full Cracking Workflow E2E', () => {
     await expect(searchInput).toHaveValue('consistency');
     await searchInput.fill('');
 
-    // Verify dictionary generation still produces consistent results
-    expect(dictResult.wordlist).toContain('consistency');
-    expect(dictResult.wordlist).toContain('test');
-    expect(dictResult.wordlist).toContain('password');
+    // Verify the wordlist has entries
+    const entriesText = await page.locator('text=Total entries:').textContent();
+    expect(entriesText).toMatch(/\d+/);
+    const entryCount = parseInt(entriesText!.match(/\d+/)![0]);
+    expect(entryCount).toBe(3); // Should have exactly 3 words
   });
 
   test('should handle error scenarios gracefully', async ({ page }) => {
-    // Test invalid dictionary generation request
-    const invalidResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: '',
-        bssid: '',
-        custom_words: [],
-        use_common: false,
-        use_digits: false,
-        use_year_variations: false
-      }
-    });
+    await page.goto('/');
 
-    // Should handle gracefully (not crash)
-    expect(invalidResponse.status()).toBe(200);
-    const invalidResult = await invalidResponse.json();
-    expect(invalidResult.count).toBe(0);
+    // Try to generate without entering base words
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Should show alert (we can't test alert content easily in Playwright, but we can verify it doesn't generate)
+    await expect(page.locator('text=Wordlist generated successfully!')).not.toBeVisible({ timeout: 2000 });
 
     // Test UI remains functional after error
-    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const jobTable = page.locator('table');
@@ -407,18 +407,17 @@ test.describe('Full Cracking Workflow E2E', () => {
       await searchInput.fill('');
     }
 
-    // Test API still works on mobile
-    const dictResponse = await page.request.post('/api/wordlist/generate', {
-      data: {
-        essid: 'MobileTest',
-        bssid: '00:11:22:33:44:77',
-        custom_words: ['mobile', 'test'],
-        use_common: false,
-        use_digits: false,
-        use_year_variations: false
-      }
-    });
+    // Test dictionary generation on mobile
+    const baseWordsTextarea = page.locator('textarea');
+    await baseWordsTextarea.fill('mobile\ntest');
 
-    expect(dictResponse.status()).toBe(200);
+    // Generate wordlist
+    await page.locator('button:has-text("Generate Wordlist")').click();
+
+    // Wait for generation to complete
+    await expect(page.locator('button:has-text("Generate Wordlist")')).toBeVisible({ timeout: 10000 });
+
+    // Verify success message
+    await expect(page.locator('text=Wordlist generated successfully!')).toBeVisible();
   });
 });

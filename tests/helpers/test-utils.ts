@@ -156,16 +156,28 @@ export class TestUtils {
       }
     ];
 
+    // Ensure target directory exists
+    if (!fs.existsSync(this.config.testInputDir)) {
+      fs.mkdirSync(this.config.testInputDir, { recursive: true });
+    }
+
     const results: PcapFileInfo[] = [];
     for (const pcapInfo of pcapFiles) {
       const sourcePath = path.join(fixturesDir, pcapInfo.filename);
       const targetPath = path.join(this.config.testInputDir, pcapInfo.filename);
 
       if (fs.existsSync(sourcePath)) {
-        fs.copyFileSync(sourcePath, targetPath);
-        results.push({
-          ...pcapInfo
-        });
+        try {
+          fs.copyFileSync(sourcePath, targetPath);
+          results.push({
+            ...pcapInfo
+          });
+        } catch (error) {
+          console.warn(`Failed to copy pcap file from ${sourcePath} to ${targetPath}:`, error);
+          // Create minimal test file as fallback
+          this.createMockPcap(pcapInfo.filename);
+          results.push(pcapInfo);
+        }
       } else {
         console.warn(`Pcap file not found: ${sourcePath}`);
         // Create minimal test file as fallback
