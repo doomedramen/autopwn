@@ -106,6 +106,38 @@ export default function JobQueue() {
     }
   };
 
+  const togglePause = async (job: Job) => {
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/pause`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(`Failed to toggle pause: ${error.error}`);
+      }
+    } catch (error) {
+      alert('Failed to toggle pause');
+    }
+  };
+
+  const setPriority = async (job: Job, priority: number) => {
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/priority`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(`Failed to set priority: ${error.error}`);
+      }
+    } catch (error) {
+      alert('Failed to set priority');
+    }
+  };
+
   return (
     <>
       {showLogs && selectedJob && (
@@ -130,123 +162,150 @@ export default function JobQueue() {
           </div>
         </div>
       )}
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-100">Job Queue</h2>
-          {jobs.length > 0 && (
-            <p className="text-sm text-gray-400 mt-1">
-              Showing {filteredJobs.length} of {jobs.length} jobs
-            </p>
-          )}
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-100">Job Queue</h2>
+            {jobs.length > 0 && (
+              <p className="text-sm text-gray-400 mt-1">
+                Showing {filteredJobs.length} of {jobs.length} jobs
+              </p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="Search by filename or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Search by filename or ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="completed">Completed</option>
-            <option value="failed">Failed</option>
-          </select>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-800 text-left">
-              <th className="pb-3 text-gray-400 font-medium">ID</th>
-              <th className="pb-3 text-gray-400 font-medium">Filename</th>
-              <th className="pb-3 text-gray-400 font-medium">Status</th>
-              <th className="pb-3 text-gray-400 font-medium">Dictionary</th>
-              <th className="pb-3 text-gray-400 font-medium">Progress</th>
-              <th className="pb-3 text-gray-400 font-medium">Speed</th>
-              <th className="pb-3 text-gray-400 font-medium">ETA</th>
-              <th className="pb-3 text-gray-400 font-medium">Hashes</th>
-              <th className="pb-3 text-gray-400 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredJobs.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="py-8 text-center text-gray-500">
-                  {jobs.length === 0
-                    ? 'No jobs yet. Drop .pcap files in the input folder to get started.'
-                    : 'No jobs match your search criteria.'}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-800 text-left">
+                <th className="pb-3 text-gray-400 font-medium">ID</th>
+                <th className="pb-3 text-gray-400 font-medium">Filename</th>
+                <th className="pb-3 text-gray-400 font-medium">Status</th>
+                <th className="pb-3 text-gray-400 font-medium">Priority</th>
+                <th className="pb-3 text-gray-400 font-medium">Dictionary</th>
+                <th className="pb-3 text-gray-400 font-medium">Progress</th>
+                <th className="pb-3 text-gray-400 font-medium">Speed</th>
+                <th className="pb-3 text-gray-400 font-medium">ETA</th>
+                <th className="pb-3 text-gray-400 font-medium">Hashes</th>
+                <th className="pb-3 text-gray-400 font-medium">Actions</th>
               </tr>
-            ) : (
-              filteredJobs.map((job) => (
-                <tr key={job.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                  <td className="py-3 text-gray-300">{job.id}</td>
-                  <td className="py-3 text-gray-100 font-mono text-sm">{job.filename}</td>
-                  <td className="py-3">
-                    <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(job.status)}`}>
-                      {job.status}
-                    </span>
-                  </td>
-                  <td className="py-3 text-gray-400 text-sm">
-                    {job.current_dictionary || '-'}
-                  </td>
-                  <td className="py-3">
-                    {job.progress !== null ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-green-500 h-2 rounded-full transition-all"
-                            style={{ width: `${job.progress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-400">{job.progress.toFixed(1)}%</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 text-gray-400 text-sm font-mono">
-                    {job.speed || '-'}
-                  </td>
-                  <td className="py-3 text-gray-400 text-sm">
-                    {job.eta || '-'}
-                  </td>
-                  <td className="py-3 text-gray-300">
-                    {job.hash_count || '-'}
-                  </td>
-                  <td className="py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => viewLogs(job)}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        Logs
-                      </button>
-                      {job.status === 'failed' && (
-                        <button
-                          onClick={() => retryJob(job)}
-                          className="text-green-400 hover:text-green-300 text-sm"
-                        >
-                          Retry
-                        </button>
-                      )}
-                    </div>
+            </thead>
+            <tbody>
+              {filteredJobs.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-8 text-center text-gray-500">
+                    {jobs.length === 0
+                      ? 'No jobs yet. Drop .pcap files in the input folder to get started.'
+                      : 'No jobs match your search criteria.'}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredJobs.map((job) => (
+                  <tr key={job.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                    <td className="py-3 text-gray-300">{job.id}</td>
+                    <td className="py-3 text-gray-100 font-mono text-sm">
+                      {job.filename}
+                      {job.paused === 1 && (
+                        <span className="ml-2 text-xs text-yellow-400">(Paused)</span>
+                      )}
+                    </td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(job.status)}`}>
+                        {job.status}
+                      </span>
+                    </td>
+                    <td className="py-3">
+                      <select
+                        value={job.priority}
+                        onChange={(e) => setPriority(job, parseInt(e.target.value))}
+                        disabled={job.status === 'completed' || job.status === 'processing'}
+                        className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-gray-200 disabled:opacity-50"
+                      >
+                        <option value={0}>Normal</option>
+                        <option value={1}>High</option>
+                        <option value={2}>Urgent</option>
+                        <option value={-1}>Low</option>
+                      </select>
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm">
+                      {job.current_dictionary || '-'}
+                    </td>
+                    <td className="py-3">
+                      {job.progress !== null ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full transition-all"
+                              style={{ width: `${job.progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-gray-400">{job.progress.toFixed(1)}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm font-mono">
+                      {job.speed || '-'}
+                    </td>
+                    <td className="py-3 text-gray-400 text-sm">
+                      {job.eta || '-'}
+                    </td>
+                    <td className="py-3 text-gray-300">
+                      {job.hash_count || '-'}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => viewLogs(job)}
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          Logs
+                        </button>
+                        {(job.status === 'pending' || job.status === 'processing') && (
+                          <button
+                            onClick={() => togglePause(job)}
+                            className="text-yellow-400 hover:text-yellow-300 text-sm"
+                          >
+                            {job.paused === 1 ? 'Resume' : 'Pause'}
+                          </button>
+                        )}
+                        {job.status === 'failed' && (
+                          <button
+                            onClick={() => retryJob(job)}
+                            className="text-green-400 hover:text-green-300 text-sm"
+                          >
+                            Retry
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
     </>
   );
 }

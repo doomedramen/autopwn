@@ -3,6 +3,7 @@ import JobQueue from '@/components/JobQueue';
 import ResultsTable from '@/components/ResultsTable';
 import DictionariesList from '@/components/DictionariesList';
 import FileUpload from '@/components/FileUpload';
+import WordlistGenerator from '@/components/WordlistGenerator';
 
 export default function Home() {
   return (
@@ -15,8 +16,9 @@ export default function Home() {
         <div className="lg:col-span-2">
           <JobQueue />
         </div>
-        <div>
+        <div className="space-y-6">
           <DictionariesList />
+          <WordlistGenerator />
         </div>
       </div>
 

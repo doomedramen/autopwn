@@ -4,6 +4,8 @@ export interface Job {
   id: number;
   filename: string;
   status: JobStatus;
+  priority: number;
+  paused: number;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -46,6 +48,8 @@ export interface CreateJobInput {
 
 export interface UpdateJobInput {
   status?: JobStatus;
+  priority?: number;
+  paused?: number;
   started_at?: string;
   completed_at?: string;
   current_dictionary?: string;

@@ -1,14 +1,43 @@
 # AutoPWN
 
-Automated WPA/WPA2 handshake cracker with a web dashboard. Drop `.pcap` files, let AutoPWN handle the rest.
+Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` files, let AutoPWN handle the rest.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-24.x-green.svg)
+![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)
+
+![AutoPWN Dashboard](screenshot.png)
+
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Dashboard Features](#dashboard-features)
+- [Configuration](#configuration)
+- [GPU Support](#gpu-support)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Security Notice](#security-notice)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
+### Core
 - **Automated Processing**: Watches input folder for `.pcap` files
 - **Sequential Dictionary Attack**: Tries all dictionaries until success
 - **Multi-GPU Support**: NVIDIA, AMD, Intel, and CPU modes
-- **Real-time Dashboard**: Live job queue, progress, and results
-- **Web Interface**: Monitor everything from your browser
+- **Potfile Integration**: Instantly retrieves previously cracked passwords
+- **Web Upload**: Drag-and-drop `.pcap` files directly in the dashboard
+
+### Dashboard
+- **Real-time Monitoring**: Live job queue with progress, speed, and ETA
+- **Job Management**: View logs, retry failed jobs, pause/resume processing
+- **Search & Filter**: Filter jobs by status, search by filename or ID
+- **Priority Queue**: Set job priority (Low, Normal, High, Urgent)
+- **Custom Wordlists**: Generate targeted wordlists with patterns and transformations
+- **Results Tracking**: View all cracked passwords with timestamps
 
 ## Architecture
 
@@ -147,12 +176,30 @@ Uses OpenCL. Typically works out of the box with Intel OpenCL runtime.
 
 ## Dashboard Features
 
-- **Stats Cards**: Total jobs, processing, completed, failed, cracked
-- **Job Queue**: Real-time progress, speed, ETA for each job
-- **Results Table**: All cracked passwords with ESSID
-- **Dictionaries List**: Available wordlists and sizes
+### Statistics
+- **Live Stats Cards**: Total jobs, processing, completed, failed, cracked passwords
+- **Auto-refresh**: Updates every 2-3 seconds
 
-Updates automatically every 2-3 seconds.
+### Job Queue
+- **Real-time Progress**: Track progress, speed, ETA for each job
+- **Search & Filter**: Filter by status (pending/processing/completed/failed), search by filename/ID
+- **Priority Management**: Set job priority (Urgent/High/Normal/Low)
+- **Pause/Resume**: Control job processing
+- **View Logs**: Inspect detailed job logs
+- **Retry Failed**: Re-queue failed jobs with one click
+
+### Wordlist Generator
+- **Base Words**: Enter common words, company names, locations
+- **Transformations**:
+  - Number appending (0-9, 00-99, years 2020-2025)
+  - Special characters (!@#$%*, etc.)
+  - Capitalization (Title Case, UPPER CASE, leet speak)
+- **Custom Patterns**: Use `{word}`, `{number}`, `{year}` placeholders
+- **Length Filtering**: Set min/max password length (8-63 for WPA)
+
+### Results
+- **Cracked Passwords**: View all successful cracks with ESSID and timestamp
+- **Export Ready**: Results stored in SQLite database
 
 ## Development
 
@@ -197,15 +244,39 @@ npm run build
 
 ## Stack
 
-- **Worker**: Node.js + TypeScript + chokidar + better-sqlite3
-- **Web**: Next.js 14 + Tailwind CSS
+- **Worker**: Node.js 24 + TypeScript + chokidar + better-sqlite3
+- **Web**: Next.js 15 + React 19 + Tailwind CSS
 - **Tools**: hashcat + hcxpcapngtool
-- **Database**: SQLite3
+- **Database**: SQLite3 (WAL mode)
 
 ## Security Notice
 
-This tool is for **authorized security testing only**. Only use on networks you own or have explicit permission to test. Unauthorized access to computer networks is illegal.
+⚠️ **IMPORTANT**: This tool is for **authorized security testing and educational purposes only**.
+
+- Only use on networks you **own** or have **explicit written permission** to test
+- Unauthorized access to computer networks is **illegal** and punishable by law
+- The developers assume **no liability** for misuse of this software
+- By using AutoPWN, you agree to use it responsibly and ethically
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+### Roadmap
+
+- [ ] Analytics dashboard with charts and statistics
+- [ ] Mobile-responsive UI
+- [ ] Batch job management
+- [ ] Email/webhook notifications
+- [ ] Custom hashcat rules support
+- [ ] API endpoints for automation
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [hashcat](https://hashcat.net/hashcat/) - Advanced password recovery
+- [hcxtools](https://github.com/ZerBea/hcxtools) - PCAP conversion utilities
+- Built with [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/)

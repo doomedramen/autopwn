@@ -38,7 +38,7 @@ class DatabaseManager {
 
   getPendingJob(): Job | null {
     const stmt = this.db.prepare(
-      "SELECT * FROM jobs WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1"
+      "SELECT * FROM jobs WHERE status = 'pending' AND paused = 0 ORDER BY priority DESC, created_at ASC LIMIT 1"
     );
     return stmt.get() as Job | null;
   }

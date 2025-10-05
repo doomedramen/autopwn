@@ -1,17 +1,37 @@
 {
   "name": "autopwn",
   "version": "1.0.0",
+  "description": "Automated WPA/WPA2 handshake cracker with modern web dashboard",
   "private": true,
+  "author": "AutoPWN Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/autopwn.git"
+  },
+  "keywords": [
+    "wifi",
+    "wpa",
+    "wpa2",
+    "hashcat",
+    "security",
+    "penetration-testing",
+    "password-cracking"
+  ],
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "dev:worker": "npm run dev --workspace=@autopwn/worker",
     "dev:web": "npm run dev --workspace=@autopwn/web",
+    "dev": "npm run dev:worker & npm run dev:web",
     "build": "npm run build --workspaces",
-    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+    "build:worker": "npm run build --workspace=@autopwn/worker",
+    "build:web": "npm run build --workspace=@autopwn/web",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist packages/*/.next"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.0.0",
+    "npm": ">=10.0.0"
   }
 }
