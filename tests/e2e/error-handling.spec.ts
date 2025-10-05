@@ -8,10 +8,12 @@ test.describe('Test 5: Error Handling', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('error-handling');
+    testUtils.clearAllAppData();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    testUtils.clearAllAppData();
   });
 
   test('should reject invalid file format', async ({ page }) => {

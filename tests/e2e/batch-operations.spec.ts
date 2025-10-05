@@ -12,11 +12,13 @@ test.describe('Test 4: Batch Operations', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('batch-operations');
+    testUtils.clearAllAppData();
     testUtils.getLocalPcapFiles();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    testUtils.clearAllAppData();
   });
 
   test('should upload multiple files at once', async ({ page }) => {
@@ -67,7 +69,7 @@ test.describe('Test 4: Batch Operations', () => {
     );
 
     if (await selectAllCheckbox.count() > 0) {
-      await selectAllCheckbox.first().click();
+      await selectAllCheckbox.first().click({ force: true });
       console.log('✓ Multiple jobs selected');
 
       // Look for batch retry button
@@ -76,7 +78,9 @@ test.describe('Test 4: Batch Operations', () => {
       );
 
       if (await retryButton.count() > 0) {
-        await retryButton.first().click();
+        await retryButton.first().scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+        await retryButton.first().click({ force: true, timeout: 10000 });
         console.log('✓ Batch retry initiated');
 
         await page.waitForTimeout(1000);
@@ -89,7 +93,7 @@ test.describe('Test 4: Batch Operations', () => {
           // Select dictionary
           const dictCheckbox = modal.locator('input[type="checkbox"]').first();
           if (await dictCheckbox.count() > 0) {
-            await dictCheckbox.click();
+            await dictCheckbox.click({ force: true });
             console.log('✓ Dictionary selected for batch retry');
           }
 

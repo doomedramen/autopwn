@@ -189,6 +189,115 @@ export class TestUtils {
     return results;
   }
 
+  /**
+   * Clear the main application database (for tests)
+   */
+  clearAppDatabase() {
+    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../volumes/db/autopwn.db');
+    if (fs.existsSync(dbPath)) {
+      try {
+        const db = new Database(dbPath);
+        // Use PRAGMA to ensure we can modify
+        db.pragma('journal_mode = WAL');
+
+        // Clear tables in correct order (respect foreign keys)
+        db.exec('DELETE FROM results');
+        db.exec('DELETE FROM job_dictionaries');
+        db.exec('DELETE FROM job_items');
+        db.exec('DELETE FROM jobs');
+        db.exec('DELETE FROM dictionaries');
+
+        db.close();
+        console.log('✓ Application database cleared');
+      } catch (error: any) {
+        console.warn('Failed to clear app database:', error?.message || error);
+      }
+    } else {
+      console.warn('App database not found at', dbPath);
+    }
+  }
+
+  /**
+   * Clear the dictionaries folder (for tests)
+   */
+  clearDictionariesFolder() {
+    const dictPath = process.env.DICTIONARIES_PATH || path.join(__dirname, '../../volumes/dictionaries');
+    if (fs.existsSync(dictPath)) {
+      try {
+        const files = fs.readdirSync(dictPath);
+        for (const file of files) {
+          // Only delete custom-generated files, keep system dictionaries
+          if (file.startsWith('custom-')) {
+            fs.unlinkSync(path.join(dictPath, file));
+          }
+        }
+        console.log('✓ Custom dictionaries cleared');
+      } catch (error) {
+        console.warn('Failed to clear dictionaries folder:', error);
+      }
+    }
+  }
+
+  /**
+   * Clear the uploads folder (for tests)
+   */
+  clearUploadsFolder() {
+    const uploadsPath = process.env.UPLOADS_PATH || path.join(__dirname, '../../volumes/uploads');
+    if (fs.existsSync(uploadsPath)) {
+      try {
+        const files = fs.readdirSync(uploadsPath);
+        for (const file of files) {
+          fs.unlinkSync(path.join(uploadsPath, file));
+        }
+        console.log('✓ Uploads folder cleared');
+      } catch (error) {
+        console.warn('Failed to clear uploads folder:', error);
+      }
+    }
+  }
+
+  /**
+   * Complete cleanup of application data (for tests)
+   */
+  clearAllAppData() {
+    this.clearAppDatabase();
+    this.clearDictionariesFolder();
+    this.clearUploadsFolder();
+  }
+
+  /**
+   * Add test results data to database (for UI testing)
+   */
+  addTestResults() {
+    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../volumes/db/autopwn.db');
+    if (fs.existsSync(dbPath)) {
+      try {
+        const db = new Database(dbPath);
+        db.pragma('journal_mode = WAL');
+
+        // Insert test jobs
+        const job1 = db.prepare('INSERT INTO jobs (filename, hash_count, status) VALUES (?, ?, ?)').run('test1.pcap', 1, 'completed');
+        const job2 = db.prepare('INSERT INTO jobs (filename, hash_count, status) VALUES (?, ?, ?)').run('test2.pcap', 1, 'completed');
+
+        // Insert test results (need enough for pagination - 15 results)
+        for (let i = 1; i <= 15; i++) {
+          const jobId = i <= 7 ? job1.lastInsertRowid : job2.lastInsertRowid;
+          const essid = i <= 7 ? 'TestNetwork-A' : 'TestNetwork-B';
+          db.prepare('INSERT INTO results (job_id, essid, password) VALUES (?, ?, ?)').run(
+            jobId,
+            essid,
+            `password${i}`
+          );
+        }
+
+        db.close();
+        console.log('✓ Test results added to database');
+      } catch (error: any) {
+        console.warn('Failed to add test results:', error?.message || error);
+      }
+    }
+  }
+
   private cleanup() {
     try {
       // Remove test files and directories

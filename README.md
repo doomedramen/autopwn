@@ -1,4 +1,4 @@
-# AutoPWN
+# AutoPWN (⌐■_■)
 
 Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` files, let AutoPWN handle the rest.
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { addDictionary } from '@/lib/db';
 
 const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/app/volumes/dictionaries';
 
@@ -160,7 +161,12 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(DICTIONARIES_PATH, filename);
 
     // Write to file
-    await fs.writeFile(filePath, wordlistArray.join('\n') + '\n', 'utf-8');
+    const content = wordlistArray.join('\n') + '\n';
+    await fs.writeFile(filePath, content, 'utf-8');
+
+    // Get file size and add to database
+    const stats = await fs.stat(filePath);
+    addDictionary(filename, filePath, stats.size);
 
     return NextResponse.json({
       filename,

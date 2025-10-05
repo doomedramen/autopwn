@@ -12,11 +12,13 @@ test.describe('Test 1: Complete Cracking Workflow', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('complete-cracking-workflow');
+    testUtils.clearAllAppData();
     testUtils.getLocalPcapFiles();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    testUtils.clearAllAppData();
   });
 
   test('should crack password from upload to results', async ({ page }) => {

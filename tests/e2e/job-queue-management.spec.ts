@@ -12,11 +12,13 @@ test.describe('Test 2: Job Queue Management', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('job-queue-management');
+    testUtils.clearAllAppData();
     testUtils.getLocalPcapFiles();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    testUtils.clearAllAppData();
   });
 
   test('should manage job queue operations', async ({ page }) => {

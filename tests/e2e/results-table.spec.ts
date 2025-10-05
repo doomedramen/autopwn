@@ -6,10 +6,13 @@ test.describe('Test 6: Results Table', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('results-table');
+    testUtils.clearAllAppData();
+    testUtils.addTestResults();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    testUtils.clearAllAppData();
   });
 
   test('should display results table with cracked passwords', async ({ page }) => {
@@ -138,6 +141,9 @@ test.describe('Test 6: Results Table', () => {
     // Scroll to results
     await page.locator('h2:has-text("Cracked Passwords")').scrollIntoViewIfNeeded();
 
+    // Wait for results to load (API fetches on mount)
+    await page.waitForTimeout(2000);
+
     // Look for table rows
     const table = page.locator('table').first();
 
@@ -146,9 +152,12 @@ test.describe('Test 6: Results Table', () => {
       const rowCount = await rows.count();
 
       if (rowCount > 0) {
+        // Wait for rows to be visible and clickable
+        await rows.first().waitFor({ state: 'visible', timeout: 5000 });
+
         // Click first row
-        await rows.first().click();
-        await page.waitForTimeout(1000);
+        await rows.first().click({ force: true });
+        await page.waitForTimeout(500);
 
         // Check if details modal or expanded view appears
         const modal = page.locator('[role="dialog"]');

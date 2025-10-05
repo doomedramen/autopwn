@@ -277,9 +277,9 @@ export default function JobQueue() {
       )}
       {showRetryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
+          <div role="dialog" aria-labelledby="retry-modal-title" className="bg-gray-900 border border-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <h3 className="text-lg font-bold text-gray-100">
+              <h3 id="retry-modal-title" className="text-lg font-bold text-gray-100">
                 Retry Selected Jobs with Custom Dictionaries
               </h3>
               <button

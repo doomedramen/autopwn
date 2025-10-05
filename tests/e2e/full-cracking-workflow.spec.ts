@@ -12,12 +12,16 @@ test.describe('Full Cracking Workflow E2E', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('full-cracking-workflow');
+    // Clear application data before tests to ensure clean state
+    testUtils.clearAllAppData();
     // Copy the pcap file to test directory
     testUtils.getLocalPcapFiles();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    // Clear application data after tests
+    testUtils.clearAllAppData();
   });
 
   test('should upload pcap file and generate dictionaries for cracking', async ({ page }) => {

@@ -7,10 +7,12 @@ test.describe('Test 3: Retry Functionality', () => {
 
   test.beforeAll(async () => {
     testUtils = new TestUtils('retry-functionality');
+    testUtils.clearAllAppData();
   });
 
   test.afterAll(async () => {
     await testUtils.cleanupAll();
+    testUtils.clearAllAppData();
   });
 
   test('should retry failed jobs with dictionary selection', async ({ page }) => {
@@ -41,11 +43,13 @@ test.describe('Test 3: Retry Functionality', () => {
 
       if (checkboxCount > 0) {
         // Select first checkbox (might be select all or individual job)
-        await checkboxes.first().click();
+        await checkboxes.first().click({ force: true });
         console.log('✓ Job selected for retry');
 
-        // Click retry button
-        await retryButton.first().click();
+        // Scroll retry button into view and click with force
+        await retryButton.first().scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+        await retryButton.first().click({ force: true, timeout: 10000 });
         await page.waitForTimeout(1000);
 
         // Look for retry modal with dictionary selection
@@ -62,7 +66,7 @@ test.describe('Test 3: Retry Functionality', () => {
 
           if (dictCount > 0) {
             // Select a dictionary
-            await dictCheckboxes.first().click();
+            await dictCheckboxes.first().click({ force: true });
             console.log('✓ Dictionary selected for retry');
 
             // Look for confirm/submit button

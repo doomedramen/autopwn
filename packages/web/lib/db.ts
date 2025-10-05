@@ -4,12 +4,20 @@ import { Job, JobItem, Result, Dictionary } from '@autopwn/shared';
 const DATABASE_PATH = process.env.DATABASE_PATH || '/data/db/autopwn.db';
 
 let db: Database.Database | null = null;
+let writeDb: Database.Database | null = null;
 
 function getDb() {
   if (!db) {
     db = new Database(DATABASE_PATH, { readonly: true });
   }
   return db;
+}
+
+function getWriteDb() {
+  if (!writeDb) {
+    writeDb = new Database(DATABASE_PATH);
+  }
+  return writeDb;
 }
 
 export function getAllJobs(): Job[] {
@@ -45,6 +53,16 @@ export function getAllDictionaries(): Dictionary[] {
   const database = getDb();
   const stmt = database.prepare('SELECT * FROM dictionaries ORDER BY name ASC');
   return stmt.all() as Dictionary[];
+}
+
+export function addDictionary(name: string, path: string, size: number): Dictionary {
+  const database = getWriteDb();
+  const stmt = database.prepare(
+    'INSERT INTO dictionaries (name, path, size) VALUES (?, ?, ?)'
+  );
+  const result = stmt.run(name, path, size);
+  const getStmt = database.prepare('SELECT * FROM dictionaries WHERE id = ?');
+  return getStmt.get(result.lastInsertRowid) as Dictionary;
 }
 
 export function getDictionaryCoverage(dictionaryId: number, jobIds: number[]): number {
