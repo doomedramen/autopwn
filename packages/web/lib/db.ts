@@ -100,3 +100,70 @@ export function getStats() {
     cracked: totalCracks.count,
   };
 }
+
+export function getAnalytics() {
+  const database = getDb();
+
+  // Jobs created over time (last 30 days)
+  const jobsOverTime = database.prepare(`
+    SELECT DATE(created_at) as date, COUNT(*) as count
+    FROM jobs
+    WHERE created_at >= DATE('now', '-30 days')
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `).all() as { date: string; count: number }[];
+
+  // Cracks over time (last 30 days)
+  const cracksOverTime = database.prepare(`
+    SELECT DATE(cracked_at) as date, COUNT(*) as count
+    FROM results
+    WHERE cracked_at >= DATE('now', '-30 days')
+    GROUP BY DATE(cracked_at)
+    ORDER BY date ASC
+  `).all() as { date: string; count: number }[];
+
+  // Status distribution
+  const statusDistribution = database.prepare(`
+    SELECT status, COUNT(*) as count
+    FROM jobs
+    GROUP BY status
+  `).all() as { status: string; count: number }[];
+
+  // Dictionary effectiveness (top 10)
+  const dictionaryEffectiveness = database.prepare(`
+    SELECT d.name, COUNT(r.id) as cracks
+    FROM dictionaries d
+    LEFT JOIN job_dictionaries jd ON d.id = jd.dictionary_id
+    LEFT JOIN results r ON jd.job_id = r.job_id
+    GROUP BY d.id, d.name
+    HAVING cracks > 0
+    ORDER BY cracks DESC
+    LIMIT 10
+  `).all() as { name: string; cracks: number }[];
+
+  // Average completion time (in seconds)
+  const avgCompletionTime = database.prepare(`
+    SELECT AVG(
+      (julianday(completed_at) - julianday(started_at)) * 86400
+    ) as avg_seconds
+    FROM jobs
+    WHERE status = 'completed' AND started_at IS NOT NULL AND completed_at IS NOT NULL
+  `).get() as { avg_seconds: number | null };
+
+  // Success rate
+  const successRate = database.prepare(`
+    SELECT
+      (CAST(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS REAL) / COUNT(*)) * 100 as rate
+    FROM jobs
+    WHERE status IN ('completed', 'failed')
+  `).get() as { rate: number | null };
+
+  return {
+    jobsOverTime,
+    cracksOverTime,
+    statusDistribution,
+    dictionaryEffectiveness,
+    avgCompletionTime: avgCompletionTime?.avg_seconds || 0,
+    successRate: successRate?.rate || 0,
+  };
+}
