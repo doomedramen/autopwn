@@ -39,9 +39,7 @@ services:
     #   - video
 
   web:
-    build:
-      context: .
-      dockerfile: packages/web/Dockerfile
+    image: doomedramen/autopwn-web:latest
     container_name: autopwn-web
     environment:
       - DATABASE_PATH=/data/db/autopwn.db

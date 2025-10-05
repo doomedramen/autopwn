@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Job } from '@autopwn/shared';
+import { Job, JobItem } from '@autopwn/shared';
 
 export default function JobQueue() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -10,6 +10,8 @@ export default function JobQueue() {
   const [showLogs, setShowLogs] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expandedBatchJobs, setExpandedBatchJobs] = useState<Set<number>>(new Set());
+  const [batchItems, setBatchItems] = useState<Map<number, JobItem[]>>(new Map());
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -138,6 +140,41 @@ export default function JobQueue() {
     }
   };
 
+  const toggleBatchExpansion = async (jobId: number) => {
+    const newExpanded = new Set(expandedBatchJobs);
+
+    if (newExpanded.has(jobId)) {
+      // Collapse
+      newExpanded.delete(jobId);
+    } else {
+      // Expand - fetch items if not already loaded
+      newExpanded.add(jobId);
+
+      if (!batchItems.has(jobId)) {
+        try {
+          const res = await fetch(`/api/jobs/${jobId}/items`);
+          if (res.ok) {
+            const items = await res.json();
+            setBatchItems(prev => new Map(prev).set(jobId, items));
+          }
+        } catch (error) {
+          console.error('Failed to fetch batch items:', error);
+        }
+      }
+    }
+
+    setExpandedBatchJobs(newExpanded);
+  };
+
+  const getItemStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-400';
+      case 'failed': return 'text-red-400';
+      case 'processing': return 'text-yellow-400';
+      default: return 'text-gray-400';
+    }
+  };
+
   return (
     <>
       {showLogs && selectedJob && (
@@ -220,86 +257,159 @@ export default function JobQueue() {
                 </tr>
               ) : (
                 filteredJobs.map((job) => (
-                  <tr key={job.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                    <td className="py-3 text-gray-300">{job.id}</td>
-                    <td className="py-3 text-gray-100 font-mono text-sm">
-                      {job.filename}
-                      {job.paused === 1 && (
-                        <span className="ml-2 text-xs text-yellow-400">(Paused)</span>
-                      )}
-                    </td>
-                    <td className="py-3">
-                      <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(job.status)}`}>
-                        {job.status}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <select
-                        value={job.priority}
-                        onChange={(e) => setPriority(job, parseInt(e.target.value))}
-                        disabled={job.status === 'completed' || job.status === 'processing'}
-                        className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-gray-200 disabled:opacity-50"
-                      >
-                        <option value={0}>Normal</option>
-                        <option value={1}>High</option>
-                        <option value={2}>Urgent</option>
-                        <option value={-1}>Low</option>
-                      </select>
-                    </td>
-                    <td className="py-3 text-gray-400 text-sm">
-                      {job.current_dictionary || '-'}
-                    </td>
-                    <td className="py-3">
-                      {job.progress !== null ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-700 rounded-full h-2">
-                            <div
-                              className="bg-green-500 h-2 rounded-full transition-all"
-                              style={{ width: `${job.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs text-gray-400">{job.progress.toFixed(1)}%</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 text-gray-400 text-sm font-mono">
-                      {job.speed || '-'}
-                    </td>
-                    <td className="py-3 text-gray-400 text-sm">
-                      {job.eta || '-'}
-                    </td>
-                    <td className="py-3 text-gray-300">
-                      {job.hash_count || '-'}
-                    </td>
-                    <td className="py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => viewLogs(job)}
-                          className="text-blue-400 hover:text-blue-300 text-sm"
+                  <>
+                    <tr key={job.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                      <td className="py-3 text-gray-300">
+                        {job.batch_mode === 1 && (
+                          <button
+                            onClick={() => toggleBatchExpansion(job.id)}
+                            className="mr-2 text-gray-400 hover:text-gray-200"
+                          >
+                            {expandedBatchJobs.has(job.id) ? '▼' : '▶'}
+                          </button>
+                        )}
+                        {job.id}
+                      </td>
+                      <td className="py-3 text-gray-100 font-mono text-sm">
+                        {job.batch_mode === 1 ? (
+                          <span className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-purple-900/50 text-purple-300 text-xs rounded">
+                              BATCH
+                            </span>
+                            <span>{job.items_total} files</span>
+                          </span>
+                        ) : (
+                          job.filename
+                        )}
+                        {job.paused === 1 && (
+                          <span className="ml-2 text-xs text-yellow-400">(Paused)</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(job.status)}`}>
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        <select
+                          value={job.priority}
+                          onChange={(e) => setPriority(job, parseInt(e.target.value))}
+                          disabled={job.status === 'completed' || job.status === 'processing'}
+                          className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-gray-200 disabled:opacity-50"
                         >
-                          Logs
-                        </button>
-                        {(job.status === 'pending' || job.status === 'processing') && (
-                          <button
-                            onClick={() => togglePause(job)}
-                            className="text-yellow-400 hover:text-yellow-300 text-sm"
-                          >
-                            {job.paused === 1 ? 'Resume' : 'Pause'}
-                          </button>
+                          <option value={0}>Normal</option>
+                          <option value={1}>High</option>
+                          <option value={2}>Urgent</option>
+                          <option value={-1}>Low</option>
+                        </select>
+                      </td>
+                      <td className="py-3 text-gray-400 text-sm">
+                        {job.current_dictionary || '-'}
+                      </td>
+                      <td className="py-3">
+                        {job.batch_mode === 1 && job.items_total ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">
+                              {job.items_cracked || 0}/{job.items_total} cracked
+                            </span>
+                          </div>
+                        ) : job.progress !== null ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-700 rounded-full h-2">
+                              <div
+                                className="bg-green-500 h-2 rounded-full transition-all"
+                                style={{ width: `${job.progress}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-xs text-gray-400">{job.progress.toFixed(1)}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">-</span>
                         )}
-                        {job.status === 'failed' && (
+                      </td>
+                      <td className="py-3 text-gray-400 text-sm font-mono">
+                        {job.speed || '-'}
+                      </td>
+                      <td className="py-3 text-gray-400 text-sm">
+                        {job.eta || '-'}
+                      </td>
+                      <td className="py-3 text-gray-300">
+                        {job.hash_count || '-'}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => retryJob(job)}
-                            className="text-green-400 hover:text-green-300 text-sm"
+                            onClick={() => viewLogs(job)}
+                            className="text-blue-400 hover:text-blue-300 text-sm"
                           >
-                            Retry
+                            Logs
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                          {(job.status === 'pending' || job.status === 'processing') && (
+                            <button
+                              onClick={() => togglePause(job)}
+                              className="text-yellow-400 hover:text-yellow-300 text-sm"
+                            >
+                              {job.paused === 1 ? 'Resume' : 'Pause'}
+                            </button>
+                          )}
+                          {job.status === 'failed' && (
+                            <button
+                              onClick={() => retryJob(job)}
+                              className="text-green-400 hover:text-green-300 text-sm"
+                            >
+                              Retry
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {/* Expanded batch items */}
+                    {job.batch_mode === 1 && expandedBatchJobs.has(job.id) && (
+                      <tr key={`${job.id}-items`} className="bg-gray-800/30">
+                        <td colSpan={10} className="py-4 px-6">
+                          <div className="ml-8">
+                            <h4 className="text-sm font-semibold text-gray-300 mb-3">
+                              Batch Items ({batchItems.get(job.id)?.length || 0} files)
+                            </h4>
+                            {batchItems.get(job.id) ? (
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-gray-700">
+                                    <th className="pb-2 text-left text-gray-400 font-medium">Filename</th>
+                                    <th className="pb-2 text-left text-gray-400 font-medium">ESSID</th>
+                                    <th className="pb-2 text-left text-gray-400 font-medium">BSSID</th>
+                                    <th className="pb-2 text-left text-gray-400 font-medium">Status</th>
+                                    <th className="pb-2 text-left text-gray-400 font-medium">Password</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {batchItems.get(job.id)!.map((item) => (
+                                    <tr key={item.id} className="border-b border-gray-700/50">
+                                      <td className="py-2 text-gray-300 font-mono">{item.filename}</td>
+                                      <td className="py-2 text-gray-300">{item.essid || '-'}</td>
+                                      <td className="py-2 text-gray-400 font-mono text-xs">
+                                        {item.bssid || '-'}
+                                      </td>
+                                      <td className="py-2">
+                                        <span className={getItemStatusColor(item.status)}>
+                                          {item.status}
+                                        </span>
+                                      </td>
+                                      <td className="py-2 text-green-400 font-mono">
+                                        {item.password || '-'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p className="text-gray-500">Loading items...</p>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))
               )}
             </tbody>

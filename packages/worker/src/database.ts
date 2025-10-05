@@ -1,5 +1,17 @@
 import Database from 'better-sqlite3';
-import { DB_SCHEMA, Job, Result, Dictionary, CreateJobInput, UpdateJobInput, CreateResultInput } from '@autopwn/shared';
+import {
+  DB_SCHEMA,
+  Job,
+  JobItem,
+  JobDictionary,
+  Result,
+  Dictionary,
+  CreateJobInput,
+  CreateJobItemInput,
+  UpdateJobInput,
+  UpdateJobItemInput,
+  CreateResultInput
+} from '@autopwn/shared';
 import { config } from './config.js';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
@@ -25,9 +37,14 @@ class DatabaseManager {
   // Jobs
   createJob(input: CreateJobInput): Job {
     const stmt = this.db.prepare(
-      'INSERT INTO jobs (filename, hash_count) VALUES (?, ?)'
+      'INSERT INTO jobs (filename, hash_count, batch_mode, items_total) VALUES (?, ?, ?, ?)'
     );
-    const result = stmt.run(input.filename, input.hash_count);
+    const result = stmt.run(
+      input.filename,
+      input.hash_count,
+      input.batch_mode || 0,
+      input.items_total || null
+    );
     return this.getJob(result.lastInsertRowid as number)!;
   }
 
@@ -93,6 +110,75 @@ class DatabaseManager {
   getAllDictionaries(): Dictionary[] {
     const stmt = this.db.prepare('SELECT * FROM dictionaries ORDER BY name ASC');
     return stmt.all() as Dictionary[];
+  }
+
+  // Job Items
+  createJobItem(input: CreateJobItemInput): JobItem {
+    const stmt = this.db.prepare(
+      'INSERT INTO job_items (job_id, filename, essid, bssid) VALUES (?, ?, ?, ?)'
+    );
+    const result = stmt.run(
+      input.job_id,
+      input.filename,
+      input.essid || null,
+      input.bssid || null
+    );
+    return this.getJobItem(result.lastInsertRowid as number)!;
+  }
+
+  getJobItem(id: number): JobItem | null {
+    const stmt = this.db.prepare('SELECT * FROM job_items WHERE id = ?');
+    return stmt.get(id) as JobItem | null;
+  }
+
+  getJobItemsByJobId(jobId: number): JobItem[] {
+    const stmt = this.db.prepare('SELECT * FROM job_items WHERE job_id = ? ORDER BY id ASC');
+    return stmt.all(jobId) as JobItem[];
+  }
+
+  getJobItemByEssidBssid(jobId: number, essid: string, bssid: string): JobItem | null {
+    const stmt = this.db.prepare(
+      'SELECT * FROM job_items WHERE job_id = ? AND essid = ? AND bssid = ? LIMIT 1'
+    );
+    return stmt.get(jobId, essid, bssid) as JobItem | null;
+  }
+
+  updateJobItem(id: number, input: UpdateJobItemInput): void {
+    const fields = Object.keys(input).map(key => `${key} = ?`).join(', ');
+    const values = Object.values(input);
+    const stmt = this.db.prepare(`UPDATE job_items SET ${fields} WHERE id = ?`);
+    stmt.run(...values, id);
+  }
+
+  // Job Dictionaries
+  createJobDictionary(jobId: number, dictionaryId: number): void {
+    const stmt = this.db.prepare(
+      'INSERT OR IGNORE INTO job_dictionaries (job_id, dictionary_id, status) VALUES (?, ?, ?)'
+    );
+    stmt.run(jobId, dictionaryId, 'pending');
+  }
+
+  updateJobDictionary(jobId: number, dictionaryId: number, status: string): void {
+    const stmt = this.db.prepare(
+      'UPDATE job_dictionaries SET status = ? WHERE job_id = ? AND dictionary_id = ?'
+    );
+    stmt.run(status, jobId, dictionaryId);
+  }
+
+  getJobDictionaries(jobId: number): JobDictionary[] {
+    const stmt = this.db.prepare('SELECT * FROM job_dictionaries WHERE job_id = ?');
+    return stmt.all(jobId) as JobDictionary[];
+  }
+
+  getDictionaryCoverage(dictionaryId: number, jobIds: number[]): number {
+    if (jobIds.length === 0) return 0;
+    const placeholders = jobIds.map(() => '?').join(',');
+    const stmt = this.db.prepare(
+      `SELECT COUNT(DISTINCT job_id) as count FROM job_dictionaries
+       WHERE dictionary_id = ? AND job_id IN (${placeholders})`
+    );
+    const result = stmt.get(dictionaryId, ...jobIds) as { count: number };
+    return result.count;
   }
 
   close() {

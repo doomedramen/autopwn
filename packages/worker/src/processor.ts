@@ -34,8 +34,21 @@ export class JobProcessor {
       return;
     }
 
-    console.log(`Processing job ${jobId}: ${job.filename}`);
+    console.log(`Processing job ${jobId}: ${job.filename} (${job.batch_mode ? 'BATCH' : 'SINGLE'} mode)`);
 
+    // Route to appropriate handler
+    try {
+      if (job.batch_mode === 1) {
+        await this.processBatchJob(jobId, job);
+      } else {
+        await this.processSingleJob(jobId, job);
+      }
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  private async processSingleJob(jobId: number, job: any) {
     const logs: string[] = [];
     const addLog = (message: string) => {
       logs.push(`[${new Date().toISOString()}] ${message}`);
@@ -67,6 +80,9 @@ export class JobProcessor {
         console.log(`Trying dictionary: ${dictionary.name}`);
         addLog(`Trying dictionary: ${dictionary.name}`);
 
+        // Track dictionary usage
+        db.createJobDictionary(jobId, dictionary.id);
+
         db.updateJob(jobId, {
           current_dictionary: dictionary.name,
           progress: 0,
@@ -95,7 +111,6 @@ export class JobProcessor {
             cracked = true;
           },
           onLog: (message) => {
-            // Capture important hashcat output
             if (message.includes('All hashes found') ||
                 message.includes('Stopped:') ||
                 message.includes('Recovered:') ||
@@ -108,11 +123,14 @@ export class JobProcessor {
         if (result.success) {
           cracked = true;
           addLog(`Dictionary ${dictionary.name} successful`);
+          db.updateJobDictionary(jobId, dictionary.id, 'completed');
         } else if (result.error) {
           console.error(`Error with dictionary ${dictionary.name}:`, result.error);
           addLog(`ERROR with ${dictionary.name}: ${result.error}`);
+          db.updateJobDictionary(jobId, dictionary.id, 'failed');
         } else {
           addLog(`Dictionary ${dictionary.name} exhausted, no matches found`);
+          db.updateJobDictionary(jobId, dictionary.id, 'failed');
         }
       }
 
@@ -148,8 +166,165 @@ export class JobProcessor {
         completed_at: new Date().toISOString(),
         error: error instanceof Error ? error.message : String(error),
       });
-    } finally {
-      this.isProcessing = false;
+    }
+  }
+
+  private async processBatchJob(jobId: number, job: any) {
+    const logs: string[] = [];
+    const addLog = (message: string) => {
+      logs.push(`[${new Date().toISOString()}] ${message}`);
+      db.updateJob(jobId, { logs: logs.join('\n') });
+    };
+
+    try {
+      addLog(`Starting batch job with ${job.items_total} files`);
+      db.updateJob(jobId, {
+        status: 'processing',
+        started_at: new Date().toISOString(),
+      });
+
+      const hashFile = join(config.hashesPath, `${job.filename}.hc22000`);
+      const dictionaries = db.getAllDictionaries();
+      const jobItems = db.getJobItemsByJobId(jobId);
+
+      if (dictionaries.length === 0) {
+        throw new Error('No dictionaries found');
+      }
+
+      addLog(`Found ${dictionaries.length} dictionaries`);
+      addLog(`Processing ${jobItems.length} files in batch`);
+
+      let itemsCracked = 0;
+
+      for (const dictionary of dictionaries) {
+        console.log(`Trying dictionary: ${dictionary.name}`);
+        addLog(`Trying dictionary: ${dictionary.name}`);
+
+        // Track dictionary usage
+        db.createJobDictionary(jobId, dictionary.id);
+
+        db.updateJob(jobId, {
+          current_dictionary: dictionary.name,
+          progress: 0,
+        });
+
+        const runner = new HashcatRunner();
+        const result = await runner.run({
+          hashFile,
+          dictionaryFile: dictionary.path,
+          deviceType: config.hashcatDeviceType,
+          onProgress: (progress) => {
+            db.updateJob(jobId, {
+              progress: progress.progress,
+              speed: progress.speed,
+              eta: progress.eta,
+            });
+          },
+          onCracked: async (essid, password) => {
+            console.log(`Cracked! ESSID: ${essid}, Password: ${password}`);
+            addLog(`SUCCESS: Cracked ${essid} with password: ${password}`);
+
+            // Find matching job item by ESSID/BSSID
+            const item = jobItems.find(i => i.essid === essid);
+            if (item && item.status !== 'completed') {
+              // Update job item
+              db.updateJobItem(item.id, {
+                status: 'completed',
+                password,
+                cracked_at: new Date().toISOString(),
+              });
+
+              // Create result
+              db.createResult({
+                job_id: jobId,
+                essid,
+                password,
+              });
+
+              itemsCracked++;
+              db.updateJob(jobId, {
+                items_cracked: itemsCracked,
+              });
+
+              // Move individual file to completed folder
+              try {
+                const sourceFile = join(config.intermediatePath, item.filename);
+                const destinationFile = join(config.completedPath, item.filename);
+                await rename(sourceFile, destinationFile);
+                console.log(`Moved ${item.filename} to completed folder`);
+              } catch (error) {
+                console.error(`Failed to move ${item.filename}:`, error);
+              }
+            }
+          },
+          onLog: (message) => {
+            if (message.includes('All hashes found') ||
+                message.includes('Stopped:') ||
+                message.includes('Recovered:') ||
+                message.includes('exhausted')) {
+              addLog(`Hashcat: ${message.trim()}`);
+            }
+          },
+        });
+
+        if (result.success) {
+          addLog(`Dictionary ${dictionary.name} successful`);
+          db.updateJobDictionary(jobId, dictionary.id, 'completed');
+        } else if (result.error) {
+          console.error(`Error with dictionary ${dictionary.name}:`, result.error);
+          addLog(`ERROR with ${dictionary.name}: ${result.error}`);
+          db.updateJobDictionary(jobId, dictionary.id, 'failed');
+        } else {
+          addLog(`Dictionary ${dictionary.name} exhausted`);
+          db.updateJobDictionary(jobId, dictionary.id, 'failed');
+        }
+
+        // Check if all items cracked
+        if (itemsCracked === jobItems.length) {
+          addLog('All items in batch cracked!');
+          break;
+        }
+      }
+
+      // Move remaining failed files to failed folder
+      for (const item of jobItems) {
+        if (item.status !== 'completed') {
+          try {
+            const sourceFile = join(config.intermediatePath, item.filename);
+            const destinationFile = join(config.failedPath, item.filename);
+            await rename(sourceFile, destinationFile);
+            console.log(`Moved ${item.filename} to failed folder`);
+
+            db.updateJobItem(item.id, {
+              status: 'failed',
+            });
+          } catch (error) {
+            console.error(`Failed to move ${item.filename}:`, error);
+          }
+        }
+      }
+
+      const allCracked = itemsCracked === jobItems.length;
+      const finalStatus = allCracked ? 'completed' : (itemsCracked > 0 ? 'completed' : 'failed');
+
+      addLog(`Batch job finished: ${itemsCracked}/${jobItems.length} items cracked`);
+
+      db.updateJob(jobId, {
+        status: finalStatus,
+        completed_at: new Date().toISOString(),
+        progress: 100,
+        items_cracked: itemsCracked,
+      });
+
+      console.log(`Batch job ${jobId} finished: ${itemsCracked}/${jobItems.length} cracked`);
+    } catch (error) {
+      console.error(`Batch job ${jobId} failed:`, error);
+      addLog(`FATAL ERROR: ${error instanceof Error ? error.message : String(error)}`);
+      db.updateJob(jobId, {
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

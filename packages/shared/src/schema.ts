@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS jobs (
   status TEXT NOT NULL DEFAULT 'pending',
   priority INTEGER NOT NULL DEFAULT 0,
   paused INTEGER NOT NULL DEFAULT 0,
+  batch_mode INTEGER NOT NULL DEFAULT 0,
+  items_total INTEGER,
+  items_cracked INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   started_at TEXT,
   completed_at TEXT,
@@ -15,6 +18,28 @@ CREATE TABLE IF NOT EXISTS jobs (
   eta TEXT,
   error TEXT,
   logs TEXT
+);
+
+CREATE TABLE IF NOT EXISTS job_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id INTEGER NOT NULL,
+  filename TEXT NOT NULL,
+  essid TEXT,
+  bssid TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  password TEXT,
+  cracked_at TEXT,
+  FOREIGN KEY (job_id) REFERENCES jobs(id)
+);
+
+CREATE TABLE IF NOT EXISTS job_dictionaries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id INTEGER NOT NULL,
+  dictionary_id INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  FOREIGN KEY (job_id) REFERENCES jobs(id),
+  FOREIGN KEY (dictionary_id) REFERENCES dictionaries(id),
+  UNIQUE(job_id, dictionary_id)
 );
 
 CREATE TABLE IF NOT EXISTS results (
@@ -35,5 +60,7 @@ CREATE TABLE IF NOT EXISTS dictionaries (
 
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_priority ON jobs(priority DESC, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_job_items_job_id ON job_items(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_dictionaries_job_id ON job_dictionaries(job_id);
 CREATE INDEX IF NOT EXISTS idx_results_job_id ON results(job_id);
 `;

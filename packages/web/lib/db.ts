@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { Job, Result, Dictionary } from '@autopwn/shared';
+import { Job, JobItem, Result, Dictionary } from '@autopwn/shared';
 
 const DATABASE_PATH = process.env.DATABASE_PATH || '/data/db/autopwn.db';
 
@@ -24,6 +24,12 @@ export function getJob(id: number): Job | null {
   return stmt.get(id) as Job | null;
 }
 
+export function getJobItems(jobId: number): JobItem[] {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM job_items WHERE job_id = ? ORDER BY id ASC');
+  return stmt.all(jobId) as JobItem[];
+}
+
 export function getAllResults(): Result[] {
   const database = getDb();
   const stmt = database.prepare(`
@@ -39,6 +45,24 @@ export function getAllDictionaries(): Dictionary[] {
   const database = getDb();
   const stmt = database.prepare('SELECT * FROM dictionaries ORDER BY name ASC');
   return stmt.all() as Dictionary[];
+}
+
+export function getDictionaryCoverage(dictionaryId: number, jobIds: number[]): number {
+  if (jobIds.length === 0) return 0;
+  const database = getDb();
+  const placeholders = jobIds.map(() => '?').join(',');
+  const stmt = database.prepare(
+    `SELECT COUNT(DISTINCT job_id) as count FROM job_dictionaries
+     WHERE dictionary_id = ? AND job_id IN (${placeholders})`
+  );
+  const result = stmt.get(dictionaryId, ...jobIds) as { count: number };
+  return result.count;
+}
+
+export function getFailedJobs(): Job[] {
+  const database = getDb();
+  const stmt = database.prepare("SELECT * FROM jobs WHERE status = 'failed' ORDER BY created_at DESC");
+  return stmt.all() as Job[];
 }
 
 export function getStats() {
