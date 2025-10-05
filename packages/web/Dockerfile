@@ -1,17 +1,25 @@
 FROM node:24-alpine
 
+# Install pnpm
+RUN corepack enable
+
 # Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ git
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY packages/web/package*.json ./packages/web/
 
+# Initialize git repository for lefthook
+RUN git init && git config user.email "test@example.com" && git config user.name "Test User"
+
 # Install dependencies
-RUN npm install
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY packages/shared ./packages/shared
@@ -19,12 +27,12 @@ COPY packages/web ./packages/web
 
 # Build shared package
 WORKDIR /app/packages/shared
-RUN npm run build
+RUN pnpm run build
 
 # Build web
 WORKDIR /app/packages/web
-RUN npm run build
+RUN pnpm run build
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]
