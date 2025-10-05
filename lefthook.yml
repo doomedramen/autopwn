@@ -1,0 +1,17 @@
+# Lefthook configuration for AutoPWN
+# https://lefthook.dev/configuration/
+
+pre-commit:
+  parallel: true
+  commands:
+    type-check:
+      run: pnpm run type-check
+      stage_fixed: true
+
+pre-push:
+  commands:
+    build:
+      run: pnpm run build
+
+    e2e-tests:
+      run: pnpm run test:e2e

@@ -36,10 +36,12 @@
     "test:e2e:install": "playwright install",
     "test:unit": "turbo run test --filter=!@autopwn/web-e2e",
     "test": "pnpm run test:unit && pnpm run test:e2e",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "postinstall": "lefthook install"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
+    "lefthook": "^1.13.6",
     "playwright": "^1.55.1",
     "turbo": "^2.2.3"
   },
