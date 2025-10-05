@@ -60,6 +60,8 @@ volumes/dictionaries/*
 
 # Docker
 docker-compose.override.yml
+
+# Other
 /.turbo
 /playwright-report
 /test-results
