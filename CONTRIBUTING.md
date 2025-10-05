@@ -65,7 +65,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/autopwn.git
+git clone https://github.com/DoomedRamen/autopwn.git
 cd autopwn
 
 # Install dependencies
@@ -120,7 +120,7 @@ autopwn/
 
 ## Feature Requests
 
-We track feature requests in [GitHub Issues](https://github.com/YOUR_USERNAME/autopwn/issues). Before submitting:
+We track feature requests in [GitHub Issues](https://github.com/DoomedRamen/autopwn/issues). Before submitting:
 
 1. **Search existing issues** to avoid duplicates
 2. **Describe the problem** you're trying to solve

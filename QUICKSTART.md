@@ -11,7 +11,7 @@ Get AutoPWN up and running in 5 minutes.
 ## Step 1: Clone and Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/autopwn.git
+git clone https://github.com/DoomedRamen/autopwn.git
 cd autopwn
 cp .env.example .env
 ```
@@ -141,7 +141,7 @@ docker-compose down -v
 
 ## Get Help
 
-- [GitHub Issues](https://github.com/YOUR_USERNAME/autopwn/issues)
+- [GitHub Issues](https://github.com/DoomedRamen/autopwn/issues)
 - [Contributing Guide](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
 

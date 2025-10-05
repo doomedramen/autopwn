@@ -21,7 +21,7 @@ If you discover a security vulnerability in AutoPWN itself (the software, not it
 ### How to Report
 
 1. **Do NOT** open a public GitHub issue
-2. Email security details to: [your-email@example.com]
+2. Email security details to: m@rtin.page
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
@@ -104,5 +104,5 @@ By using AutoPWN, you agree to use it responsibly and in accordance with all app
 
 ## Contact
 
-For security concerns: [your-email@example.com]
-For general questions: [GitHub Issues](https://github.com/YOUR_USERNAME/autopwn/issues)
+For security concerns: m@rtin.page
+For general questions: [GitHub Issues](https://github.com/DoomedRamen/autopwn/issues)

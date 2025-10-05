@@ -58,5 +58,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development setup documentation
 - Security notice and usage guidelines
 
-[Unreleased]: https://github.com/YOUR_USERNAME/autopwn/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/YOUR_USERNAME/autopwn/releases/tag/v1.0.0
+[Unreleased]: https://github.com/DoomedRamen/autopwn/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/DoomedRamen/autopwn/releases/tag/v1.0.0
