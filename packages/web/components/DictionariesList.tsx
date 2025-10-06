@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import * as tus from 'tus-js-client';
 
 export default function DictionariesList() {
   const [dictionaries, setDictionaries] = useState<Dictionary[]>([]);
@@ -16,7 +15,6 @@ export default function DictionariesList() {
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentUploadRef = useRef<tus.Upload | null>(null);
 
   useEffect(() => {
     const fetchDictionaries = async () => {
@@ -30,74 +28,128 @@ export default function DictionariesList() {
     return () => clearInterval(interval);
   }, []);
 
+  const uploadLargeFile = async (file: File) => {
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+    setUploadingFileName(file.name);
+    console.log(`[Upload] Starting chunked upload: ${file.name} (${file.size} bytes, ${totalChunks} chunks)`);
+
+    try {
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('chunk', chunk);
+        formData.append('filename', file.name);
+        formData.append('chunkIndex', chunkIndex.toString());
+        formData.append('totalChunks', totalChunks.toString());
+
+        const response = await fetch('/api/dictionaries/upload-chunk', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Chunk upload failed');
+        }
+
+        // Update progress
+        const progress = ((chunkIndex + 1) / totalChunks) * 100;
+        setUploadProgress(progress);
+        console.log(`[Upload] Progress: ${progress.toFixed(1)}% (chunk ${chunkIndex + 1}/${totalChunks})`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      // Cleanup incomplete upload
+      await fetch(`/api/dictionaries/upload-chunk?filename=${encodeURIComponent(file.name)}`, {
+        method: 'DELETE',
+      });
+      throw error;
+    }
+  };
+
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const fileArray = Array.from(files);
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadMessage(null);
+
+    const LARGE_FILE_THRESHOLD = 50 * 1024 * 1024; // 50MB
     let successCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
 
-    for (const file of fileArray) {
-      try {
-        setUploading(true);
-        setUploadProgress(0);
-        setUploadingFileName(file.name);
-        setUploadMessage(null);
+    try {
+      for (const file of Array.from(files)) {
+        try {
+          setUploadingFileName(file.name);
 
-        await new Promise<void>((resolve, reject) => {
-          const upload = new tus.Upload(file, {
-            endpoint: '/api/dictionaries/tus',
-            retryDelays: [0, 3000, 5000, 10000, 20000],
-            metadata: {
-              filename: file.name,
-              filetype: file.type,
-            },
-            chunkSize: 5 * 1024 * 1024, // 5MB chunks
-            onError: (error) => {
-              console.error('Upload failed:', error);
-              errorCount++;
-              reject(error);
-            },
-            onProgress: (bytesUploaded, bytesTotal) => {
-              const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
-              setUploadProgress(parseFloat(percentage));
-            },
-            onSuccess: () => {
+          // Use chunked upload for large files
+          if (file.size > LARGE_FILE_THRESHOLD) {
+            console.log(`[Upload] Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using chunked upload`);
+            await uploadLargeFile(file);
+            successCount++;
+          } else {
+            // Use regular FormData upload for small files
+            const formData = new FormData();
+            formData.append('files', file);
+
+            const response = await fetch('/api/dictionaries/upload', {
+              method: 'POST',
+              body: formData,
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
               successCount++;
-              resolve();
-            },
-          });
-
-          currentUploadRef.current = upload;
-          upload.start();
-        });
-      } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
+            } else {
+              errorCount++;
+              errors.push(...(result.errors?.map((e: any) => e.error) || ['Upload failed']));
+            }
+          }
+        } catch (error) {
+          errorCount++;
+          errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Upload failed'}`);
+        }
       }
-    }
 
-    // Show final message
-    if (successCount > 0) {
+      // Show results
+      if (successCount > 0) {
+        setUploadMessage({
+          type: errorCount > 0 ? 'error' : 'success',
+          text: `Successfully uploaded ${successCount} file(s)${errorCount > 0 ? `. ${errorCount} failed: ${errors.join(', ')}` : ''}`,
+        });
+
+        // Refresh dictionary list
+        const dictRes = await fetch('/api/dictionaries');
+        const dictData = await dictRes.json();
+        setDictionaries(dictData);
+      } else {
+        setUploadMessage({
+          type: 'error',
+          text: `All uploads failed: ${errors.join(', ')}`,
+        });
+      }
+    } catch (error) {
       setUploadMessage({
-        type: errorCount > 0 ? 'error' : 'success',
-        text: `Successfully uploaded ${successCount} file(s)${errorCount > 0 ? `. ${errorCount} file(s) failed.` : ''}`,
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Upload failed',
       });
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      setUploadingFileName('');
 
-      // Refresh dictionary list
-      const dictRes = await fetch('/api/dictionaries');
-      const dictData = await dictRes.json();
-      setDictionaries(dictData);
-    } else {
-      setUploadMessage({ type: 'error', text: 'All uploads failed' });
-    }
-
-    setUploading(false);
-    setUploadProgress(0);
-    setUploadingFileName('');
-    currentUploadRef.current = null;
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

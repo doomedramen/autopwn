@@ -1,8 +1,17 @@
 import Database from 'better-sqlite3';
 import { Job, JobItem, Result, Dictionary } from '@autopwn/shared';
+import { runMigrations } from './migration';
 
 const DATABASE_PATH = process.env.DATABASE_PATH || '/data/db/autopwn.db';
 console.log('[DEBUG] Database path:', DATABASE_PATH);
+
+// Run migrations on module load
+try {
+  runMigrations();
+} catch (error) {
+  console.error('[Migration] Failed to run migrations:', error);
+  // Don't throw - let the app start and fail gracefully if DB is needed
+}
 
 let db: Database.Database | null = null;
 let writeDb: Database.Database | null = null;
