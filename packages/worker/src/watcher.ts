@@ -2,6 +2,7 @@ import chokidar from 'chokidar';
 import { join, basename } from 'path';
 import { rename, readdir } from 'fs/promises';
 import { spawn } from 'child_process';
+import { existsSync, mkdirSync } from 'fs';
 import { config } from './config.js';
 import { db } from './database.js';
 import { convertPcapToHash } from './processor.js';
@@ -18,9 +19,29 @@ export class FileWatcher {
   private maxWaitTimer: NodeJS.Timeout | null = null;
   private batchStartTime: number | null = null;
 
+  private ensureDirectories() {
+    const directories = [
+      config.inputPath,
+      config.intermediatePath,
+      config.completedPath,
+      config.failedPath,
+      config.hashesPath,
+    ];
+
+    for (const dir of directories) {
+      if (!existsSync(dir)) {
+        console.log(`Creating directory: ${dir}`);
+        mkdirSync(dir, { recursive: true });
+      }
+    }
+  }
+
   start() {
     console.log(`Watching for .pcap files in: ${config.inputPath}`);
-    console.log(`Batch mode: ${config.batchModeEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Batch mode: DISABLED - Files will be processed manually via UI`);
+
+    // Ensure all required directories exist
+    this.ensureDirectories();
 
     this.watcher = chokidar.watch('*.pcap', {
       cwd: config.inputPath,
@@ -44,36 +65,10 @@ export class FileWatcher {
   }
 
   private async handleNewFile(filename: string) {
-    console.log(`New file detected: ${filename}`);
+    console.log(`New file detected: ${filename} - Waiting for manual processing via UI`);
 
-    if (!config.batchModeEnabled) {
-      // Single file mode - process immediately (legacy behavior)
-      await this.processSingleFile(filename);
-      return;
-    }
-
-    // Batch mode - add to pending queue
-    this.pendingFiles.push({
-      filename,
-      addedAt: Date.now(),
-    });
-
-    console.log(`Added to batch queue (${this.pendingFiles.length} files pending)`);
-
-    // Start timers if this is the first file
-    if (this.pendingFiles.length === 1) {
-      this.batchStartTime = Date.now();
-      this.startMaxWaitTimer();
-    }
-
-    // Reset quiet period timer
-    this.startQuietPeriodTimer();
-
-    // Check if we've hit max batch size
-    if (this.pendingFiles.length >= config.batchMaxFiles) {
-      console.log(`Max batch size (${config.batchMaxFiles}) reached, processing now`);
-      await this.processBatch();
-    }
+    // Files are no longer auto-processed - they wait for manual job creation via the UI
+    // This allows users to select captures and dictionaries before processing
   }
 
   private startQuietPeriodTimer() {

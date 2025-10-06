@@ -55,7 +55,7 @@ export default function FileUpload() {
       if (result.success) {
         setMessage({
           type: 'success',
-          text: `Successfully uploaded ${result.uploaded.length} file(s)${result.errors ? `. ${result.errors.length} file(s) failed.` : ''}`,
+          text: `Successfully uploaded ${result.uploaded.length} file(s). They will appear in the Captures section below where you can create jobs.${result.errors ? ` ${result.errors.length} file(s) failed.` : ''}`,
         });
 
         // Reset file input
