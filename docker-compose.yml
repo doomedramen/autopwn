@@ -46,7 +46,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./volumes/db:/data/db:ro
+      - ./volumes/db:/data/db
     restart: unless-stopped
     depends_on:
       - worker

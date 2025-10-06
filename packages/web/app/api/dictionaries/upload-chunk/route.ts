@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, appendFile, mkdir, stat, unlink, rename } from 'fs/promises';
+import { writeFile, appendFile, mkdir, stat, unlink, rename, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { addDictionary } from '@/lib/db';
@@ -78,7 +78,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Move temp file to final location
-      await rename(tempFilePath, finalPath);
+      // Use copy+delete instead of rename to handle cross-device moves
+      try {
+        await copyFile(tempFilePath, finalPath);
+        await unlink(tempFilePath); // Clean up temp file after successful copy
+      } catch (copyError: any) {
+        // If copy fails, we still want to clean up the temp file
+        if (existsSync(tempFilePath)) {
+          await unlink(tempFilePath);
+        }
+        throw copyError; // Re-throw the original error
+      }
 
       // Get file stats and add to database
       const stats = await stat(finalPath);
