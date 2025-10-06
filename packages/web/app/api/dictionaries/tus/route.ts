@@ -82,7 +82,11 @@ function createNodeResponse() {
   let statusCode = 204;
   let body = '';
 
-  const res = {
+  // Create an EventEmitter-based response object to match ServerResponse interface
+  const res = new EventEmitter();
+
+  // Add ServerResponse methods
+  Object.assign(res, {
     setHeader(key: string, value: string | string[]) {
       headers[key.toLowerCase()] = Array.isArray(value) ? value.join(', ') : value;
     },
@@ -118,9 +122,9 @@ function createNodeResponse() {
     set statusCode(code: number) {
       statusCode = code;
     },
-  } as any;
+  });
 
-  return { res, getResponse: () => ({ statusCode, headers, body }) };
+  return { res: res as any, getResponse: () => ({ statusCode, headers, body }) };
 }
 
 export async function GET(req: NextRequest) {
