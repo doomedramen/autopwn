@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { addDictionary } from '@/lib/db';
 
-const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/app/volumes/dictionaries';
+const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/data/dictionaries';
 const TEMP_UPLOAD_PATH = process.env.TEMP_UPLOAD_PATH || '/tmp/dict-uploads';
 
 // Hashcat-compatible dictionary file extensions

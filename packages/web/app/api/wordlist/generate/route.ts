@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { addDictionary } from '@/lib/db';
 
-const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/app/volumes/dictionaries';
+const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/data/dictionaries';
 
 interface GenerateRequest {
   baseWords: string[];

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir, rename } from 'fs/promises';
+import { readdir, rename, access } from 'fs/promises';
 import { join } from 'path';
 
 export const dynamic = 'force-dynamic';
@@ -35,12 +35,26 @@ export async function POST(request: NextRequest) {
 
     // Verify all capture files exist
     const existingFiles: string[] = [];
+    console.log(`[DEBUG] Looking for files in INPUT_PATH: ${INPUT_PATH}`);
+
+    // List what's actually in the input directory
+    try {
+      const fs = require('fs');
+      const files = fs.readdirSync(INPUT_PATH);
+      console.log(`[DEBUG] Files in input directory: ${files.join(', ')}`);
+    } catch (error) {
+      console.log(`[DEBUG] Cannot read input directory: ${error}`);
+    }
+
     for (const filename of captures) {
+      const fullPath = join(INPUT_PATH, filename);
+      console.log(`[DEBUG] Checking for file: ${fullPath}`);
       try {
-        await readdir(join(INPUT_PATH, filename)); // This will throw if file doesn't exist
+        await access(fullPath); // Check if file exists and is accessible
         existingFiles.push(filename);
+        console.log(`[DEBUG] Found file: ${filename}`);
       } catch (error) {
-        console.log(`File not found: ${filename}`);
+        console.log(`[DEBUG] File not found: ${fullPath} - ${error}`);
       }
     }
 

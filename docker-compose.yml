@@ -9,13 +9,6 @@ services:
     #   dockerfile: packages/worker/Dockerfile
     container_name: autopwn-worker
     environment:
-      - DATABASE_PATH=/data/db/autopwn.db
-      - DICTIONARIES_PATH=/data/dictionaries
-      - INPUT_PATH=/data/input
-      - INTERMEDIATE_PATH=/data/intermediate
-      - COMPLETED_PATH=/data/completed
-      - FAILED_PATH=/data/failed
-      - HASHES_PATH=/data/hashes
       - HASHCAT_DEVICE_TYPE=${HASHCAT_DEVICE_TYPE:-cpu}
     volumes:
       - ./volumes:/data
@@ -41,12 +34,10 @@ services:
   web:
     image: doomedramen/autopwn-web:latest
     container_name: autopwn-web
-    environment:
-      - DATABASE_PATH=/data/db/autopwn.db
     ports:
       - "3000:3000"
     volumes:
-      - ./volumes/db:/data/db
+      - ./volumes:/data
     restart: unless-stopped
     depends_on:
       - worker

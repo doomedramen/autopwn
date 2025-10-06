@@ -3,7 +3,7 @@ import { writeFile, stat } from 'fs/promises';
 import path from 'path';
 import { addDictionary } from '@/lib/db';
 
-const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/app/volumes/dictionaries';
+const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/data/dictionaries';
 
 // Hashcat-compatible dictionary file extensions
 const ALLOWED_EXTENSIONS = [
