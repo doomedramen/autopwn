@@ -133,12 +133,16 @@ export function CreateJobModal({ open, onOpenChange, selectedCaptures, onSuccess
           {/* Selected Captures */}
           <div className="space-y-2">
             <Label>Selected Captures ({selectedCaptures.length})</Label>
-            <div className="flex flex-wrap gap-2">
-              {selectedCaptures.map((capture) => (
-                <Badge key={capture} variant="secondary" className="max-w-[200px] truncate">
-                  {capture}
-                </Badge>
-              ))}
+            <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+              <div className="space-y-1">
+                {selectedCaptures.map((capture) => (
+                  <div key={capture} className="flex items-center">
+                    <Badge variant="secondary" className="w-full justify-start">
+                      {capture}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -150,7 +154,7 @@ export function CreateJobModal({ open, onOpenChange, selectedCaptures, onSuccess
             ) : dictionaries.length === 0 ? (
               <p className="text-muted-foreground">No dictionaries available</p>
             ) : (
-              <div className="h-48 border rounded-md p-2 overflow-y-auto">
+              <div className="max-h-48 border rounded-md p-2 overflow-y-auto">
                 <div className="space-y-2">
                   {dictionaries.map((dict) => (
                     <div key={dict.id} className="flex items-center space-x-3 p-2 hover:bg-accent rounded">
