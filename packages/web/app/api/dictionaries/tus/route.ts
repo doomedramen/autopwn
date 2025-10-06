@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 import path from 'path';
 import { rename, stat } from 'fs/promises';
 import { addDictionary } from '@/lib/db';
+import { EventEmitter } from 'events';
 
 const DICTIONARIES_PATH = process.env.DICTIONARIES_PATH || '/app/volumes/dictionaries';
 const TUS_UPLOAD_PATH = process.env.TUS_UPLOAD_PATH || '/tmp/tus-uploads';
@@ -61,12 +62,18 @@ const tusServer = new Server({
 function convertNextRequestToNode(req: NextRequest) {
   const url = new URL(req.url);
 
-  return {
+  // Create an EventEmitter-based object to match IncomingMessage interface
+  const emitter = new EventEmitter();
+
+  // Add IncomingMessage properties
+  Object.assign(emitter, {
     method: req.method,
     url: url.pathname + url.search,
     headers: Object.fromEntries(req.headers.entries()),
     body: req.body,
-  } as any;
+  });
+
+  return emitter as any;
 }
 
 // Convert Node.js ServerResponse to NextResponse-compatible
