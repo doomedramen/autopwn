@@ -74,15 +74,18 @@ function getExpectedTables(): Record<string, string[]> {
     const tableNameMatch = match.match(/CREATE TABLE IF NOT EXISTS (\w+)/);
     if (tableNameMatch) {
       const tableName = tableNameMatch[1];
-      const columnsMatch = match.match(/\(([\s\S]*?)\)/);
+      const columnsMatch = match.match(/\(([\s\S]*?)\);/);
       if (columnsMatch) {
-        // Extract column names (simplified regex)
+        // Extract column names with better regex
         const columnDefs = columnsMatch[1];
-        const columns = columnDefs
-          .split(',')
-          .map(col => col.trim())
-          .map(col => col.split(' ')[0]) // Get first word (column name)
-          .filter(col => col.length > 0);
+        const lines = columnDefs.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        const columns = lines.map(line => {
+          // Handle both "col_name TYPE ..." and "col_name TYPE, ..." patterns
+          const cleanLine = line.replace(/,?\s*$/, ''); // Remove trailing comma
+          const parts = cleanLine.split(/\s+/);
+          return parts[0]; // First part is column name
+        }).filter(col => col && !col.startsWith('FOREIGN KEY') && !col.startsWith('CONSTRAINT'));
 
         tables[tableName] = columns;
       }
