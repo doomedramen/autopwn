@@ -32,16 +32,19 @@ wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rocky
 ## Step 3: Start AutoPWN
 
 ### CPU Mode (Default)
+
 ```bash
 docker-compose up -d
 ```
 
 ### With NVIDIA GPU
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.nvidia.yml up -d
 ```
 
 ### With AMD GPU
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.amd.yml up -d
 ```
@@ -51,19 +54,31 @@ docker-compose -f docker-compose.yml -f docker-compose.amd.yml up -d
 Open your browser to: **http://localhost:3000**
 
 You should see:
+
 - Statistics cards (all showing 0)
 - Empty job queue
 - Empty results table
 - Your wordlists listed
 
+Also check out the Analytics Dashboard at: **http://localhost:3000/analytics**
+
+This shows charts and statistics about:
+
+- Job creation trends
+- Success rates
+- Dictionary effectiveness
+- Average completion times
+
 ## Step 5: Add PCAP Files
 
 ### Option A: File Upload (Recommended)
+
 1. Click the file upload area in the dashboard
 2. Drag and drop your `.pcap` files
 3. Watch them appear in the job queue
 
 ### Option B: Direct File Drop
+
 ```bash
 cp your-handshake.pcap volumes/input/
 ```
@@ -81,6 +96,7 @@ AutoPWN will automatically:
 ## Monitoring
 
 ### View Logs
+
 ```bash
 # Worker logs (file processing, hashcat output)
 docker logs -f autopwn-worker
@@ -90,11 +106,13 @@ docker logs -f autopwn-web
 ```
 
 ### Check Status
+
 ```bash
 docker-compose ps
 ```
 
 ### Restart Services
+
 ```bash
 docker-compose restart
 ```
@@ -102,11 +120,13 @@ docker-compose restart
 ## Common First-Time Issues
 
 ### Jobs not appearing?
+
 - Check file watcher: `docker logs autopwn-worker`
 - Ensure `.pcap` files have valid handshakes
 - Verify `volumes/input/` permissions
 
 ### Hashcat not using GPU?
+
 ```bash
 # Check GPU detection
 docker exec autopwn-worker hashcat -I
@@ -118,6 +138,7 @@ docker exec autopwn-worker nvidia-smi
 ```
 
 ### Dashboard not updating?
+
 - Hard refresh browser (Ctrl+Shift+R or Cmd+Shift+R)
 - Check database: `ls -lh volumes/db/autopwn.db`
 - Verify web logs: `docker logs autopwn-web`
@@ -128,6 +149,8 @@ docker exec autopwn-worker nvidia-smi
 - Learn about job management (pause, resume, priority)
 - Try the custom wordlist generator
 - Check [USAGE.md](USAGE.md) for detailed workflows
+- View the [API documentation](API.md) for automation options
+- Monitor your progress on the analytics dashboard
 
 ## Stopping AutoPWN
 

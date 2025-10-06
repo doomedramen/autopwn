@@ -132,9 +132,8 @@ We track feature requests in [GitHub Issues](https://github.com/DoomedRamen/auto
 Maintainers will:
 
 1. Update version in `package.json`
-2. Update CHANGELOG.md
-3. Create GitHub release with notes
-4. Build and push Docker images
+2. Create GitHub release with notes
+3. Build and push Docker images
 
 ## Questions?
 

@@ -90,7 +90,25 @@ Drop multiple files at once:
 cp *.pcap volumes/input/
 ```
 
-Jobs are processed sequentially.
+Jobs are processed sequentially by default, or can be combined into batch jobs for efficiency.
+
+### Batch Processing
+
+Enable batch mode to combine multiple PCAP files into a single hashcat job:
+
+```bash
+# In .env file
+BATCH_MODE_ENABLED=true
+BATCH_QUIET_PERIOD=60    # Wait 60 seconds for more files
+BATCH_MAX_WAIT=300       # Maximum wait time of 5 minutes
+BATCH_MIN_FILES=1        # Minimum files to create a batch
+BATCH_MAX_FILES=50       # Maximum files per batch
+```
+
+Benefits of batch processing:
+- More efficient GPU utilization
+- Reduced overhead from starting/stopping hashcat
+- Better for processing large numbers of small files
 
 ### Monitoring Jobs
 
@@ -134,6 +152,25 @@ SELECT * FROM jobs WHERE status = 'processing';
 SELECT COUNT(*) FROM results;
 SELECT essid, password FROM results;
 SELECT name, size FROM dictionaries ORDER BY name;
+
+-- Analytics queries
+SELECT
+  DATE(created_at) as date,
+  COUNT(*) as jobs_count
+FROM jobs
+WHERE created_at >= date('now', '-30 days')
+GROUP BY DATE(created_at)
+ORDER BY date;
+
+-- Dictionary effectiveness
+SELECT
+  d.name,
+  COUNT(r.id) as cracks_count
+FROM dictionaries d
+LEFT JOIN job_dictionaries jd ON d.id = jd.dictionary_id
+LEFT JOIN results r ON jd.job_id = r.job_id
+GROUP BY d.id, d.name
+ORDER BY cracks_count DESC;
 ```
 
 ## Performance Tips
@@ -241,9 +278,23 @@ sqlite3 volumes/db/autopwn.db "SELECT essid, password FROM results;" > cracked.t
 mv volumes/completed/* ~/archives/
 ```
 
+## Analytics Dashboard
+
+Access the analytics dashboard at http://localhost:3000/analytics to view:
+
+- **Job Trends**: Line chart showing jobs created over time
+- **Success Rate**: Percentage of successful cracks
+- **Completion Times**: Average time to complete jobs
+- **Dictionary Performance**: Which dictionaries are most effective
+- **Status Distribution**: Pie chart of job statuses
+
+The dashboard automatically refreshes every 30 seconds with new data.
+
 ## Integration Ideas
 
 - **Cron job**: Auto-copy new captures
 - **Notification**: Alert on successful crack (webhook, email)
-- **API**: Build on top of Next.js API routes
+- **API**: Build on top of Next.js API routes (see API.md)
 - **Custom dictionaries**: Generate based on target (location, names, dates)
+- **Analytics**: Export data for external reporting
+- **Automation**: Use the REST API to integrate with other tools

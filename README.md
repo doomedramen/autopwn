@@ -19,6 +19,7 @@ Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` f
 - [Dashboard Features](#dashboard-features)
 - [Configuration](#configuration)
 - [GPU Support](#gpu-support)
+- [API Documentation](#api-documentation)
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
 - [Security Notice](#security-notice)
@@ -41,6 +42,8 @@ Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` f
 - **Priority Queue**: Set job priority (Low, Normal, High, Urgent)
 - **Custom Wordlists**: Generate targeted wordlists with patterns and transformations
 - **Results Tracking**: View all cracked passwords with timestamps
+- **Analytics Dashboard**: Track success rates, completion times, and dictionary effectiveness
+- **Batch Processing**: Combine multiple PCAP files into efficient batch jobs
 
 ## Architecture
 
@@ -132,6 +135,17 @@ HASHCAT_DEVICE_TYPE=cpu
 DATABASE_PATH=/data/db/autopwn.db
 DICTIONARIES_PATH=/data/dictionaries
 INPUT_PATH=/data/input
+INTERMEDIATE_PATH=/data/intermediate
+COMPLETED_PATH=/data/completed
+FAILED_PATH=/data/failed
+HASHES_PATH=/data/hashes
+
+# Batch Processing
+BATCH_MODE_ENABLED=false
+BATCH_QUIET_PERIOD=60
+BATCH_MAX_WAIT=300
+BATCH_MIN_FILES=1
+BATCH_MAX_FILES=50
 ```
 
 ## Directory Structure
@@ -186,11 +200,36 @@ sudo usermod -a -G video $USER
 
 Uses OpenCL. Typically works out of the box with Intel OpenCL runtime.
 
+## API Documentation
+
+AutoPWN provides a REST API for automation and integration. See [API.md](API.md) for detailed documentation of all endpoints.
+
+Key API features:
+- Job management (create, pause, resume, retry)
+- File upload and dictionary management
+- Real-time statistics and analytics
+- Results export and querying
+
+Example usage:
+```bash
+# Get all jobs
+curl http://localhost:3000/api/jobs
+
+# Upload a file
+curl -X POST -F "files=@handshake.pcap" http://localhost:3000/api/upload
+
+# Set job priority
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"priority":2}' \
+  http://localhost:3000/api/jobs/1/priority
+```
+
 ## Dashboard Features
 
 ### Statistics
 - **Live Stats Cards**: Total jobs, processing, completed, failed, cracked passwords
 - **Auto-refresh**: Updates every 2-3 seconds
+- **Analytics Dashboard**: Visual charts showing job trends, success rates, and dictionary effectiveness
 
 ### Job Queue
 - **Real-time Progress**: Track progress, speed, ETA for each job
@@ -212,6 +251,7 @@ Uses OpenCL. Typically works out of the box with Intel OpenCL runtime.
 ### Results
 - **Cracked Passwords**: View all successful cracks with ESSID and timestamp
 - **Export Ready**: Results stored in SQLite database
+- **Analytics**: Historical data with charts and statistics
 
 ## Development
 
@@ -276,12 +316,12 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for de
 
 ### Roadmap
 
-- [ ] Analytics dashboard with charts and statistics
+- [x] Analytics dashboard with charts and statistics
 - [ ] Mobile-responsive UI
-- [ ] Batch job management
+- [x] Batch job management
 - [ ] Email/webhook notifications
 - [ ] Custom hashcat rules support
-- [ ] API endpoints for automation
+- [x] API endpoints for automation
 
 ## License
 

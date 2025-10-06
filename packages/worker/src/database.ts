@@ -12,7 +12,7 @@ import {
   UpdateJobItemInput,
   CreateResultInput,
 } from "@autopwn/shared";
-import { config } from "./config";
+import { config } from "./config.js";
 import { existsSync, mkdirSync } from "fs";
 import { dirname } from "path";
 
