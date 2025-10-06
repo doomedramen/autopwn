@@ -6,13 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import * as tus from 'tus-js-client';
 
 export default function DictionariesList() {
   const [dictionaries, setDictionaries] = useState<Dictionary[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState<string>('');
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentUploadRef = useRef<tus.Upload | null>(null);
 
   useEffect(() => {
     const fetchDictionaries = async () => {
@@ -29,38 +33,71 @@ export default function DictionariesList() {
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    setUploading(true);
-    setUploadMessage(null);
+    const fileArray = Array.from(files);
+    let successCount = 0;
+    let errorCount = 0;
 
-    try {
-      const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append('files', file);
+    for (const file of fileArray) {
+      try {
+        setUploading(true);
+        setUploadProgress(0);
+        setUploadingFileName(file.name);
+        setUploadMessage(null);
+
+        await new Promise<void>((resolve, reject) => {
+          const upload = new tus.Upload(file, {
+            endpoint: '/api/dictionaries/tus',
+            retryDelays: [0, 3000, 5000, 10000, 20000],
+            metadata: {
+              filename: file.name,
+              filetype: file.type,
+            },
+            chunkSize: 5 * 1024 * 1024, // 5MB chunks
+            onError: (error) => {
+              console.error('Upload failed:', error);
+              errorCount++;
+              reject(error);
+            },
+            onProgress: (bytesUploaded, bytesTotal) => {
+              const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+              setUploadProgress(parseFloat(percentage));
+            },
+            onSuccess: () => {
+              successCount++;
+              resolve();
+            },
+          });
+
+          currentUploadRef.current = upload;
+          upload.start();
+        });
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+      }
+    }
+
+    // Show final message
+    if (successCount > 0) {
+      setUploadMessage({
+        type: errorCount > 0 ? 'error' : 'success',
+        text: `Successfully uploaded ${successCount} file(s)${errorCount > 0 ? `. ${errorCount} file(s) failed.` : ''}`,
       });
 
-      const res = await fetch('/api/dictionaries/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Refresh dictionary list
+      const dictRes = await fetch('/api/dictionaries');
+      const dictData = await dictRes.json();
+      setDictionaries(dictData);
+    } else {
+      setUploadMessage({ type: 'error', text: 'All uploads failed' });
+    }
 
-      const data = await res.json();
+    setUploading(false);
+    setUploadProgress(0);
+    setUploadingFileName('');
+    currentUploadRef.current = null;
 
-      if (res.ok && data.success) {
-        setUploadMessage({ type: 'success', text: data.message });
-        // Refresh dictionary list
-        const dictRes = await fetch('/api/dictionaries');
-        const dictData = await dictRes.json();
-        setDictionaries(dictData);
-      } else {
-        setUploadMessage({ type: 'error', text: data.error || 'Upload failed' });
-      }
-    } catch (error) {
-      setUploadMessage({ type: 'error', text: 'Failed to upload dictionaries' });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -117,8 +154,28 @@ export default function DictionariesList() {
           className="hidden"
         />
 
+        {/* Upload progress */}
+        {uploading && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground truncate max-w-[70%]">
+                Uploading: {uploadingFileName}
+              </span>
+              <span className="text-muted-foreground font-mono">
+                {uploadProgress.toFixed(0)}%
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-primary h-full transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Upload message */}
-        {uploadMessage && (
+        {uploadMessage && !uploading && (
           <div className={cn(
             "p-3 rounded text-sm",
             uploadMessage.type === 'success'
