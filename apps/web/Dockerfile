@@ -13,7 +13,7 @@ COPY package*.json ./
 COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
 COPY packages/shared/package*.json ./packages/shared/
-COPY packages/web/package*.json ./packages/web/
+COPY apps/web/package*.json ./apps/web/
 
 # Initialize git repository for lefthook
 RUN git init && git config user.email "test@example.com" && git config user.name "Test User"
@@ -23,14 +23,14 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY packages/shared ./packages/shared
-COPY packages/web ./packages/web
+COPY apps/web ./apps/web
 
 # Build shared package
 WORKDIR /app/packages/shared
 RUN pnpm run build
 
 # Build web
-WORKDIR /app/packages/web
+WORKDIR /app/apps/web
 RUN pnpm run build
 
 EXPOSE 3000
