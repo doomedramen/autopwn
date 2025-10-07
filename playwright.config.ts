@@ -61,7 +61,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'cd packages/web && npx next dev --port 3000',
+    command: 'cd apps/web && npx next dev --port 3000',
     url: 'http://localhost:3000',
     reuseExistingServer: true, // Always reuse existing server to avoid conflicts
     timeout: 120 * 1000,
