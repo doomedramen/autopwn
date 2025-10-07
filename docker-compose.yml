@@ -6,7 +6,7 @@ services:
     # Uncomment to build locally instead of using pre-built image:
     # build:
     #   context: .
-    #   dockerfile: packages/worker/Dockerfile
+    #   dockerfile: apps/worker/Dockerfile
     container_name: autopwn-worker
     environment:
       - HASHCAT_DEVICE_TYPE=${HASHCAT_DEVICE_TYPE:-cpu}

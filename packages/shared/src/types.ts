@@ -3,6 +3,7 @@ export type JobItemStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
 export interface Job {
   id: number;
+  job_id: string | null;
   filename: string;
   status: JobStatus;
   priority: number;
@@ -20,6 +21,8 @@ export interface Job {
   eta: string | null;
   error: string | null;
   logs: string | null;
+  captures: string | null;
+  total_hashes: number | null;
 }
 
 export interface JobItem {
@@ -31,6 +34,7 @@ export interface JobItem {
   status: JobItemStatus;
   password: string | null;
   cracked_at: string | null;
+  pcap_filename: string | null;
 }
 
 export interface JobDictionary {
@@ -46,6 +50,7 @@ export interface Result {
   essid: string;
   password: string;
   cracked_at: string;
+  pcap_filename: string | null;
 }
 
 export interface Dictionary {
@@ -106,4 +111,20 @@ export interface CreateResultInput {
   job_id: number;
   essid: string;
   password: string;
+  pcap_filename?: string | null;
+}
+
+export interface PcapEssidMapping {
+  id: number;
+  pcap_filename: string;
+  essid: string;
+  bssid: string | null;
+  created_at: string;
+}
+
+export interface CaptureFile {
+  filename: string;
+  size: number;
+  uploaded_at: string;
+  essids: string[];
 }

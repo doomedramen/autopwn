@@ -135,11 +135,11 @@ For production deployments, you can use published images instead of building loc
 ```yaml
 services:
   worker:
-    image: doomedramen/autopwn-worker:latest  # Instead of build: ./packages/worker
+    image: doomedramen/autopwn-worker:latest  # Instead of build: ./apps/worker
     # ... rest of config
 
   web:
-    image: doomedramen/autopwn-web:latest  # Instead of build: ./packages/web
+    image: doomedramen/autopwn-web:latest  # Instead of build: ./apps/web
     # ... rest of config
 ```
 

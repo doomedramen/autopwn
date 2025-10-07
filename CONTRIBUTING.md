@@ -75,7 +75,7 @@ npm install
 cp .env.example .env
 
 # Create required directories
-mkdir -p volumes/{input,intermediate,completed,failed,hashes,db,dictionaries}
+mkdir -p volumes/{db,dictionaries,jobs,pcaps}
 
 # Run worker (in one terminal)
 npm run dev:worker

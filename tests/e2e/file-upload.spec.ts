@@ -74,7 +74,7 @@ test.describe('Test: File Upload (PCAP & Dictionary)', () => {
       }
 
       // Verify file was written to upload directory
-      const uploadDir = process.env.INPUT_PATH || path.join(__dirname, '../../volumes/input');
+      const uploadDir = process.env.PCAPS_PATH || path.join(__dirname, '../../volumes/pcaps');
       const uploadedFilePath = path.join(uploadDir, 'test-upload.pcap');
 
       await page.waitForTimeout(1000);
@@ -130,7 +130,7 @@ test.describe('Test: File Upload (PCAP & Dictionary)', () => {
       }
 
       // Verify files were written
-      const uploadDir = process.env.INPUT_PATH || path.join(__dirname, '../../volumes/input');
+      const uploadDir = process.env.PCAPS_PATH || path.join(__dirname, '../../volumes/pcaps');
       const expectedFiles = ['multi-test-1.pcap', 'multi-test-2.pcapng', 'multi-test-3.cap'];
       let uploadedCount = 0;
 

@@ -21,17 +21,11 @@ importers:
         specifier: ^2.2.3
         version: 2.5.8
 
-  packages/shared:
-    devDependencies:
-      typescript:
-        specifier: ^5.3.3
-        version: 5.9.3
-
-  packages/web:
+  apps/web:
     dependencies:
       '@autopwn/shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       '@radix-ui/react-checkbox':
         specifier: ^1.3.3
         version: 1.3.3(@types/react-dom@19.2.0(@types/react@19.2.0))(@types/react@19.2.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -83,6 +77,9 @@ importers:
       recharts:
         specifier: ^3.2.1
         version: 3.2.1(@types/react@19.2.0)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.0)(react@19.2.0)(redux@5.0.1)
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
@@ -115,11 +112,11 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
-  packages/worker:
+  apps/worker:
     dependencies:
       '@autopwn/shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       better-sqlite3:
         specifier: ^11.8.1
         version: 11.10.0
@@ -141,6 +138,15 @@ importers:
         version: 4.20.6
       typescript:
         specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/shared:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.19
+      typescript:
+        specifier: ^5.3.3
         version: 5.9.3
 
 packages:
@@ -944,6 +950,9 @@ packages:
   '@types/d3-timer@3.0.2':
     resolution: {integrity: sha512-Ps3T8E8dZDam6fUyNiMkekK3XUsaUEik+idO9/YjPtfj2qruF8tFBXS7XhtE4iIXBLxhmLjP3SXpLhVf21I9Lw==}
 
+  '@types/node@20.19.19':
+    resolution: {integrity: sha512-pb1Uqj5WJP7wrcbLU7Ru4QtA0+3kAXrkutGiD26wUKzSMgNNaPARTUDQmElUXp64kh3cWdou3Q0C7qwwxqSFmg==}
+
   '@types/node@22.18.8':
     resolution: {integrity: sha512-pAZSHMiagDR7cARo/cch1f3rXy0AEXwsVsVH09FcyeJVAzCnGgmYis7P3JidtTUjyadhTeSo8TgRPswstghDaw==}
 
@@ -1694,6 +1703,12 @@ packages:
 
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
+
+  sonner@2.0.7:
+    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -2539,6 +2554,10 @@ snapshots:
 
   '@types/d3-timer@3.0.2': {}
 
+  '@types/node@20.19.19':
+    dependencies:
+      undici-types: 6.21.0
+
   '@types/node@22.18.8':
     dependencies:
       undici-types: 6.21.0
@@ -3262,6 +3281,11 @@ snapshots:
       decompress-response: 6.0.0
       once: 1.4.0
       simple-concat: 1.0.1
+
+  sonner@2.0.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
 
   source-map-js@1.2.1: {}
 

@@ -69,29 +69,42 @@ This shows charts and statistics about:
 - Dictionary effectiveness
 - Average completion times
 
-## Step 5: Add PCAP Files
+## Step 5: Add PCAP Files and Dictionaries
 
-### Option A: File Upload (Recommended)
+### Option A: Web Upload (Recommended)
 
 1. Click the file upload area in the dashboard
-2. Drag and drop your `.pcap` files
-3. Watch them appear in the job queue
+2. Upload your `.pcap` files - they'll be stored permanently
+3. Upload dictionary files to use for cracking
+4. Files appear in their respective management tables
 
-### Option B: Direct File Drop
+### Option B: Direct File Copy
 
 ```bash
-cp your-handshake.pcap volumes/input/
+# Copy PCAP files (permanent storage)
+cp your-handshake.pcap volumes/pcaps/
+
+# Copy dictionary files
+cp rockyou.txt volumes/dictionaries/
 ```
+
+## Step 6: Create Jobs
+
+1. **Select PCAP Files**: Check the box next to files you want to process
+2. **Click "Process selected"**: Opens the job creation modal
+3. **Choose Dictionaries**: Select which wordlists to try
+4. **Click "Run"**: Creates the job and starts processing
 
 ## What Happens Next?
 
-AutoPWN will automatically:
+AutoPWN will:
 
-1. **Convert**: PCAP → `.hc22000` format (30 seconds)
-2. **Queue**: Job appears in dashboard with "pending" status
-3. **Process**: Starts cracking with first dictionary
-4. **Monitor**: Watch real-time progress, speed, ETA
-5. **Results**: Cracked passwords appear in results table
+1. **Extract ESSID Info**: Scan PCAPs and build network mapping (30 seconds)
+2. **Create Job**: Merge selected PCAPs into single `.hc22000` file
+3. **Queue**: Job appears in dashboard with "pending" status
+4. **Process**: Starts cracking with selected dictionaries
+5. **Monitor**: Watch real-time progress, speed, ETA
+6. **Results**: Cracked passwords appear with source PCAP information
 
 ## Monitoring
 
@@ -121,9 +134,11 @@ docker-compose restart
 
 ### Jobs not appearing?
 
-- Check file watcher: `docker logs autopwn-worker`
-- Ensure `.pcap` files have valid handshakes
-- Verify `volumes/input/` permissions
+- Check worker logs: `docker logs autopwn-worker`
+- Ensure you clicked "Process selected" and created jobs
+- Verify `.pcap` files have valid handshakes
+- Check database: `sqlite3 volumes/db/autopwn.db "SELECT * FROM jobs;"`
+- Verify `volumes/pcaps/` permissions
 
 ### Hashcat not using GPU?
 
@@ -142,6 +157,14 @@ docker exec autopwn-worker nvidia-smi
 - Hard refresh browser (Ctrl+Shift+R or Cmd+Shift+R)
 - Check database: `ls -lh volumes/db/autopwn.db`
 - Verify web logs: `docker logs autopwn-web`
+- Check if jobs were created: Look in Jobs table in dashboard
+
+### No results after job completes?
+
+- Try different dictionary (larger/more comprehensive)
+- Check if PCAP contains valid handshakes
+- Verify job status shows "completed" not "failed"
+- Review job logs for error messages
 
 ## Next Steps
 

@@ -47,25 +47,58 @@ Returns a list of all jobs with their current status.
 [
   {
     "id": 1,
-    "filename": "handshake.pcap",
+    "job_id": "job-1234567890",
     "status": "processing",
     "priority": 0,
     "paused": 0,
-    "batch_mode": 0,
-    "items_total": 1,
-    "items_cracked": 0,
+    "batch_mode": 1,
+    "items_total": 3,
+    "items_cracked": 1,
     "created_at": "2025-01-05T12:00:00.000Z",
     "started_at": "2025-01-05T12:01:00.000Z",
     "completed_at": null,
-    "current_dictionary": "rockyou.txt",
+    "current_dictionary": "Super-WPA.gz",
     "progress": 45.5,
-    "hash_count": 1,
+    "hash_count": 5,
     "speed": "1234 H/s",
     "eta": "2h 30m",
     "error": null,
-    "logs": null
+    "logs": null,
+    "captures": ["handshake1.pcap", "handshake2.pcap", "handshake3.pcap"],
+    "total_hashes": 5
   }
 ]
+```
+
+#### Create Job
+```http
+POST /api/jobs/create
+```
+
+Creates a new job by merging selected PCAP files into a single hash file.
+
+**Request Body:**
+```json
+{
+  "captures": ["handshake1.pcap", "handshake2.pcap", "handshake3.pcap"],
+  "dictionaryIds": [1, 2],
+  "name": "Office WiFi Audit"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "jobId": "job-1234567890",
+  "jobName": "Office WiFi Audit",
+  "captures": ["handshake1.pcap", "handshake2.pcap", "handshake3.pcap"],
+  "dictionaries": [1, 2],
+  "totalCreated": 1,
+  "totalFiles": 3,
+  "totalHashes": 5,
+  "message": "Successfully created job 'Office WiFi Audit' merging 3 capture files with 5 total hashes."
+}
 ```
 
 #### Get Job by ID
@@ -121,7 +154,7 @@ Priority levels:
 POST /api/jobs/{id}/retry
 ```
 
-Retries a failed job by moving it back to the intermediate folder and resetting its status.
+Retries a failed job by resetting its status to pending so it can be processed again.
 
 **Response:**
 ```json
@@ -149,7 +182,7 @@ Retries multiple failed jobs.
 GET /api/jobs/{id}/items
 ```
 
-Returns all items (handshakes) within a job.
+Returns all items (handshakes) within a job with source PCAP tracking.
 
 **Response:**
 ```json
@@ -160,9 +193,10 @@ Returns all items (handshakes) within a job.
     "filename": "handshake.pcap",
     "essid": "MyNetwork",
     "bssid": "AA:BB:CC:DD:EE:FF",
-    "status": "processing",
-    "password": null,
-    "cracked_at": null
+    "status": "completed",
+    "password": "password123",
+    "cracked_at": "2025-01-05T12:30:00.000Z",
+    "pcap_filename": "office-capture.pcap"
   }
 ]
 ```
@@ -243,7 +277,7 @@ Generates a custom wordlist based on provided parameters.
 GET /api/results
 ```
 
-Returns all successfully cracked passwords.
+Returns all successfully cracked passwords with source PCAP tracking.
 
 **Response:**
 ```json
@@ -253,7 +287,8 @@ Returns all successfully cracked passwords.
     "job_id": 1,
     "essid": "MyNetwork",
     "password": "password123",
-    "cracked_at": "2025-01-05T12:30:00.000Z"
+    "cracked_at": "2025-01-05T12:30:00.000Z",
+    "pcap_filename": "office-capture.pcap"
   }
 ]
 ```
@@ -321,7 +356,7 @@ Returns analytics data for charts and statistics.
 POST /api/upload
 ```
 
-Uploads PCAP files for processing.
+Uploads PCAP files for storage. Files are permanently stored and ESSID information is extracted for tracking.
 
 **Request:** multipart/form-data with files field named "files"
 
@@ -330,8 +365,29 @@ Uploads PCAP files for processing.
 {
   "success": true,
   "uploaded": ["handshake.pcap"],
+  "essids_extracted": ["MyNetwork", "OfficeWiFi"],
   "errors": []
 }
+```
+
+#### Get PCAP Files
+```http
+GET /api/captures
+```
+
+Returns list of uploaded PCAP files with ESSID information.
+
+**Response:**
+```json
+[
+  {
+    "filename": "office-capture.pcap",
+    "size": 1048576,
+    "uploaded_at": "2025-01-05T12:00:00.000Z",
+    "essids": ["MyNetwork", "OfficeWiFi"],
+    "hash_count": 2
+  }
+]
 ```
 
 ## Error Codes
@@ -367,6 +423,21 @@ const uploadResponse = await fetch('http://localhost:3000/api/upload', {
 });
 
 const uploadResult = await uploadResponse.json();
+
+// Create a job
+const jobResponse = await fetch('http://localhost:3000/api/jobs/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    captures: ['handshake1.pcap', 'handshake2.pcap'],
+    dictionaryIds: [1, 2],
+    name: 'Security Audit'
+  })
+});
+
+const jobResult = await jobResponse.json();
 ```
 
 ### Python
@@ -382,6 +453,15 @@ jobs = response.json()
 files = {'files': open('handshake.pcap', 'rb')}
 response = requests.post('http://localhost:3000/api/upload', files=files)
 upload_result = response.json()
+
+# Create a job
+job_data = {
+    'captures': ['handshake1.pcap', 'handshake2.pcap'],
+    'dictionaryIds': [1, 2],
+    'name': 'Security Audit'
+}
+response = requests.post('http://localhost:3000/api/jobs/create', json=job_data)
+job_result = response.json()
 ```
 
 ### curl
@@ -393,7 +473,15 @@ curl http://localhost:3000/api/jobs
 # Upload a file
 curl -X POST -F "files=@handshake.pcap" http://localhost:3000/api/upload
 
+# Create a job
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"captures":["handshake1.pcap","handshake2.pcap"],"dictionaryIds":[1,2],"name":"Security Audit"}' \
+  http://localhost:3000/api/jobs/create
+
 # Set job priority
 curl -X POST -H "Content-Type: application/json" \
   -d '{"priority":2}' \
   http://localhost:3000/api/jobs/1/priority
+
+# Get results with source PCAP info
+curl http://localhost:3000/api/results

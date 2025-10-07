@@ -1,6 +1,6 @@
 # AutoPWN (⌐■_■)
 
-Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` files, let AutoPWN handle the rest.
+WPA/WPA2 handshake cracker with a modern web dashboard. Upload `.pcap` files, select them with your chosen dictionaries, and let AutoPWN handle the cracking.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-24.x-green.svg)
@@ -29,11 +29,11 @@ Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` f
 ## Features
 
 ### Core
-- **Automated Processing**: Watches input folder for `.pcap` files
-- **Sequential Dictionary Attack**: Tries all dictionaries until success
+- **User-Driven Processing**: Select PCAP files and dictionaries to create jobs
+- **Batch Job Creation**: Merge multiple PCAPs into single efficient hashcat job
 - **Multi-GPU Support**: NVIDIA, AMD, Intel, and CPU modes
-- **Potfile Integration**: Instantly retrieves previously cracked passwords
-- **Web Upload**: Drag-and-drop `.pcap` files directly in the dashboard
+- **ESSID Tracking**: Trace cracked passwords back to source PCAP files
+- **Web Upload**: Drag-and-drop `.pcap` files and dictionaries directly in the dashboard
 
 ### Dashboard
 - **Real-time Monitoring**: Live job queue with progress, speed, and ETA
@@ -41,23 +41,27 @@ Automated WPA/WPA2 handshake cracker with a modern web dashboard. Drop `.pcap` f
 - **Search & Filter**: Filter jobs by status, search by filename or ID
 - **Priority Queue**: Set job priority (Low, Normal, High, Urgent)
 - **Custom Wordlists**: Generate targeted wordlists with patterns and transformations
-- **Results Tracking**: View all cracked passwords with timestamps
+- **Results Tracking**: View all cracked passwords with source PCAP file information
 - **Analytics Dashboard**: Track success rates, completion times, and dictionary effectiveness
-- **Batch Processing**: Combine multiple PCAP files into efficient batch jobs
+- **File Management**: Upload and manage PCAP files and dictionaries through the web interface
 
 ## Architecture
 
 ```
 AutoPWN
-├── Worker Service
-│   ├── File watcher (chokidar)
-│   ├── PCAP to hc22000 converter (hcxpcapngtool)
-│   └── Hashcat job processor
 ├── Web Dashboard (Next.js)
-│   ├── Job queue viewer
-│   ├── Live statistics
-│   └── Results table
+│   ├── File upload and management
+│   ├── Job creation interface
+│   ├── Real-time job monitoring
+│   └── Results display with ESSID tracking
+├── Worker Service
+│   ├── Job queue processor
+│   ├── PCAP to hc22000 converter (hcxpcapngtool)
+│   └── Hashcat execution engine
 └── SQLite Database
+│   ├── Job management
+│   ├── ESSID to PCAP mapping
+│   └── Results storage
 ```
 
 ## Quick Start
@@ -109,19 +113,35 @@ docker-compose up -d --build
 
 Open http://localhost:3000
 
-### 5. Add PCAP Files
+### 5. Upload PCAP Files and Dictionaries
 
-Drop `.pcap` files into `volumes/input/`:
+**Via Web Dashboard** (Recommended):
+1. Open http://localhost:3000
+2. Upload `.pcap` files using the file upload interface
+3. Upload dictionary files using the dictionary upload interface
 
+**Via File Copy**:
 ```bash
-cp handshake.pcap volumes/input/
+# Copy PCAP files
+cp handshake.pcap volumes/pcaps/
+
+# Copy dictionary files
+cp rockyou.txt volumes/dictionaries/
 ```
 
+### 6. Create Jobs
+
+1. Select one or more PCAP files in the dashboard
+2. Click "Process selected"
+3. Choose which dictionaries to use
+4. Click "Run" to create the job
+
 AutoPWN will:
-1. Move file to `intermediate/`
-2. Convert to `.hc22000` format
-3. Run hashcat against all dictionaries
-4. Move to `completed/` (if cracked) or `failed/`
+1. Extract ESSID information from each PCAP and store mapping
+2. Merge selected PCAPs into single `.hc22000` file
+3. Create job record in database
+4. Run hashcat against selected dictionaries
+5. Track results back to source PCAP files using ESSID mapping
 
 ## Configuration
 
@@ -131,21 +151,11 @@ Edit `.env` file:
 # GPU Type: nvidia, amd, intel, cpu
 HASHCAT_DEVICE_TYPE=cpu
 
-# Paths (inside container)
+# Required Paths (inside container)
 DATABASE_PATH=/data/db/autopwn.db
+PCAPS_PATH=/data/pcaps
 DICTIONARIES_PATH=/data/dictionaries
-INPUT_PATH=/data/input
-INTERMEDIATE_PATH=/data/intermediate
-COMPLETED_PATH=/data/completed
-FAILED_PATH=/data/failed
-HASHES_PATH=/data/hashes
-
-# Batch Processing
-BATCH_MODE_ENABLED=false
-BATCH_QUIET_PERIOD=60
-BATCH_MAX_WAIT=300
-BATCH_MIN_FILES=1
-BATCH_MAX_FILES=50
+JOBS_PATH=/data/jobs
 ```
 
 ## Directory Structure
@@ -153,16 +163,14 @@ BATCH_MAX_FILES=50
 ```
 autopwn/
 ├── volumes/
-│   ├── dictionaries/    # Your wordlists
-│   ├── input/           # Drop .pcap files here
-│   ├── intermediate/    # Processing area
-│   ├── completed/       # Successful cracks
-│   ├── failed/          # Failed attempts
-│   ├── hashes/          # .hc22000 files
-│   └── db/              # SQLite database
+│   ├── pcaps/           # Uploaded PCAP files (permanent)
+│   ├── dictionaries/    # Uploaded wordlists
+│   ├── jobs/            # Generated .hc22000 job files
+│   └── db/              # SQLite database with ESSID mappings
 ├── packages/
-│   ├── shared/          # Shared TypeScript types
-│   ├── worker/          # File watcher + processor
+│   └── shared/          # Shared TypeScript types
+├── apps/
+│   ├── worker/          # Job processor
 │   └── web/             # Next.js dashboard
 └── docker-compose.yml
 ```
@@ -259,19 +267,19 @@ curl -X POST -H "Content-Type: application/json" \
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run worker
-npm run dev:worker
+pnpm run dev:worker
 
 # Run web (in another terminal)
-npm run dev:web
+pnpm run dev:web
 ```
 
 ### Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ## Troubleshooting
