@@ -69,6 +69,10 @@ export class HashcatRunner {
               options.onCracked?.(essid, password);
             });
             resolve({ success: cracked.length > 0 });
+          }).catch((error) => {
+            // If the cracked file doesn't exist, that's okay - it means no passwords were found
+            console.log('No cracked output file found - no passwords cracked');
+            resolve({ success: false, error: 'No passwords found' });
           });
         } else {
           resolve({
@@ -122,14 +126,20 @@ export class HashcatRunner {
   }
 
   private async readCrackedPasswords(hashFile: string): Promise<Array<{ essid: string; password: string }>> {
-    const { readFile, access } = await import('fs/promises');
+    const { readFile, access, constants } = await import('fs/promises');
     const crackedFile = `${hashFile}.cracked`;
 
     try {
-      await access(crackedFile);
+      await access(crackedFile, constants.F_OK);
       const content = await readFile(crackedFile, 'utf-8');
       const lines = content.trim().split('\n').filter(Boolean);
 
+      if (lines.length === 0) {
+        console.log('Cracked output file is empty');
+        return [];
+      }
+
+      console.log(`Reading ${lines.length} lines from cracked output file`);
       return lines.map(line => {
         // Format: ESSID:password or hash:ESSID:password
         const parts = line.split(':');
@@ -143,7 +153,9 @@ export class HashcatRunner {
         return { essid: 'Unknown', password: line };
       });
     } catch (error) {
-      return [];
+      // If file doesn't exist or can't be accessed, return empty array
+      console.log('Cracked output file not accessible, assuming no passwords cracked');
+      throw error; // Re-throw so the caller can handle it appropriately
     }
   }
 

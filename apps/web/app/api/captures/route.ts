@@ -29,6 +29,9 @@ export async function GET() {
             size: stats.size,
             uploaded_at: stats.mtime.toISOString(),
             essids: essidMappings.map(mapping => mapping.essid),
+            bssids: essidMappings
+              .filter(mapping => mapping.bssid)
+              .map(mapping => mapping.bssid!),
           });
         }
       }

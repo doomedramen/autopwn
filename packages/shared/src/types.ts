@@ -127,4 +127,5 @@ export interface CaptureFile {
   size: number;
   uploaded_at: string;
   essids: string[];
+  bssids: string[];
 }

@@ -130,8 +130,13 @@ export class JobProcessor {
           addLog(`Dictionary ${dictionary.name} successful`);
           db.updateJobDictionary(jobId, dictionary.id, 'completed');
         } else if (result.error) {
-          console.error(`Error with dictionary ${dictionary.name}:`, result.error);
-          addLog(`ERROR with ${dictionary.name}: ${result.error}`);
+          // Check if it's just "No passwords found" vs actual error
+          if (result.error.includes('No passwords found')) {
+            addLog(`Dictionary ${dictionary.name} exhausted, no matches found`);
+          } else {
+            console.error(`Error with dictionary ${dictionary.name}:`, result.error);
+            addLog(`ERROR with ${dictionary.name}: ${result.error}`);
+          }
           db.updateJobDictionary(jobId, dictionary.id, 'failed');
         } else {
           addLog(`Dictionary ${dictionary.name} exhausted, no matches found`);

@@ -5,13 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trash2, Play, Clock } from 'lucide-react';
 import { CreateJobModal } from './CreateJobModal';
 
 interface CaptureFile {
-  name: string;
+  filename: string;
   size: number;
-  uploadedAt: number;
+  uploaded_at: string;
+  essids: string[];
+  bssids: string[];
 }
 
 export default function Captures() {
@@ -26,10 +29,11 @@ export default function Captures() {
       const response = await fetch('/api/captures');
       if (response.ok) {
         const data = await response.json();
-        setCaptures(data);
+        setCaptures(data.captures || []);
       }
     } catch (error) {
       console.error('Failed to fetch captures:', error);
+      setCaptures([]);
     } finally {
       setLoading(false);
     }
@@ -40,6 +44,14 @@ export default function Captures() {
     const interval = setInterval(fetchCaptures, 10000); // Update every 10 seconds
     return () => clearInterval(interval);
   }, [refreshKey]);
+
+  const handleSelectCapture = (filename: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCaptures(prev => [...prev, filename]);
+    } else {
+      setSelectedCaptures(prev => prev.filter(f => f !== filename));
+    }
+  };
 
   const handleDeleteCapture = async (filename: string) => {
     try {
@@ -55,17 +67,9 @@ export default function Captures() {
     }
   };
 
-  const handleSelectCapture = (filename: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCaptures(prev => [...prev, filename]);
-    } else {
-      setSelectedCaptures(prev => prev.filter(f => f !== filename));
-    }
-  };
-
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCaptures(captures.map(c => c.name));
+      setSelectedCaptures(captures.map(c => c.filename));
     } else {
       setSelectedCaptures([]);
     }
@@ -79,8 +83,8 @@ export default function Captures() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  const formatTimeAgo = (timestamp: string) => {
+    const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
     if (seconds < 60) return 'just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -102,7 +106,7 @@ export default function Captures() {
 
   return (
     <>
-      <Card>
+      <Card className="max-h-[1024px] flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Captures ({captures.length})</span>
@@ -126,7 +130,7 @@ export default function Captures() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-hidden flex flex-col">
           {captures.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <div className="mb-4">
@@ -150,37 +154,56 @@ export default function Captures() {
                 </div>
               )}
 
-              <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
-                {captures.map((capture) => (
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="space-y-2 pr-4">
+                  {captures.map((capture) => (
                   <div
-                    key={capture.name}
+                    key={capture.filename}
                     className={`flex items-center justify-between p-3 rounded-lg border ${
-                      selectedCaptures.includes(capture.name)
+                      selectedCaptures.includes(capture.filename)
                         ? 'bg-primary/5 border-primary/20'
                         : 'bg-background'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
                       <Checkbox
-                        checked={selectedCaptures.includes(capture.name)}
-                        onCheckedChange={(checked) => handleSelectCapture(capture.name, checked as boolean)}
+                        checked={selectedCaptures.includes(capture.filename)}
+                        onCheckedChange={(checked) => handleSelectCapture(capture.filename, checked as boolean)}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate" title={capture.name}>
-                          {capture.name}
+                        <p className="text-sm font-medium truncate" title={capture.filename}>
+                          {capture.filename}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>{formatFileSize(capture.size)}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {formatTimeAgo(capture.uploadedAt)}
+                            {formatTimeAgo(capture.uploaded_at)}
                           </span>
                         </div>
+                        {(capture.essids && capture.essids.length > 0) || (capture.bssids && capture.bssids.length > 0) ? (
+                          <div className="mt-2 space-y-1">
+                            {capture.essids && capture.essids.length > 0 && (
+                              <div className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
+                                <span className="font-medium">ESSID:</span> {capture.essids.join(', ') || 'Hidden'}
+                              </div>
+                            )}
+                            {capture.bssids && capture.bssids.length > 0 && (
+                              <div className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
+                                <span className="font-medium">BSSID:</span> {capture.bssids.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-xs text-muted-foreground italic">
+                            No network information available
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button
-                      onClick={() => handleDeleteCapture(capture.name)}
+                      onClick={() => handleDeleteCapture(capture.filename)}
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
@@ -189,7 +212,8 @@ export default function Captures() {
                     </Button>
                   </div>
                 ))}
-              </div>
+                </div>
+              </ScrollArea>
             </div>
           )}
         </CardContent>

@@ -1,3 +1,3 @@
-export * from './types';
-export * from './schema';
-export * from './init';
+export * from './types.js';
+export * from './schema.js';
+export * from './init.js';

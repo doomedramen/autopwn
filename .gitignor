@@ -49,8 +49,8 @@ volumes/failed/*
 volumes/hashes/*
 volumes/db/*
 volumes/dictionaries/*
-volumes/jobs/*
 volumes/pcaps/*
+volumes/pcaps/*.pcap
 
 # Keep .gitkeep files
 !volumes/**/.gitkeep

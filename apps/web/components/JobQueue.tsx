@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState } from "react";
 import { toast } from 'sonner';
 import { Job, JobItem, Dictionary } from "@autopwn/shared";
@@ -437,149 +438,147 @@ export default function JobQueue() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredJobs.map((job) => (
-                    <>
-                      <TableRow key={job.id} className="hover:bg-muted/50">
-                        <TableCell className="py-3">
-                          {job.status === "failed" && (
-                            <Checkbox
-                              checked={selectedJobs.has(job.id)}
-                              onCheckedChange={() => toggleJobSelection(job.id)}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          {job.batch_mode === 1 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleBatchExpansion(job.id)}
-                              className="mr-2 h-auto p-0"
-                            >
-                              {expandedBatchJobs.has(job.id) ? "▼" : "▶"}
-                            </Button>
-                          )}
-                          {job.id}
-                        </TableCell>
-                        <TableCell className="py-3 font-mono text-sm">
-                          {job.batch_mode === 1 ? (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary">BATCH</Badge>
-                              <span>{job.items_total} files</span>
-                            </div>
-                          ) : (
-                            job.filename
-                          )}
-                          {job.paused === 1 && (
-                            <Badge variant="outline" className="ml-2">
-                              Paused
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <Badge variant={getStatusBadge(job.status)}>
-                            {job.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <Select
-                            value={job.priority.toString()}
-                            onValueChange={(value) =>
-                              setPriority(job, parseInt(value))
-                            }
-                            disabled={
-                              job.status === "completed" ||
-                              job.status === "processing"
-                            }
-                          >
-                            <SelectTrigger className="w-auto">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0">Normal</SelectItem>
-                              <SelectItem value="1">High</SelectItem>
-                              <SelectItem value="2">Urgent</SelectItem>
-                              <SelectItem value="-1">Low</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="py-3 text-sm">
-                          {job.current_dictionary || "-"}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          {job.batch_mode === 1 && job.items_total ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs">
-                                {job.items_cracked || 0}/{job.items_total}{" "}
-                                cracked
-                              </span>
-                            </div>
-                          ) : job.progress !== null ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 bg-muted rounded-full h-2">
-                                <div
-                                  className="bg-primary h-2 rounded-full transition-all"
-                                  style={{ width: `${job.progress}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-xs">
-                                {job.progress.toFixed(1)}%
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-3 font-mono text-sm">
-                          {job.speed || "-"}
-                        </TableCell>
-                        <TableCell className="py-3 text-sm">
-                          {job.eta || "-"}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          {job.hash_count || "-"}
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="flex gap-2">
-                            <Button
-                              variant="link"
-                              size="sm"
-                              onClick={() => viewLogs(job)}
-                              className="h-auto p-0"
-                            >
-                              Logs
-                            </Button>
-                            {(job.status === "pending" ||
-                              job.status === "processing") && (
-                              <Button
-                                variant="link"
-                                size="sm"
-                                onClick={() => togglePause(job)}
-                                className="h-auto p-0"
-                              >
-                                {job.paused === 1 ? "Resume" : "Pause"}
-                              </Button>
-                            )}
+                  filteredJobs.map((job) => {
+                    const hasExpandedItems = job.batch_mode === 1 && expandedBatchJobs.has(job.id);
+                    return (
+                      <React.Fragment key={job.id}>
+                        <TableRow className="hover:bg-muted/50">
+                          <TableCell className="py-3">
                             {job.status === "failed" && (
+                              <Checkbox
+                                checked={selectedJobs.has(job.id)}
+                                onCheckedChange={() => toggleJobSelection(job.id)}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {job.batch_mode === 1 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleBatchExpansion(job.id)}
+                                className="mr-2 h-auto p-0"
+                              >
+                                {expandedBatchJobs.has(job.id) ? "▼" : "▶"}
+                              </Button>
+                            )}
+                            {job.id}
+                          </TableCell>
+                          <TableCell className="py-3 font-mono text-sm">
+                            {job.batch_mode === 1 ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary">BATCH</Badge>
+                                <span>{job.items_total} files</span>
+                              </div>
+                            ) : (
+                              job.filename
+                            )}
+                            {job.paused === 1 && (
+                              <Badge variant="outline" className="ml-2">
+                                Paused
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <Badge variant={getStatusBadge(job.status)}>
+                              {job.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <Select
+                              value={job.priority.toString()}
+                              onValueChange={(value) =>
+                                setPriority(job, parseInt(value))
+                              }
+                              disabled={
+                                job.status === "completed" ||
+                                job.status === "processing"
+                              }
+                            >
+                              <SelectTrigger className="w-auto">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">Normal</SelectItem>
+                                <SelectItem value="1">High</SelectItem>
+                                <SelectItem value="2">Urgent</SelectItem>
+                                <SelectItem value="-1">Low</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="py-3 text-sm">
+                            {job.current_dictionary || "-"}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {job.batch_mode === 1 && job.items_total ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs">
+                                  {job.items_cracked || 0}/{job.items_total}{" "}
+                                  cracked
+                                </span>
+                              </div>
+                            ) : job.progress !== null ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 bg-muted rounded-full h-2">
+                                  <div
+                                    className="bg-primary h-2 rounded-full transition-all"
+                                    style={{ width: `${job.progress}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-xs">
+                                  {job.progress.toFixed(1)}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3 font-mono text-sm">
+                            {job.speed || "-"}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm">
+                            {job.eta || "-"}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {job.hash_count || "-"}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <div className="flex gap-2">
                               <Button
                                 variant="link"
                                 size="sm"
-                                onClick={() => retryJob(job)}
+                                onClick={() => viewLogs(job)}
                                 className="h-auto p-0"
                               >
-                                Retry
+                                Logs
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      {/* Expanded batch items */}
-                      {job.batch_mode === 1 &&
-                        expandedBatchJobs.has(job.id) && (
-                          <TableRow
-                            key={`${job.id}-items`}
-                            className="bg-muted/30"
-                          >
+                              {(job.status === "pending" ||
+                                job.status === "processing") && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  onClick={() => togglePause(job)}
+                                  className="h-auto p-0"
+                                >
+                                  {job.paused === 1 ? "Resume" : "Pause"}
+                                </Button>
+                              )}
+                              {job.status === "failed" && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  onClick={() => retryJob(job)}
+                                  className="h-auto p-0"
+                                >
+                                  Retry
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {/* Expanded batch items */}
+                        {hasExpandedItems && (
+                          <TableRow className="bg-muted/30">
                             <TableCell colSpan={11} className="py-4 px-6">
                               <div className="ml-8">
                                 <h4 className="text-sm font-semibold mb-3">
@@ -644,8 +643,9 @@ export default function JobQueue() {
                             </TableCell>
                           </TableRow>
                         )}
-                    </>
-                  ))
+                      </React.Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
