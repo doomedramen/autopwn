@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME_WORKER: doomedramen/autopwn-worker
+  IMAGE_NAME_BACKEND: doomedramen/autopwn-backend
   IMAGE_NAME_WEB: doomedramen/autopwn-web
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [worker, web]
+        service: [backend, web]
 
     steps:
       - name: Checkout repository
@@ -47,7 +47,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ matrix.service == 'worker' && env.IMAGE_NAME_WORKER || env.IMAGE_NAME_WEB }}
+            ${{ matrix.service == 'backend' && env.IMAGE_NAME_BACKEND || env.IMAGE_NAME_WEB }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -70,13 +70,13 @@ jobs:
           platforms: linux/amd64,linux/arm64
 
       - name: Docker Hub Description
-        if: github.event_name == 'release' && matrix.service == 'worker'
+        if: github.event_name == 'release' && matrix.service == 'backend'
         uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ env.IMAGE_NAME_WORKER }}
-          short-description: "AutoPWN Worker - Automated WPA/WPA2 handshake cracker"
+          repository: ${{ env.IMAGE_NAME_BACKEND }}
+          short-description: "AutoPWN Backend - WiFi security testing and hashcat automation"
           readme-filepath: ./README.md
 
   build-compose-images:
@@ -103,7 +103,7 @@ jobs:
 
       - name: Update docker-compose.yml with version
         run: |
-          sed -i "s|image: autopwn-worker|image: doomedramen/autopwn-worker:${{ steps.version.outputs.VERSION }}|g" docker-compose.yml
+          sed -i "s|image: autopwn-backend|image: doomedramen/autopwn-backend:${{ steps.version.outputs.VERSION }}|g" docker-compose.yml
           sed -i "s|image: autopwn-web|image: doomedramen/autopwn-web:${{ steps.version.outputs.VERSION }}|g" docker-compose.yml
 
       - name: Create release artifact
