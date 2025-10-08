@@ -98,7 +98,7 @@ services:
   web-test:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile.test
+      dockerfile: apps/web/Dockerfile.dev
     container_name: autopwn-web-test
     environment:
       # Backend API URL for tests
@@ -117,7 +117,7 @@ services:
         condition: service_started
     profiles:
       - test
-    command: ["./run-tests.sh", "pnpm", "run", "test:e2e:ci"]
+    command: ["pnpm", "run", "test:e2e:ci"]
     volumes:
       - ./test-results:/app/apps/web/test-results
     # Force IPv4
@@ -128,7 +128,7 @@ services:
   web-test-interactive:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile.test
+      dockerfile: apps/web/Dockerfile.dev
     container_name: autopwn-web-test-interactive
     environment:
       # Backend API URL for tests
@@ -150,7 +150,7 @@ services:
       - "3002:3000"  # Expose test app port for local debugging
     volumes:
       - ./test-results:/app/apps/web/test-results
-    command: ["./run-tests.sh", "pnpm", "dev"]
+    command: ["pnpm", "dev"]
     # Force IPv4
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=1

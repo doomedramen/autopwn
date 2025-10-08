@@ -38,10 +38,9 @@ FROM node:24-alpine AS runner
 
 WORKDIR /app
 
-# Copy standalone output and public files from builder
+# Copy standalone output and static files from builder
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./.next/static
-COPY --from=builder /app/apps/web/public ./public
 
 EXPOSE 3000
 
