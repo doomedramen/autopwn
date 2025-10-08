@@ -10,8 +10,7 @@ const authRoutes = ['/auth/login', '/auth/signup'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  console.log(`[MIDDLEWARE] Processing request: ${pathname}`);
-
+  
   // Check if the current path is a protected route
   const isProtectedRoute = protectedRoutes.some(route => pathname === route);
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
@@ -20,26 +19,22 @@ export async function middleware(request: NextRequest) {
   // But since this is middleware running on the edge, we need to use cookies
   const sessionCookie = request.cookies.get('better-auth.session_token')?.value;
 
-  console.log(`[MIDDLEWARE] Protected: ${isProtectedRoute}, Auth route: ${isAuthRoute}, Has session: ${!!sessionCookie}`);
-
+  
   if (isProtectedRoute && !sessionCookie) {
     // No session cookie and trying to access protected route
     // Redirect to login
-    console.log(`[MIDDLEWARE] Redirecting to login - no session cookie found`);
-    const loginUrl = new URL('/auth/login', request.url);
+        const loginUrl = new URL('/auth/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   if (isAuthRoute && sessionCookie) {
     // Has session cookie and trying to access auth route
     // Redirect to home
-    console.log(`[MIDDLEWARE] Redirecting to home - user already authenticated`);
-    const homeUrl = new URL('/', request.url);
+        const homeUrl = new URL('/', request.url);
     return NextResponse.redirect(homeUrl);
   }
 
-  console.log(`[MIDDLEWARE] Allowing request to proceed`);
-  return NextResponse.next();
+    return NextResponse.next();
 }
 
 export const config = {

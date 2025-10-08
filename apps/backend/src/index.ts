@@ -15,7 +15,6 @@ import { workerService } from './services/worker';
 import { webSocketService } from './services/websocket';
 import { env } from './config/env';
 
-console.log('Auth router imported:', !!authRouter);
 
 const app = createHono();
 
@@ -34,9 +33,7 @@ app.get('/health', (c) => {
 });
 
 // Routes
-console.log('Mounting auth router at /api/auth');
 app.route('/api/auth', authRouter);
-console.log('Mounting other routes...');
 app.route('/api/jobs', jobsRouter);
 app.route('/api/upload', uploadsRouter);
 app.route('/api/dictionaries', dictionariesRouter);
@@ -45,7 +42,6 @@ app.route('/api/captures', capturesRouter);
 app.route('/api/stats', statsRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/test', testSetupRouter);
-console.log('All routes mounted');
 
 // Start worker service
 workerService.start();

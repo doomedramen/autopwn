@@ -111,8 +111,8 @@ AutoPWN will:
 ### View Logs
 
 ```bash
-# Worker logs (file processing, hashcat output)
-docker logs -f autopwn-worker
+# Backend logs (API + job processing, hashcat output)
+docker logs -f autopwn-backend
 
 # Web logs (dashboard errors)
 docker logs -f autopwn-web
@@ -134,20 +134,20 @@ docker-compose restart
 
 ### Jobs not appearing?
 
-- Check worker logs: `docker logs autopwn-worker`
+- Check backend logs: `docker logs autopwn-backend`
 - Ensure you clicked "Process selected" and created jobs
 - Verify `.pcap` files have valid handshakes
-- Check database: `sqlite3 volumes/db/autopwn.db "SELECT * FROM jobs;"`
+- Check database: `docker exec autopwn-postgres psql -U autopwn -d autopwn -c "SELECT * FROM jobs;"`
 - Verify `volumes/pcaps/` permissions
 
 ### Hashcat not using GPU?
 
 ```bash
 # Check GPU detection
-docker exec autopwn-worker hashcat -I
+docker exec autopwn-backend hashcat -I
 
 # For NVIDIA
-docker exec autopwn-worker nvidia-smi
+docker exec autopwn-backend nvidia-smi
 
 # Ensure you used the correct docker-compose file
 ```
@@ -155,7 +155,7 @@ docker exec autopwn-worker nvidia-smi
 ### Dashboard not updating?
 
 - Hard refresh browser (Ctrl+Shift+R or Cmd+Shift+R)
-- Check database: `ls -lh volumes/db/autopwn.db`
+- Check database: `docker exec autopwn-postgres psql -U autopwn -d autopwn -c "\dt"`
 - Verify web logs: `docker logs autopwn-web`
 - Check if jobs were created: Look in Jobs table in dashboard
 

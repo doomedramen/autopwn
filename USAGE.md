@@ -85,15 +85,15 @@ docker-compose up -d
 ### Check Progress
 
 ```bash
-# Worker logs
-docker logs -f autopwn-worker
+# Backend logs (includes job processing)
+docker logs -f autopwn-backend
 
 # GPU status
-docker exec -it autopwn-worker hashcat -I
+docker exec -it autopwn-backend hashcat -I
 
 # Database queries
-docker exec -it autopwn-web sqlite3 /data/db/autopwn.db \
-  "SELECT essid, password, pcap_filename FROM results;"
+docker exec -it autopwn-postgres psql -U autopwn -d autopwn \
+  -c "SELECT essid, password, pcap_filename FROM results;"
 ```
 
 ### Common Issues
@@ -101,7 +101,7 @@ docker exec -it autopwn-web sqlite3 /data/db/autopwn.db \
 - **"No hashes found"**: PCAP lacks valid handshake
 - **"Hashcat exhausted"**: Try more dictionaries
 - **Slow performance**: Verify GPU usage with `hashcat -I`
-- **Jobs not processing**: Check `docker logs autopwn-worker`
+- **Jobs not processing**: Check `docker logs autopwn-backend`
 
 ## Analytics
 

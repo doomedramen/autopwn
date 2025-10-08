@@ -21,25 +21,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshSession = async () => {
-    console.log('Refreshing session...');
     try {
       const result = await authClient.getSession();
-      console.log('Session result:', result);
       if (result.data) {
         setUser(result.data.user);
         setSession(result.data);
-        console.log('User set:', result.data.user);
       } else {
         setUser(null);
         setSession(null);
-        console.log('No session, user set to null');
       }
     } catch (error) {
       console.error('Session refresh error:', error);
       setUser(null);
       setSession(null);
     } finally {
-      console.log('Setting loading to false');
       setLoading(false);
     }
   };

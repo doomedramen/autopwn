@@ -8,7 +8,6 @@ Modern WPA/WPA2 handshake cracker with a web dashboard. Upload `.pcap` files, se
 [![Docker Worker](https://img.shields.io/docker/v/doomedramen/autopwn-worker?label=worker)](https://hub.docker.com/r/doomedramen/autopwn-worker)
 [![Docker Web](https://img.shields.io/docker/v/doomedramen/autopwn-web?label=web)](https://hub.docker.com/r/doomedramen/autopwn-web)
 
-![AutoPWN Dashboard](screenshot.png)
 
 ## ⚠️ Legal Disclaimer
 
@@ -133,9 +132,9 @@ HASHCAT_DEVICE_TYPE=cpu
 BETTER_AUTH_SECRET=your-secret-key-here
 
 # Paths (auto-configured for Docker and local development)
-PCAPS_PATH=/Users/martin/Developer/autopwn/volumes/pcaps
-DICTIONARIES_PATH=/Users/martin/Developer/autopwn/volumes/dictionaries
-JOBS_PATH=/Users/martin/Developer/autopwn/volumes/jobs
+PCAPS_PATH=/data/pcaps
+DICTIONARIES_PATH=/data/dictionaries
+JOBS_PATH=/data/jobs
 
 # Database (Docker sets this automatically)
 DATABASE_URL=postgresql://localhost/autopwn
@@ -163,14 +162,14 @@ BETTER_AUTH_URL=http://localhost:3000
 ```
 AutoPWN
 ├── Web Dashboard (Next.js)    # File upload, job creation, monitoring, auth
-├── Worker Service             # Job processing, hashcat execution
+├── Backend Service            # Integrated API server + job processing worker
 ├── PostgreSQL Database        # Job management, ESSID tracking, users
-└── Authentication System      # User isolation and session management
+└── Authentication System      # User isolation and session management (better-auth)
 ```
 
 ## Tech Stack
 
-- **Worker**: Node.js 24 + TypeScript + PostgreSQL
+- **Backend**: Node.js 24 + TypeScript + Hono + Hashcat
 - **Web**: Next.js 15 + React 19 + Tailwind CSS + better-auth
 - **Tools**: hashcat + hcxpcapngtool
 - **Database**: PostgreSQL 15 + Drizzle ORM

@@ -3,8 +3,8 @@ FROM node:24-alpine
 # Install pnpm
 RUN corepack enable
 
-# Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++ git
+# Install dependencies
+RUN apk add --no-cache git
 
 WORKDIR /app
 
