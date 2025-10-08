@@ -1,20 +1,58 @@
 version: '3.8'
 
 services:
-  worker:
-    image: doomedramen/autopwn-worker:latest
-    # Uncomment to build locally instead of using pre-built image:
-    # build:
-    #   context: .
-    #   dockerfile: apps/worker/Dockerfile
-    container_name: autopwn-worker
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: autopwn-postgres
     environment:
+      - POSTGRES_DB=autopwn
+      - POSTGRES_USER=autopwn
+      - POSTGRES_PASSWORD=autopwn_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autopwn -d autopwn"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  # Backend API + Worker Service
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: autopwn-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      # Database configuration
+      - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn
+      # Better Auth configuration
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-change-this-secret-key-in-production}
+      - BETTER_AUTH_URL=http://localhost:3001
+      # GPU Configuration
       - HASHCAT_DEVICE_TYPE=${HASHCAT_DEVICE_TYPE:-cpu}
+      # File paths (using /data for consistent volume mounting)
+      - PCAPS_PATH=/data/pcaps
+      - DICTIONARIES_PATH=/data/dictionaries
+      - JOBS_PATH=/data/jobs
+      - NODE_ENV=production
     volumes:
       - ./volumes:/data
     restart: unless-stopped
-    # Uncomment the appropriate deploy section based on your GPU
-
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Force IPv4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    # GPU support for hashcat
     # For NVIDIA GPUs (requires nvidia-docker)
     # deploy:
     #   resources:
@@ -31,14 +69,93 @@ services:
     # group_add:
     #   - video
 
+  # Frontend (Next.js)
   web:
-    image: doomedramen/autopwn-web:latest
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
     container_name: autopwn-web
     ports:
       - "3000:3000"
+    environment:
+      # Backend API URL
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      # Better Auth configuration (for client-side auth)
+      - BETTER_AUTH_URL=http://localhost:3001
     volumes:
-      - ./volumes:/data
+      - ./volumes:/data:ro  # Read-only access for frontend
     restart: unless-stopped
     depends_on:
-      - worker
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    # Force IPv4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+
+  # E2E Testing Service
+  web-test:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.test
+    container_name: autopwn-web-test
+    environment:
+      # Backend API URL for tests
+      - NEXT_PUBLIC_API_URL=http://backend:3001
+      # Better Auth configuration (for client-side auth)
+      - BETTER_AUTH_URL=http://backend:3001
+      # Test environment
+      - NODE_ENV=test
+      - CI=true
+      - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn_test
+      - BASE_URL=http://web:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    profiles:
+      - test
+    command: ["./run-tests.sh", "pnpm", "run", "test:e2e:ci"]
+    volumes:
+      - ./test-results:/app/apps/web/test-results
+    # Force IPv4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+
+  # E2E Testing Service (Interactive)
+  web-test-interactive:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.test
+    container_name: autopwn-web-test-interactive
+    environment:
+      # Backend API URL for tests
+      - NEXT_PUBLIC_API_URL=http://backend:3001
+      # Better Auth configuration (for client-side auth)
+      - BETTER_AUTH_URL=http://backend:3001
+      # Test environment
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn_test
+      - BASE_URL=http://web:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    profiles:
+      - test-interactive
+    ports:
+      - "3002:3000"  # Expose test app port for local debugging
+    volumes:
+      - ./test-results:/app/apps/web/test-results
+    command: ["./run-tests.sh", "pnpm", "dev"]
+    # Force IPv4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+
+volumes:
+  postgres_data:
+    driver: local
 

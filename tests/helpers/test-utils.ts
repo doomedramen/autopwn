@@ -1,10 +1,13 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../../packages/shared/src/schema.js';
+import { sql } from 'drizzle-orm';
 
 export interface TestConfig {
-  testDbPath: string;
+  testDbUrl: string;
   testInputDir: string;
   testOutputDir: string;
   testDictDir: string;
@@ -20,17 +23,21 @@ export interface PcapFileInfo {
 export class TestUtils {
   private config: TestConfig;
   private cleanupTasks: (() => void)[] = [];
+  private db!: ReturnType<typeof drizzle>;
+  private client!: ReturnType<typeof postgres>;
 
   constructor(testName: string) {
     const testId = `${testName}-${Date.now()}`;
+    const testDbName = `autopwn_test_${testId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    
     this.config = {
-      testDbPath: path.join(__dirname, '../fixtures', `${testId}.db`),
+      testDbUrl: `postgresql://autopwn:autopwn_password@localhost:5432/${testDbName}`,
       testInputDir: path.join(__dirname, '../fixtures', `${testId}-input`),
       testOutputDir: path.join(__dirname, '../fixtures', `${testId}-output`),
       testDictDir: path.join(__dirname, '../fixtures', `${testId}-dicts`)
     };
 
-    // Setup test environment
+    // Setup test environment (sync parts only)
     this.setupTestEnvironment();
     this.cleanupTasks.push(() => this.cleanup());
   }
@@ -41,33 +48,260 @@ export class TestUtils {
     fs.mkdirSync(this.config.testOutputDir, { recursive: true });
     fs.mkdirSync(this.config.testDictDir, { recursive: true });
 
-    // Initialize test database with schema
-    this.initializeTestDatabase();
+    // Database initialization will be called separately as it's async
   }
 
-  private initializeTestDatabase() {
-    const schemaPath = path.join(__dirname, '../../packages/shared/src/schema.ts');
-    const schemaContent = fs.readFileSync(schemaPath, 'utf8');
+  private async initializeTestDatabase() {
+    try {
+      // Extract database name from URL
+      const dbName = this.config.testDbUrl.split('/').pop();
+      const baseUrl = this.config.testDbUrl.replace(`/${dbName}`, '/postgres');
+      
+      // Connect to postgres database to create test database
+      const adminClient = postgres(baseUrl, {
+        host: 'localhost',
+        // Force IPv4 by using localhost
+      });
+      await adminClient.unsafe(`CREATE DATABASE "${dbName}"`);
+      await adminClient.end();
 
-    const schemaMatch = schemaContent.match(/export const DB_SCHEMA = `\n([\s\S]*?)\n`;/);
-    if (!schemaMatch) {
-      throw new Error('Could not extract database schema');
+      // Connect to test database
+      this.client = postgres(this.config.testDbUrl, {
+        host: 'localhost',
+        // Force IPv4 by using localhost
+      });
+      this.db = drizzle(this.client, { schema });
+
+      // Create all tables using Drizzle migrations
+      await this.createTables();
+
+      // Create test user for authentication
+      await this.createTestUser();
+
+    } catch (error) {
+      console.error('Failed to initialize test database:', error);
+      throw error;
     }
+  }
 
-    const createTablesSql = schemaMatch[1];
-
-    const db = new Database(this.config.testDbPath);
-    db.exec(createTablesSql);
-
-    // Insert test dictionaries
-    db.exec(`
-      INSERT OR IGNORE INTO dictionaries (id, name, path, size) VALUES
-        (1, 'test-dict-small', '${path.join(this.config.testDictDir, 'small.txt')}', 100),
-        (2, 'test-dict-medium', '${path.join(this.config.testDictDir, 'medium.txt')}', 1000),
-        (3, 'test-dict-large', '${path.join(this.config.testDictDir, 'large.txt')}', 10000);
+  private async createTables() {
+    // Create tables in correct order to handle foreign key dependencies
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        email_verified BOOLEAN DEFAULT false NOT NULL,
+        image TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
     `);
 
-    db.close();
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS users_email_idx ON users(email)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS accounts (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        password TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS accounts_user_id_idx ON accounts(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMP NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS dictionaries (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        path TEXT NOT NULL,
+        size INTEGER NOT NULL
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS dictionaries_user_id_idx ON dictionaries(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS dictionaries_user_id_name_unique ON dictionaries(user_id, name)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS jobs (
+        id SERIAL PRIMARY KEY,
+        job_id TEXT,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        priority INTEGER NOT NULL DEFAULT 0,
+        paused INTEGER NOT NULL DEFAULT 0,
+        batch_mode INTEGER NOT NULL DEFAULT 0,
+        items_total INTEGER,
+        items_cracked INTEGER,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        current_dictionary TEXT,
+        progress REAL,
+        hash_count INTEGER,
+        speed TEXT,
+        eta TEXT,
+        error TEXT,
+        logs TEXT,
+        captures TEXT,
+        total_hashes INTEGER
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS jobs_user_id_idx ON jobs(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs(status)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS jobs_priority_idx ON jobs(priority DESC, created_at ASC)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS job_items (
+        id SERIAL PRIMARY KEY,
+        job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL,
+        essid TEXT,
+        bssid TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        password TEXT,
+        cracked_at TIMESTAMP,
+        pcap_filename TEXT
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS job_items_job_id_idx ON job_items(job_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS job_items_user_id_idx ON job_items(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS job_dictionaries (
+        id SERIAL PRIMARY KEY,
+        job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        dictionary_id INTEGER NOT NULL REFERENCES dictionaries(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'pending'
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS job_dictionaries_job_id_dictionary_id_unique ON job_dictionaries(job_id, dictionary_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS job_dictionaries_job_id_idx ON job_dictionaries(job_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS results (
+        id SERIAL PRIMARY KEY,
+        job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        essid TEXT NOT NULL,
+        password TEXT NOT NULL,
+        cracked_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        pcap_filename TEXT
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS results_job_id_idx ON results(job_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS results_user_id_idx ON results(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pcap_essid_mapping (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        pcap_filename TEXT NOT NULL,
+        essid TEXT NOT NULL,
+        bssid TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS pcap_essid_mapping_user_id_idx ON pcap_essid_mapping(user_id)
+    `);
+
+    await this.db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS pcap_essid_mapping_user_id_pcap_filename_essid_unique ON pcap_essid_mapping(user_id, pcap_filename, essid)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS pcap_essid_mapping_pcap_filename_idx ON pcap_essid_mapping(pcap_filename)
+    `);
+
+    await this.db.execute(sql`
+      CREATE INDEX IF NOT EXISTS pcap_essid_mapping_essid_idx ON pcap_essid_mapping(essid)
+    `);
+  }
+
+  private async createTestUser() {
+    // Create a test user for authentication
+    const testUserId = 'test-user-' + Date.now();
+    await this.db.execute(sql`
+      INSERT INTO users (id, name, email, email_verified) 
+      VALUES (${testUserId}, 'Test User', 'test@example.com', true)
+    `);
+
+    // Insert test dictionaries for this user
+    await this.db.execute(sql`
+      INSERT INTO dictionaries (user_id, name, path, size) VALUES
+        (${testUserId}, 'test-dict-small', ${path.join(this.config.testDictDir, 'small.txt')}, 100),
+        (${testUserId}, 'test-dict-medium', ${path.join(this.config.testDictDir, 'medium.txt')}, 1000),
+        (${testUserId}, 'test-dict-large', ${path.join(this.config.testDictDir, 'large.txt')}, 10000)
+    `);
+
+    // Store test user ID for use in tests
+    (this as any).testUserId = testUserId;
   }
 
   createTestDictionary(name: string, words: string[]): string {
@@ -116,8 +350,52 @@ export class TestUtils {
     return { ...this.config };
   }
 
-  getDatabase(): Database.Database {
-    return new Database(this.config.testDbPath);
+  getDatabase() {
+    return this.db;
+  }
+
+  getTestUserId(): string {
+    return (this as any).testUserId;
+  }
+
+  async createTestUserInApp(): Promise<{ email: string; password: string; userId: string }> {
+    const testEmail = `test-${Date.now()}@example.com`;
+    const testPassword = 'testpassword123';
+    const testUserId = 'test-user-' + Date.now();
+
+    try {
+      // Create user directly in the database
+      await this.db.execute(sql`
+        INSERT INTO users (id, name, email, email_verified) 
+        VALUES (${testUserId}, 'Test User', ${testEmail}, true)
+      `);
+
+      // Create account with password (better-auth format)
+      await this.db.execute(sql`
+        INSERT INTO accounts (id, account_id, provider_id, user_id, password) 
+        VALUES (${testUserId + '-account'}, ${testUserId}, 'credential', ${testUserId}, ${testPassword})
+      `);
+
+      return { email: testEmail, password: testPassword, userId: testUserId };
+    } catch (error) {
+      console.error('Failed to create test user:', error);
+      throw error;
+    }
+  }
+
+  async loginTestUser(page: any, email: string, password: string) {
+    // Navigate to login page
+    await page.goto('/auth/signin');
+    
+    // Fill in login form
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="password"]', password);
+    
+    // Submit form
+    await page.click('button[type="submit"]');
+    
+    // Wait for redirect to dashboard
+    await page.waitForURL('/');
   }
 
   async runCommand(cmd: string, cwd?: string): Promise<{ stdout: string; stderr: string; success: boolean }> {
@@ -192,43 +470,33 @@ export class TestUtils {
   /**
    * Clear the main application database (for tests)
    */
-  clearAppDatabase() {
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../volumes/db/autopwn.db');
-    console.log(`[DEBUG] Attempting to clear database at: ${dbPath}`);
-    console.log(`[DEBUG] Database exists: ${fs.existsSync(dbPath)}`);
-    
-    if (fs.existsSync(dbPath)) {
-      try {
-        const db = new Database(dbPath);
-        // Use PRAGMA to ensure we can modify
-        db.pragma('journal_mode = WAL');
+  async clearAppDatabase() {
+    const dbUrl = process.env.DATABASE_URL || 'postgresql://autopwn:autopwn_password@localhost:5432/autopwn';
+    console.log(`[DEBUG] Attempting to clear database at: ${dbUrl}`);
 
-        // Clear tables in correct order (respect foreign keys)
-        db.exec('DELETE FROM results');
-        db.exec('DELETE FROM job_dictionaries');
-        db.exec('DELETE FROM job_items');
-        db.exec('DELETE FROM jobs');
-        db.exec('DELETE FROM dictionaries');
+    try {
+      const client = postgres(dbUrl, {
+        host: 'localhost',
+        // Force IPv4 by using localhost
+      });
+      const db = drizzle(client, { schema });
 
-        db.close();
-        console.log('✓ Application database cleared');
-      } catch (error: any) {
-        console.warn('Failed to clear app database:', error?.message || error);
-        console.warn('[DEBUG] Database error details:', error);
-      }
-    } else {
-      console.warn('App database not found at', dbPath);
-      // Try to create the database directory if it doesn't exist
-      const dbDir = path.dirname(dbPath);
-      if (!fs.existsSync(dbDir)) {
-        console.log(`[DEBUG] Creating database directory: ${dbDir}`);
-        try {
-          fs.mkdirSync(dbDir, { recursive: true });
-          console.log(`[DEBUG] Database directory created successfully`);
-        } catch (mkdirError: any) {
-          console.warn(`[DEBUG] Failed to create database directory: ${mkdirError?.message || mkdirError}`);
-        }
-      }
+      // Clear tables in correct order (respect foreign keys)
+      await db.execute(sql`DELETE FROM results`);
+      await db.execute(sql`DELETE FROM job_dictionaries`);
+      await db.execute(sql`DELETE FROM job_items`);
+      await db.execute(sql`DELETE FROM jobs`);
+      await db.execute(sql`DELETE FROM dictionaries`);
+      await db.execute(sql`DELETE FROM pcap_essid_mapping`);
+      await db.execute(sql`DELETE FROM sessions`);
+      await db.execute(sql`DELETE FROM accounts`);
+      await db.execute(sql`DELETE FROM users`);
+
+      await client.end();
+      console.log('✓ Application database cleared');
+    } catch (error: any) {
+      console.warn('Failed to clear app database:', error?.message || error);
+      console.warn('[DEBUG] Database error details:', error);
     }
   }
 
@@ -304,8 +572,8 @@ export class TestUtils {
   /**
    * Complete cleanup of application data (for tests)
    */
-  clearAllAppData() {
-    this.clearAppDatabase();
+  async clearAllAppData() {
+    await this.clearAppDatabase();
     this.clearDictionariesFolder();
     this.clearUploadsFolder();
   }
@@ -313,48 +581,85 @@ export class TestUtils {
   /**
    * Add test results data to database (for UI testing)
    */
-  addTestResults() {
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../volumes/db/autopwn.db');
-    console.log(`[DEBUG] Attempting to add test results to database at: ${dbPath}`);
-    console.log(`[DEBUG] Database exists: ${fs.existsSync(dbPath)}`);
-    
-    if (fs.existsSync(dbPath)) {
-      try {
-        const db = new Database(dbPath);
-        db.pragma('journal_mode = WAL');
+  async addTestResults() {
+    const dbUrl = process.env.DATABASE_URL || 'postgresql://autopwn:autopwn_password@localhost:5432/autopwn';
+    console.log(`[DEBUG] Attempting to add test results to database at: ${dbUrl}`);
 
-        // Insert test jobs
-        const job1 = db.prepare('INSERT INTO jobs (filename, hash_count, status) VALUES (?, ?, ?)').run('test1.pcap', 1, 'completed');
-        const job2 = db.prepare('INSERT INTO jobs (filename, hash_count, status) VALUES (?, ?, ?)').run('test2.pcap', 1, 'completed');
-        console.log(`[DEBUG] Inserted test jobs with IDs: ${job1.lastInsertRowid}, ${job2.lastInsertRowid}`);
+    try {
+      const client = postgres(dbUrl, {
+        host: 'localhost',
+        // Force IPv4 by using localhost
+      });
+      const db = drizzle(client, { schema });
 
-        // Insert test results (need enough for pagination - 15 results)
-        for (let i = 1; i <= 15; i++) {
-          const jobId = i <= 7 ? job1.lastInsertRowid : job2.lastInsertRowid;
-          const essid = i <= 7 ? 'TestNetwork-A' : 'TestNetwork-B';
-          db.prepare('INSERT INTO results (job_id, essid, password) VALUES (?, ?, ?)').run(
-            jobId,
-            essid,
-            `password${i}`
-          );
-        }
+      // Create test user if not exists
+      const testUserId = 'test-user-results';
+      await db.execute(sql`
+        INSERT INTO users (id, name, email, email_verified) 
+        VALUES (${testUserId}, 'Test User', 'test-results@example.com', true)
+        ON CONFLICT (email) DO NOTHING
+      `);
 
-        db.close();
-        console.log('✓ Test results added to database');
-      } catch (error: any) {
-        console.warn('Failed to add test results:', error?.message || error);
-        console.warn('[DEBUG] Test results error details:', error);
+      // Insert test jobs
+      const job1Result = await db.execute(sql`
+        INSERT INTO jobs (user_id, filename, hash_count, status) 
+        VALUES (${testUserId}, 'test1.pcap', 1, 'completed') 
+        RETURNING id
+      `);
+      
+      const job2Result = await db.execute(sql`
+        INSERT INTO jobs (user_id, filename, hash_count, status) 
+        VALUES (${testUserId}, 'test2.pcap', 1, 'completed') 
+        RETURNING id
+      `);
+
+      const job1Id = (job1Result as any)[0]?.id;
+      const job2Id = (job2Result as any)[0]?.id;
+
+      console.log(`[DEBUG] Inserted test jobs with IDs: ${job1Id}, ${job2Id}`);
+
+      // Insert test results (need enough for pagination - 15 results)
+      for (let i = 1; i <= 15; i++) {
+        const jobId = i <= 7 ? job1Id : job2Id;
+        const essid = i <= 7 ? 'TestNetwork-A' : 'TestNetwork-B';
+        await db.execute(sql`
+          INSERT INTO results (job_id, user_id, essid, password) 
+          VALUES (${jobId}, ${testUserId}, ${essid}, ${'password' + i})
+        `);
       }
-    } else {
-      console.warn('[DEBUG] Cannot add test results - database does not exist');
+
+      await client.end();
+      console.log('✓ Test results added to database');
+    } catch (error: any) {
+      console.warn('Failed to add test results:', error?.message || error);
+      console.warn('[DEBUG] Test results error details:', error);
     }
   }
 
-  private cleanup() {
+  private async cleanup() {
     try {
+      // Close database connection
+      if (this.client) {
+        await this.client.end();
+      }
+
+      // Drop test database
+      const dbName = this.config.testDbUrl.split('/').pop();
+      const baseUrl = this.config.testDbUrl.replace(`/${dbName}`, '/postgres');
+      
+      try {
+        const adminClient = postgres(baseUrl, {
+          host: 'localhost',
+          // Force IPv4 by using localhost
+        });
+        await adminClient.unsafe(`DROP DATABASE IF EXISTS "${dbName}"`);
+        await adminClient.end();
+      } catch (error) {
+        console.warn('Failed to drop test database:', error);
+      }
+
       // Remove test files and directories
       const pathsToRemove = [
-        this.config.testDbPath,
         this.config.testInputDir,
         this.config.testOutputDir,
         this.config.testDictDir
@@ -417,16 +722,22 @@ export const expect = {
 export async function runTest(testName: string, testFn: (utils: TestUtils) => Promise<void>) {
   console.log(`🧪 Running test: ${testName}`);
 
-  const utils = new TestUtils(testName);
-
+  let utils: TestUtils | undefined;
+  
   try {
+    utils = new TestUtils(testName);
+    // Wait for async initialization
+    await (utils as any).initializeTestDatabase();
+    
     await testFn(utils);
     console.log(`✅ ${testName} - PASSED`);
   } catch (error: any) {
     console.log(`❌ ${testName} - FAILED: ${error.message}`);
     throw error;
   } finally {
-    await utils.cleanupAll();
+    if (utils) {
+      await utils.cleanupAll();
+    }
   }
 }
 

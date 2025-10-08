@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
-  worker:
+  backend:
     extends:
       file: docker-compose.yml
-      service: worker
+      service: backend
     environment:
       - HASHCAT_DEVICE_TYPE=nvidia
     deploy:
@@ -14,3 +12,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    # Force IPv4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1

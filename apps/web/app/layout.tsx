@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
+import { AuthProvider } from '@/lib/auth-context'
 
 export const metadata: Metadata = {
   title: 'AutoPWN (⌐■_■) - WiFi Handshake Cracker',
@@ -24,6 +25,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AuthProvider>
           <header className="border-b">
             <div className="container mx-auto px-4 py-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -42,6 +44,7 @@ export default function RootLayout({
             {children}
           </main>
           <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

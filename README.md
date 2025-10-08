@@ -27,6 +27,10 @@ git clone <repo>
 cd autopwn
 cp .env.example .env
 
+# Configure better-auth secret (IMPORTANT for security)
+# Generate a secure secret: openssl rand -base64 32
+echo "BETTER_AUTH_SECRET=your-generated-secret-here" >> .env
+
 # Add dictionaries
 cp /path/to/rockyou.txt volumes/dictionaries/
 
@@ -47,20 +51,58 @@ docker-compose -f docker-compose.yml -f docker-compose.nvidia.yml up -d
 docker-compose -f docker-compose.yml -f docker-compose.amd.yml up -d
 ```
 
+### New Authentication System
+
+AutoPWN now includes user authentication:
+- Each user has completely isolated data (jobs, results, files)
+- Email/password authentication with better-auth
+- Secure session management
+- Database migrated from SQLite to PostgreSQL
+
+**First user setup:**
+1. Visit `http://localhost:3000/auth/signup`
+2. Create your account
+3. Start uploading files and creating jobs
+
 ### Local Development
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Run worker (terminal 1)
-pnpm run dev:worker
+# Option 1: Development with Docker (Recommended)
+# Uses volume mounts for hot reloading and database
+docker-compose -f docker-compose.dev.yml up -d
 
-# Run web dashboard (terminal 2)
+# Option 2: Local development without Docker
+# Run database (terminal 1)
+docker-compose -f docker-compose.dev.yml up -d postgres
+
+# Run backend (terminal 2)
+pnpm run dev:backend
+
+# Run web dashboard (terminal 3)
 pnpm run dev:web
 
 # Access at http://localhost:3000
 ```
+
+### Development Environment
+
+The project now includes a **Docker-based development environment** with:
+
+- **Hot reloading**: Code changes are immediately reflected
+- **Volume mounts**: Source code is mounted into containers
+- **Database**: PostgreSQL with automated migrations
+- **Authentication**: better-auth with proper schema configuration
+- **Debugging**: Comprehensive logging and error tracking
+
+**Development Docker Compose:**
+- `docker-compose.dev.yml` - Development environment with hot reloading
+- `apps/backend/Dockerfile.dev` - Development container with dev dependencies
+- Volume mounts for `./packages/shared` and `./apps/backend`
+- TypeScript compilation in watch mode
+- Database migrations on startup
 
 ## How It Works
 
@@ -87,12 +129,28 @@ Edit `.env` file:
 # GPU Type: nvidia, amd, intel, cpu
 HASHCAT_DEVICE_TYPE=cpu
 
-# Paths (auto-configured for local development)
-DATABASE_PATH=/Users/martin/Developer/autopwn/volumes/db/autopwn.db
+# Better Auth Configuration (REQUIRED - generate your own secret)
+BETTER_AUTH_SECRET=your-secret-key-here
+
+# Paths (auto-configured for Docker and local development)
 PCAPS_PATH=/Users/martin/Developer/autopwn/volumes/pcaps
 DICTIONARIES_PATH=/Users/martin/Developer/autopwn/volumes/dictionaries
 JOBS_PATH=/Users/martin/Developer/autopwn/volumes/jobs
+
+# Database (Docker sets this automatically)
+DATABASE_URL=postgresql://localhost/autopwn
+
+# Dashboard
+NEXT_PUBLIC_API_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3000
 ```
+
+### Security Notes
+
+- **Always generate a secure `BETTER_AUTH_SECRET`** for production
+- Use a strong, randomly generated secret (minimum 32 characters)
+- Never commit secrets to version control
+- Database is automatically handled by Docker in production setup
 
 ## Documentation
 
@@ -104,17 +162,19 @@ JOBS_PATH=/Users/martin/Developer/autopwn/volumes/jobs
 
 ```
 AutoPWN
-├── Web Dashboard (Next.js)    # File upload, job creation, monitoring
+├── Web Dashboard (Next.js)    # File upload, job creation, monitoring, auth
 ├── Worker Service             # Job processing, hashcat execution
-└── SQLite Database            # Job management, ESSID tracking
+├── PostgreSQL Database        # Job management, ESSID tracking, users
+└── Authentication System      # User isolation and session management
 ```
 
 ## Tech Stack
 
-- **Worker**: Node.js 24 + TypeScript + better-sqlite3
-- **Web**: Next.js 15 + React 19 + Tailwind CSS
+- **Worker**: Node.js 24 + TypeScript + PostgreSQL
+- **Web**: Next.js 15 + React 19 + Tailwind CSS + better-auth
 - **Tools**: hashcat + hcxpcapngtool
-- **Database**: SQLite3 (WAL mode)
+- **Database**: PostgreSQL 15 + Drizzle ORM
+- **Authentication**: better-auth with email/password
 
 ## Contributing
 

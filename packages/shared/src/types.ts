@@ -1,64 +1,21 @@
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type JobItemStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
-export interface Job {
-  id: number;
-  job_id: string | null;
-  filename: string;
-  status: JobStatus;
-  priority: number;
-  paused: number;
-  batch_mode: number;
-  items_total: number | null;
-  items_cracked: number | null;
-  created_at: string;
-  started_at: string | null;
-  completed_at: string | null;
-  current_dictionary: string | null;
-  progress: number | null;
-  hash_count: number | null;
-  speed: string | null;
-  eta: string | null;
-  error: string | null;
-  logs: string | null;
-  captures: string | null;
-  total_hashes: number | null;
-}
+// User authentication types - Note: User type is exported from schema.ts
 
-export interface JobItem {
-  id: number;
-  job_id: number;
-  filename: string;
-  essid: string | null;
-  bssid: string | null;
-  status: JobItemStatus;
-  password: string | null;
-  cracked_at: string | null;
-  pcap_filename: string | null;
-}
-
-export interface JobDictionary {
-  id: number;
-  job_id: number;
-  dictionary_id: number;
-  status: string;
-}
-
-export interface Result {
-  id: number;
-  job_id: number;
-  essid: string;
+export interface CreateUserInput {
+  email: string;
   password: string;
-  cracked_at: string;
-  pcap_filename: string | null;
+  name?: string;
 }
 
-export interface Dictionary {
+export interface AuthUser {
   id: number;
-  name: string;
-  path: string;
-  size: number;
+  email: string;
+  name: string | null;
 }
+
+// Note: Database types are now exported from schema.ts as Drizzle inferred types
 
 export interface HashcatProgress {
   progress: number;
@@ -69,6 +26,7 @@ export interface HashcatProgress {
 }
 
 export interface CreateJobInput {
+  user_id: number; // Added user ownership
   filename: string;
   hash_count: number;
   batch_mode?: number;
@@ -76,6 +34,7 @@ export interface CreateJobInput {
 }
 
 export interface CreateJobItemInput {
+  user_id: number; // Added user ownership
   job_id: number;
   filename: string;
   essid?: string;
@@ -108,19 +67,13 @@ export interface UpdateJobItemInput {
 }
 
 export interface CreateResultInput {
+  user_id: number; // Added user ownership
   job_id: number;
   essid: string;
   password: string;
   pcap_filename?: string | null;
 }
 
-export interface PcapEssidMapping {
-  id: number;
-  pcap_filename: string;
-  essid: string;
-  bssid: string | null;
-  created_at: string;
-}
 
 export interface CaptureFile {
   filename: string;

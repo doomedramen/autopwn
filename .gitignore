@@ -72,3 +72,7 @@ tests/fixtures/*
 !tests/fixtures/pcaps/
 !tests/fixtures/dictionaries/
 !tests/fixtures/README.md
+/apps/web/test-results
+/apps/web/test-results
+/apps/web/playwright-report
+/tests/fixtures/pcaps

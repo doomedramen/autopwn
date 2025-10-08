@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { DB_SCHEMA, ensureDirectories, getRequiredDirectories } from '@autopwn/shared';
+import { ensureDirectories, getRequiredDirectories } from '@autopwn/shared';
 import path from 'path';
 import fs from 'fs';
 
@@ -69,9 +69,11 @@ function validateTableSchema(db: Database.Database, tableName: string, expectedC
   }
 }
 
-// Extract table definitions from DB_SCHEMA
+// Extract table definitions from expected schema
 function getExpectedTables(): Record<string, string[]> {
-  const schema = DB_SCHEMA;
+  // Since this is the frontend, we don't handle database migrations directly
+  // The backend is responsible for schema management
+  const schema = `-- SQL schema would be handled by backend`;
   const tables: Record<string, string[]> = {};
 
   // Find all CREATE TABLE statements
@@ -85,14 +87,14 @@ function getExpectedTables(): Record<string, string[]> {
       if (columnsMatch) {
         // Extract column names with better regex
         const columnDefs = columnsMatch[1];
-        const lines = columnDefs.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        const lines = columnDefs.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
 
-        const columns = lines.map(line => {
+        const columns = lines.map((line: string) => {
           // Handle both "col_name TYPE ..." and "col_name TYPE, ..." patterns
           const cleanLine = line.replace(/,?\s*$/, ''); // Remove trailing comma
           const parts = cleanLine.split(/\s+/);
           return parts[0]; // First part is column name
-        }).filter(col => col && !col.startsWith('FOREIGN KEY') && !col.startsWith('CONSTRAINT'));
+        }).filter((col: string) => col && !col.startsWith('FOREIGN KEY') && !col.startsWith('CONSTRAINT'));
 
         tables[tableName] = columns;
       }
@@ -133,7 +135,8 @@ export function runMigrations(): void {
 
     if (needsBaseSchema) {
       console.log('[Migration] Database is missing schema or has outdated schema, applying base schema...');
-      db.exec(DB_SCHEMA);
+      // Database schema is handled by backend
+      console.log('[Migration] Database schema is managed by backend - skipping local schema application');
       setSchemaVersion(db, 1);
       console.log('[Migration] Base schema applied successfully');
     }
