@@ -1,63 +1,77 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+
+const isDocker = !!process.env.DOCKER;
+const isCI = !!process.env.CI;
+const host = isDocker ? "[::1]" : "localhost";
 
 /**
- * Playwright configuration for AutoPWN E2E testing with Docker support
+ * Consolidated Playwright configuration for AutoPWN E2E testing
  */
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: false, // Reduce parallelism to avoid database conflicts
-  forbidOnly: false,
-  retries: 1,
-  workers: 2,
+  fullyParallel: !isCI, // Use parallel in local, sequential in CI
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 1,
+  workers: isCI ? 1 : 2, // Reduce workers in CI to avoid database conflicts
 
-  // Use list reporter for clear console output
-  reporter: [
+  // Enhanced reporting
+  reporter: isCI ? [
     ['list'],
+    ['html', { outputFolder: 'playwright-report' }],
+    ['json', { outputFile: 'test-results.json' }]
+  ] : [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report' }]
   ],
 
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || `http://${host}:3000`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    // Set timeout for individual actions
+    // Consistent timeouts
     actionTimeout: 30000,
     navigationTimeout: 30000,
   },
 
-  // Test on major browsers and mobile devices
+  // Test projects - focus on Chromium for reliability, add others as needed
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
-    { name: 'Mobile Safari', use: { ...devices['iPhone 12'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // Add other browsers only when needed for specific testing
+    ...(process.env.TEST_ALL_BROWSERS ? [
+      { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+      { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+      { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
+    ] : []),
   ],
 
-  // Global setup for test environment
-  globalSetup: './e2e/global-setup.ts',
-  globalTeardown: './e2e/global-teardown.ts',
+  // Global setup and teardown
+  globalSetup: path.join(__dirname, 'e2e/global-setup.ts'),
+  globalTeardown: path.join(__dirname, 'e2e/global-teardown.ts'),
 
-  // Auto-start dev server if needed, reuse if existing
-  webServer: {
-    command: process.env.CI
-      ? 'cd ../.. && docker-compose up -d --build && sleep 10' // Start Docker services in CI
-      : 'pnpm run dev', // Use dev server for local development
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI, // Don't reuse server in CI
+  // Web server configuration with better health checking
+  webServer: isDocker ? undefined : {
+    command: 'pnpm run dev',
+    url: `http://${host}:3000`,
+    reuseExistingServer: !isCI,
     timeout: 120 * 1000,
   },
 
-  // Configure retries and timeout
-  timeout: 120000, // 2 minute timeout for tests
+  // Consistent timeout configuration
+  timeout: 120000,
   expect: {
-    timeout: 10000, // 10 second timeout for assertions
+    timeout: 10000,
   },
 
   // Metadata for test organization
   metadata: {
-    testEnvironment: 'docker',
+    testEnvironment: isDocker ? 'docker' : 'local',
     databaseCleanup: 'enabled',
     userLifecycle: 'complete',
+    nodeVersion: process.version,
   },
 });

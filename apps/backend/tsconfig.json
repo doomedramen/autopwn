@@ -11,7 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "baseUrl": ".",
+    "paths": {
+      "@autopwn/shared": ["../packages/shared/src/index"]
+    }
   },
   "include": [
     "src/**/*"

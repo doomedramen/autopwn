@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { ensureDirectories, getRequiredDirectories } from '@autopwn/shared';
+import { ensureDirectories, getRequiredDirectories } from '../../../packages/shared/src/index';
 import path from 'path';
 import fs from 'fs';
 

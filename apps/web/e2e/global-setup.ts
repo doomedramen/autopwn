@@ -1,4 +1,5 @@
 import { FullConfig } from '@playwright/test';
+import { TestDatabase } from '../tests/helpers/test-database';
 
 /**
  * Global setup for Playwright tests with Docker integration
@@ -20,7 +21,7 @@ async function globalSetup(config: FullConfig) {
     await waitForLocalServer();
   }
 
-  // Initialize database if needed
+  // Initialize database and cleanup any leftover test data
   await initializeTestDatabase();
 
   console.log('✅ Global setup completed');
@@ -104,17 +105,16 @@ async function initializeTestDatabase() {
   console.log('🗄️ Initializing test database...');
 
   try {
-    // Check if database is accessible via health endpoint
-    const healthResponse = await fetch('http://localhost:3000/api/health');
+    // Wait for database to be available
+    const testDb = new TestDatabase();
+    await testDb.initialize();
+    await testDb.waitForDatabase();
+    console.log('✅ Database is ready');
 
-    if (healthResponse.ok) {
-      const healthData = await healthResponse.json();
-      console.log('✅ Database health check passed:', healthData.database);
-    } else {
-      console.log('⚠️ Database health check failed, but continuing...');
-    }
+    // Clean up any leftover test data from previous runs
+    await testDb.cleanupAllTestData();
+    console.log('✅ Cleanup of previous test data completed');
 
-    // The test suite will handle database cleanup via TestUtils
     console.log('✅ Database initialization completed');
   } catch (error) {
     console.log('⚠️ Database initialization failed:', error);

@@ -41,6 +41,12 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Test fixtures and temporary test data
+tests/fixtures/data/
+tests/fixtures/**/*-*/
+apps/web/tests/fixtures/data/
+apps/web/tests/fixtures/**/*-*/
+
 # Volumes - data directories
 volumes/input/*
 volumes/intermediate/*

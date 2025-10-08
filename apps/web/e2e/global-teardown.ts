@@ -1,4 +1,5 @@
 import { FullConfig } from '@playwright/test';
+import { TestDatabase } from '../tests/helpers/test-database';
 
 /**
  * Global teardown for Playwright tests with Docker integration
@@ -11,7 +12,7 @@ async function globalTeardown(config: FullConfig) {
   if (process.env.CI) {
     console.log('📦 CI environment detected - Docker services will be cleaned up by CI pipeline');
 
-    // Optionally perform database cleanup here
+    // Perform final database cleanup
     await performFinalDatabaseCleanup();
   } else {
     console.log('🏠 Local development environment');
@@ -30,19 +31,11 @@ async function performFinalDatabaseCleanup() {
   console.log('🗄️ Performing final database cleanup...');
 
   try {
-    // Call the cleanup endpoint if available
-    const cleanupResponse = await fetch('http://localhost:3000/api/test/cleanup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }).catch(() => null);
-
-    if (cleanupResponse && cleanupResponse.ok) {
-      console.log('✅ Database cleanup completed successfully');
-    } else {
-      console.log('⚠️ Database cleanup endpoint not available or failed');
-    }
+    // Use TestDatabase to clean up all test data
+    const testDb = new TestDatabase();
+    await testDb.initialize();
+    await testDb.cleanupAllTestData();
+    console.log('✅ Database cleanup completed successfully');
   } catch (error) {
     console.log('⚠️ Final database cleanup failed:', error);
     // Don't fail the teardown - this is optional cleanup
