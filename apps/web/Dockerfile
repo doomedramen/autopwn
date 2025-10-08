@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:24-alpine AS builder
 
 # Install pnpm
 RUN corepack enable
@@ -33,6 +33,18 @@ RUN pnpm run build
 WORKDIR /app/apps/web
 RUN pnpm run build
 
+# Production stage
+FROM node:24-alpine AS runner
+
+WORKDIR /app
+
+# Copy standalone output and public files from builder
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./.next/static
+COPY --from=builder /app/apps/web/public ./public
+
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+ENV NODE_ENV=production
+
+CMD ["node", "server.js"]
