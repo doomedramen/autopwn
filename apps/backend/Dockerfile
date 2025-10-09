@@ -18,22 +18,16 @@ WORKDIR /app
 COPY package*.json ./
 COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
-COPY packages/shared/package*.json ./packages/shared/
 COPY apps/backend/package*.json ./apps/backend/
 
 # Initialize git repository for lefthook
 RUN git init && git config user.email "test@example.com" && git config user.name "Test User"
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
 # Copy source code
-COPY packages/shared ./packages/shared
 COPY apps/backend ./apps/backend
 
-# Build shared package
-WORKDIR /app/packages/shared
-RUN pnpm run build
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
 
 # Build backend
 WORKDIR /app/apps/backend

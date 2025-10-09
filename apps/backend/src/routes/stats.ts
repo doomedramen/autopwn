@@ -1,6 +1,6 @@
 import { createHono } from '../lib/hono.js';
 import { requireAuth } from '../middleware/auth.js';
-import { db, jobs, results } from '@autopwn/shared';
+import { db, jobs, results } from '../db';
 import { eq, and, sql, desc } from 'drizzle-orm';
 
 const statsRouter = createHono();

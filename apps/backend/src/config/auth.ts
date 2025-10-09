@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { openAPI } from "better-auth/plugins";
-import { db, users, sessions, accounts } from "@autopwn/shared";
+import { db, users, sessions, accounts } from "../db";
 import { env } from "./env.js";
 
 console.log('Initializing better-auth with OpenAPI documentation enabled');

@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { db } from '@autopwn/shared';
-import { users, accounts } from '@autopwn/shared';
+import { db, users, accounts } from '../db';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 

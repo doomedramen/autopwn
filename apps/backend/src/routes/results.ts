@@ -1,6 +1,6 @@
 import { createHono } from '../lib/hono';
 import { requireAuth } from '../middleware/auth';
-import { db, results, jobs, jobItems } from '@autopwn/shared';
+import { db, results, jobs, jobItems } from '../db';
 import { eq, and, desc, gte, lte, like, count } from 'drizzle-orm';
 
 const resultsRouter = createHono();

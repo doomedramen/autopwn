@@ -10,7 +10,7 @@ export interface CreateUserInput {
 }
 
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
   name: string | null;
 }
@@ -26,7 +26,7 @@ export interface HashcatProgress {
 }
 
 export interface CreateJobInput {
-  user_id: number; // Added user ownership
+  user_id: string; // Added user ownership
   filename: string;
   hash_count: number;
   batch_mode?: number;
@@ -34,7 +34,7 @@ export interface CreateJobInput {
 }
 
 export interface CreateJobItemInput {
-  user_id: number; // Added user ownership
+  user_id: string; // Added user ownership
   job_id: number;
   filename: string;
   essid?: string;
@@ -67,7 +67,7 @@ export interface UpdateJobItemInput {
 }
 
 export interface CreateResultInput {
-  user_id: number; // Added user ownership
+  user_id: string; // Added user ownership
   job_id: number;
   essid: string;
   password: string;

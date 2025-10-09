@@ -38,8 +38,10 @@ export function ensureDirectories(directories: string[]): void {
  * Get project root directory by navigating up from the current module
  */
 function getProjectRoot(): string {
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  // Go up from packages/shared to project root (packages/shared -> packages -> project root)
+  // In CommonJS environment, use __dirname as fallback
+  // @ts-ignore - __dirname may not be defined in ES modules
+  const currentDir = dirname(__filename || process.cwd());
+  // Go up from apps/backend/src to project root (apps/backend/src -> apps/backend -> apps -> project root)
   return dirname(dirname(dirname(currentDir)));
 }
 

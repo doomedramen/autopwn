@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
 import { auth } from '../config/auth';
-import { User } from '@autopwn/shared';
+import type { User } from '../db';
 import { AppContext } from '../lib/hono';
 
 export async function requireAuth(c: Context<AppContext>, next: Next) {

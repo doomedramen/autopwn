@@ -2,7 +2,7 @@ import { createHono } from '../lib/hono';
 import { requireAuth } from '../middleware/auth';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { db, jobs, jobItems, jobDictionaries, dictionaries } from '@autopwn/shared';
+import { db, jobs, jobItems, jobDictionaries, dictionaries } from '../db';
 import { eq, and, desc } from 'drizzle-orm';
 import { webSocketService } from '../services/websocket';
 

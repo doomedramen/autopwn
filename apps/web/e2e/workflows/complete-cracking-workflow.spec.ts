@@ -151,7 +151,7 @@ test.describe('Complete Cracking Workflow', () => {
         })
       );
 
-      const completedCount = statuses.filter(status => status === 'completed').length;
+      const completedCount = statuses.filter((status: string) => status === 'completed').length;
       if (completedCount === 3) {
         allCompleted = true;
         break;

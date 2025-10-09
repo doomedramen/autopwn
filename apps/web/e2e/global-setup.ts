@@ -1,5 +1,4 @@
 import { FullConfig } from '@playwright/test';
-import { TestDatabase } from '../tests/helpers/test-database';
 
 /**
  * Global setup for Playwright tests with Docker integration
@@ -20,9 +19,6 @@ async function globalSetup(config: FullConfig) {
     // For local development, ensure dev server is accessible
     await waitForLocalServer();
   }
-
-  // Initialize database and cleanup any leftover test data
-  await initializeTestDatabase();
 
   console.log('✅ Global setup completed');
 }
@@ -98,28 +94,5 @@ async function waitForLocalServer() {
   }
 }
 
-/**
- * Initialize test database with required tables and cleanup
- */
-async function initializeTestDatabase() {
-  console.log('🗄️ Initializing test database...');
-
-  try {
-    // Wait for database to be available
-    const testDb = new TestDatabase();
-    await testDb.initialize();
-    await testDb.waitForDatabase();
-    console.log('✅ Database is ready');
-
-    // Clean up any leftover test data from previous runs
-    await testDb.cleanupAllTestData();
-    console.log('✅ Cleanup of previous test data completed');
-
-    console.log('✅ Database initialization completed');
-  } catch (error) {
-    console.log('⚠️ Database initialization failed:', error);
-    // Don't fail the setup - tests will handle database issues
-  }
-}
 
 export default globalSetup;

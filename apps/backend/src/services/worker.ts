@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { db, jobs, jobItems, jobDictionaries, dictionaries, results } from '@autopwn/shared';
+import { db, jobs, jobItems, jobDictionaries, dictionaries, results } from '../db';
 import { eq, and, desc } from 'drizzle-orm';
 import { env } from '../config/env';
 import { webSocketService } from './websocket';

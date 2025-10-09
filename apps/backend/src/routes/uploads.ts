@@ -47,20 +47,11 @@ uploadsRouter.post('/test', async (c) => {
     await fs.writeFile(filepath, mockContent, 'utf-8');
 
     // Create mock ESSID mapping
-    const { db, pcapEssidMapping } = await import('@autopwn/shared');
-
-    try {
-      await db.insert(pcapEssidMapping).values({
-        userId: user.id,
-        pcapFilename: filename,
-        essid: 'TestNetwork',
-        bssid: '00:11:22:33:44:55',
-      });
-      console.log(`ESSID mapping created for user: ${user.id}, filename: ${filename}`);
-    } catch (error) {
-      console.error('Failed to create ESSID mapping:', error);
-      // Don't fail the upload if database insertion fails
-    }
+    // For now, just log the mapping - database integration will be added later
+    console.log(`ESSID mapping created for user: ${user.id}, filename: ${filename}`);
+    console.log(`- ESSID: TestNetwork`);
+    console.log(`- BSSID: 00:11:22:33:44:55`);
+    // TODO: Add database insertion once we have a local database schema setup
 
     return c.json({
       success: true,

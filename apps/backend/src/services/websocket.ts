@@ -1,10 +1,9 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { IncomingMessage } from 'http';
-import { db, users } from '@autopwn/shared';
 
 interface ClientConnection {
   ws: WebSocket;
-  userId: number;
+  userId: string;
   subscriptions: Set<string>;
 }
 
@@ -16,7 +15,7 @@ interface WebSocketMessage {
 export class WebSocketService {
   private wss: WebSocketServer | null = null;
   private clients: Map<WebSocket, ClientConnection> = new Map();
-  private userSockets: Map<number, Set<WebSocket>> = new Map();
+  private userSockets: Map<string, Set<WebSocket>> = new Map();
 
   constructor() {
     this.setupMessageHandler();
@@ -42,7 +41,7 @@ export class WebSocketService {
       // Add connection without authentication initially
       this.clients.set(ws, {
         ws,
-        userId: 0, // Will be set after authentication
+        userId: '', // Will be set after authentication
         subscriptions: new Set()
       });
 
@@ -144,13 +143,13 @@ export class WebSocketService {
     }
   }
 
-  private async getUserIdFromToken(token: string): Promise<number | null> {
+  private async getUserIdFromToken(token: string): Promise<string | null> {
     // This is a placeholder implementation
     // In a real application, you'd verify the JWT token and extract the user ID
     try {
       // For now, we'll just return a mock user ID
       // In production, you'd decode the JWT and validate it
-      return 1; // Mock user ID
+      return 'test-user-1'; // Mock user ID
     } catch (error) {
       return null;
     }
@@ -158,7 +157,7 @@ export class WebSocketService {
 
   private handleSubscription(ws: WebSocket, data: { channels: string[] }) {
     const client = this.clients.get(ws);
-    if (!client || client.userId === 0) {
+    if (!client || !client.userId) {
       this.sendToClient(ws, {
         type: 'subscription_error',
         data: { message: 'Must be authenticated to subscribe' }
@@ -193,7 +192,7 @@ export class WebSocketService {
     });
   }
 
-  private validateSubscription(userId: number, channel: string): boolean {
+  private validateSubscription(userId: string, channel: string): boolean {
     // Allow users to subscribe to their own job updates
     if (channel.startsWith('job:')) {
       const jobId = parseInt(channel.split(':')[1]);
@@ -212,7 +211,7 @@ export class WebSocketService {
     const client = this.clients.get(ws);
     if (client) {
       // Remove from user sockets mapping
-      if (client.userId > 0 && this.userSockets.has(client.userId)) {
+      if (client.userId && this.userSockets.has(client.userId)) {
         this.userSockets.get(client.userId)!.delete(ws);
         if (this.userSockets.get(client.userId)!.size === 0) {
           this.userSockets.delete(client.userId);
@@ -238,7 +237,7 @@ export class WebSocketService {
     };
 
     this.clients.forEach((client) => {
-      if (client.userId > 0 &&
+      if (client.userId &&
           (client.subscriptions.has('jobs') ||
            client.subscriptions.has(`job:${jobId}`))) {
         this.sendToClient(client.ws, message);
@@ -253,7 +252,7 @@ export class WebSocketService {
     };
 
     this.clients.forEach((client) => {
-      if (client.userId > 0 && client.subscriptions.has('stats')) {
+      if (client.userId && client.subscriptions.has('stats')) {
         this.sendToClient(client.ws, message);
       }
     });
@@ -266,13 +265,13 @@ export class WebSocketService {
     };
 
     this.clients.forEach((client) => {
-      if (client.userId > 0 && client.subscriptions.has('results')) {
+      if (client.userId && client.subscriptions.has('results')) {
         this.sendToClient(client.ws, message);
       }
     });
   }
 
-  broadcastToUser(userId: number, message: WebSocketMessage) {
+  broadcastToUser(userId: string, message: WebSocketMessage) {
     const userSockets = this.userSockets.get(userId);
     if (userSockets) {
       userSockets.forEach(ws => {
@@ -298,7 +297,7 @@ export class WebSocketService {
   getStats() {
     return {
       totalConnections: this.clients.size,
-      authenticatedConnections: Array.from(this.clients.values()).filter(c => c.userId > 0).length,
+      authenticatedConnections: Array.from(this.clients.values()).filter(c => c.userId).length,
       userConnections: this.userSockets.size
     };
   }

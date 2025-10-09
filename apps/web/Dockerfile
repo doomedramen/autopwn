@@ -12,7 +12,6 @@ WORKDIR /app
 COPY package*.json ./
 COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
-COPY packages/shared/package*.json ./packages/shared/
 COPY apps/web/package*.json ./apps/web/
 
 # Initialize git repository for lefthook
@@ -22,12 +21,7 @@ RUN git init && git config user.email "test@example.com" && git config user.name
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
-COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
-
-# Build shared package
-WORKDIR /app/packages/shared
-RUN pnpm run build
 
 # Build web
 WORKDIR /app/apps/web
@@ -46,4 +40,4 @@ EXPOSE 3000
 
 ENV NODE_ENV=production
 
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]

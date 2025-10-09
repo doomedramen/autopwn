@@ -1,5 +1,15 @@
 import { Hono } from 'hono';
-import { User } from '@autopwn/shared';
+
+// Define User type directly here to avoid shared package import issues
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  emailVerified: boolean;
+  image?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface Session {
   session: {

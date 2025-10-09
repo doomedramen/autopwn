@@ -2,7 +2,7 @@ import { createHono } from '../lib/hono.js';
 import { requireAuth } from '../middleware/auth.js';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { db, dictionaries } from '@autopwn/shared';
+import { db, dictionaries } from '../db';
 import { eq, and } from 'drizzle-orm';
 import { promises as fs } from 'fs';
 import { join } from 'path';

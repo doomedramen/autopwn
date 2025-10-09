@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "CommonJS",
     "lib": ["ES2022"],
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -11,10 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
-    "baseUrl": ".",
-    "paths": {
-      "@autopwn/shared": ["../packages/shared/src/index"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "src/**/*"
