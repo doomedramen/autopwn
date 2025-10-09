@@ -18,6 +18,7 @@ export default function Navigation() {
 
   const links = [
     { href: '/', label: 'Dashboard' },
+    { href: '/dictionaries', label: 'Dictionaries' },
     { href: '/analytics', label: 'Analytics' },
   ];
 

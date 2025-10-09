@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db, users, accounts } from '../db';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
 const testSetupSchema = z.object({
   email: z.string().email().optional().default('test@example.com'),
@@ -48,7 +49,7 @@ export const testSetupRouter = new Hono()
         // Create new user
         const newUser = await db.insert(users)
           .values({
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             email,
             name,
             emailVerified: false,
@@ -60,7 +61,7 @@ export const testSetupRouter = new Hono()
         // Create account for the user with password
         await db.insert(accounts)
           .values({
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             accountId: newUser[0].id,
             providerId: 'credential',
             userId: newUser[0].id,

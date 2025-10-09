@@ -33,6 +33,10 @@ RUN pnpm install --frozen-lockfile
 WORKDIR /app/apps/backend
 RUN pnpm run build
 
+# Copy migration files to the dist folder
+RUN mkdir -p dist/db/drizzle && \
+    cp -r src/db/drizzle/migrations dist/db/drizzle/ || true
+
 EXPOSE 3001
 
 CMD ["node", "dist/index.js"]

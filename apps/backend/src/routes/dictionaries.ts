@@ -7,6 +7,7 @@ import { eq, and } from 'drizzle-orm';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { env } from '../config/env.js';
+import { randomUUID } from 'crypto';
 
 const dictionariesRouter = createHono();
 
@@ -27,6 +28,186 @@ dictionariesRouter.get('/', async (c) => {
   } catch (error) {
     console.error('Failed to fetch dictionaries:', error);
     return c.json({ error: 'Failed to fetch dictionaries' }, 500);
+  }
+});
+
+// In-memory storage for chunked uploads (in production, use Redis or database)
+const chunkedUploads = new Map<string, {
+  filename: string;
+  userId: string;
+  chunks: Map<number, Buffer>;
+  totalChunks: number;
+  fileSize: number;
+}>();
+
+// Start chunked upload
+dictionariesRouter.post('/chunked/start', async (c) => {
+  try {
+    const user = c.get('user')!;
+    const { filename, fileSize, totalChunks } = await c.req.json();
+
+    if (!filename || !fileSize || !totalChunks) {
+      return c.json({ error: 'Missing required fields' }, 400);
+    }
+
+    // Validate file extension
+    const validExtensions = [
+      '.txt', '.dict', '.wordlist', '.rule', '.rule2', '.hcchr2', '.hcmask', '.hcmask2',
+      '.gz', '.bz2', '.zip', '.7z', '.rar', '.cap', '.hccapx', '.pcapng', '.16800', '.22000',
+      '.pmkid', '.hccapx', '.ehc', '.john', '.pot', '.log', '.out', '.diz', '.list'
+    ];
+    const hasValidExtension = validExtensions.some(ext =>
+      filename.toLowerCase().endsWith(ext)
+    );
+
+    if (!hasValidExtension) {
+      return c.json({ error: 'Invalid file type' }, 400);
+    }
+
+    const uploadId = randomUUID();
+    chunkedUploads.set(uploadId, {
+      filename,
+      userId: user.id,
+      chunks: new Map(),
+      totalChunks,
+      fileSize,
+    });
+
+    return c.json({
+      success: true,
+      uploadId,
+      message: 'Chunked upload initialized',
+    });
+  } catch (error) {
+    console.error('Failed to start chunked upload:', error);
+    return c.json({ error: 'Failed to start chunked upload' }, 500);
+  }
+});
+
+// Upload chunk
+dictionariesRouter.post('/chunked/:uploadId/chunk/:chunkIndex', async (c) => {
+  try {
+    const user = c.get('user')!;
+    const uploadId = c.req.param('uploadId');
+    const chunkIndex = parseInt(c.req.param('chunkIndex'));
+    const formData = await c.req.formData();
+    const chunk = formData.get('chunk') as File;
+
+    if (!chunk) {
+      return c.json({ error: 'No chunk data provided' }, 400);
+    }
+
+    const upload = chunkedUploads.get(uploadId);
+    if (!upload || upload.userId !== user.id) {
+      return c.json({ error: 'Invalid upload session' }, 404);
+    }
+
+    const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
+    upload.chunks.set(chunkIndex, chunkBuffer);
+
+    return c.json({
+      success: true,
+      chunkIndex,
+      receivedChunks: upload.chunks.size,
+      totalChunks: upload.totalChunks,
+      message: 'Chunk uploaded successfully',
+    });
+  } catch (error) {
+    console.error('Failed to upload chunk:', error);
+    return c.json({ error: 'Failed to upload chunk' }, 500);
+  }
+});
+
+// Complete chunked upload
+dictionariesRouter.post('/chunked/:uploadId/complete', async (c) => {
+  try {
+    const user = c.get('user')!;
+    const uploadId = c.req.param('uploadId');
+    const upload = chunkedUploads.get(uploadId);
+
+    if (!upload || upload.userId !== user.id) {
+      return c.json({ error: 'Invalid upload session' }, 404);
+    }
+
+    if (upload.chunks.size !== upload.totalChunks) {
+      return c.json({
+        error: 'Missing chunks',
+        received: upload.chunks.size,
+        expected: upload.totalChunks
+      }, 400);
+    }
+
+    // Check if dictionary already exists
+    const existing = await db.select()
+      .from(dictionaries)
+      .where(and(
+        eq(dictionaries.userId, user.id),
+        eq(dictionaries.name, upload.filename)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Clean up upload session
+      chunkedUploads.delete(uploadId);
+      return c.json({ error: 'Dictionary already exists' }, 409);
+    }
+
+    // Ensure user's dictionary directory exists
+    const userDictDir = join(env.DICTIONARIES_PATH, `user-${user.id}`);
+    await fs.mkdir(userDictDir, { recursive: true });
+
+    // Combine chunks in order
+    const combinedBuffer = Buffer.concat(
+      Array.from(upload.chunks.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([, chunk]) => chunk)
+    );
+
+    // Write to file system
+    const filepath = join(userDictDir, upload.filename);
+    await fs.writeFile(filepath, combinedBuffer);
+
+    // Add to database
+    const [newDict] = await db.insert(dictionaries).values({
+      userId: user.id,
+      name: upload.filename,
+      path: filepath,
+      size: combinedBuffer.length,
+    }).returning();
+
+    // Clean up upload session
+    chunkedUploads.delete(uploadId);
+
+    return c.json({
+      success: true,
+      dictionary: newDict,
+      message: 'Dictionary uploaded successfully',
+    });
+  } catch (error) {
+    console.error('Failed to complete chunked upload:', error);
+    return c.json({ error: 'Failed to complete chunked upload' }, 500);
+  }
+});
+
+// Cancel chunked upload
+dictionariesRouter.delete('/chunked/:uploadId', async (c) => {
+  try {
+    const user = c.get('user')!;
+    const uploadId = c.req.param('uploadId');
+    const upload = chunkedUploads.get(uploadId);
+
+    if (!upload || upload.userId !== user.id) {
+      return c.json({ error: 'Invalid upload session' }, 404);
+    }
+
+    chunkedUploads.delete(uploadId);
+    return c.json({
+      success: true,
+      message: 'Upload cancelled successfully',
+    });
+  } catch (error) {
+    console.error('Failed to cancel chunked upload:', error);
+    return c.json({ error: 'Failed to cancel chunked upload' }, 500);
   }
 });
 
@@ -87,9 +268,13 @@ dictionariesRouter.post('/', async (c) => {
 
     for (const file of files) {
       try {
-        // Validate file extension
+        // Validate file extension - support all hashcat-compatible formats
         const filename = file.name;
-        const validExtensions = ['.txt', '.dict', '.wordlist'];
+        const validExtensions = [
+          '.txt', '.dict', '.wordlist', '.rule', '.rule2', '.hcchr2', '.hcmask', '.hcmask2',
+          '.gz', '.bz2', '.zip', '.7z', '.rar', '.cap', '.hccapx', '.pcapng', '.16800', '.22000',
+          '.pmkid', '.hccapx', '.ehc', '.john', '.pot', '.log', '.out', '.diz', '.list'
+        ];
         const hasValidExtension = validExtensions.some(ext =>
           filename.toLowerCase().endsWith(ext)
         );

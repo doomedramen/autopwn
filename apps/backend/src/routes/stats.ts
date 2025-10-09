@@ -43,12 +43,27 @@ statsRouter.get('/', async (c) => {
       .from(results)
       .where(eq(results.userId, user.id));
 
+    // Get recent cracks (last 7 days)
+    const recentCracks = await db.select({ count: sql`count(*)` })
+      .from(results)
+      .where(and(
+        eq(results.userId, user.id),
+        sql`cracked_at > NOW() - INTERVAL '7 days'`
+      ));
+
+    // Get unique ESSIDs
+    const uniqueEssids = await db.select({ count: sql`count(DISTINCT essid)` })
+      .from(results)
+      .where(eq(results.userId, user.id));
+
     return c.json({
-      total: totalJobs[0].count,
-      completed: completedJobs[0].count,
-      processing: processingJobs[0].count,
-      failed: failedJobs[0].count,
-      cracked: totalCracks[0].count,
+      totalJobs: Number(totalJobs[0].count) || 0,
+      completedJobs: Number(completedJobs[0].count) || 0,
+      processingJobs: Number(processingJobs[0].count) || 0,
+      failedJobs: Number(failedJobs[0].count) || 0,
+      totalCracked: Number(totalCracks[0].count) || 0,
+      recentCracked: Number(recentCracks[0].count) || 0,
+      uniqueEssids: Number(uniqueEssids[0].count) || 0,
     });
   } catch (error) {
     console.error('Failed to fetch stats:', error);

@@ -37,10 +37,10 @@ export default function SignUpPage() {
   return (
     <div className="flex-1 flex items-center justify-center">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Sign Up</CardTitle>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Create Account</CardTitle>
           <CardDescription>
-            Create an account to access AutoPWN
+            Enter your details to create your AutoPWN account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,9 +86,10 @@ export default function SignUpPage() {
               {loading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <Link href="/auth/login" className="text-sm text-blue-600 hover:underline">
-              Already have an account? Sign in
+          <div className="mt-4 text-center text-sm">
+            Already have an account?{" "}
+            <Link href="/auth/login" className="text-blue-600 hover:underline">
+              Sign in
             </Link>
           </div>
         </CardContent>

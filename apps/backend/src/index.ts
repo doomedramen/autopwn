@@ -14,9 +14,17 @@ import { testSetupRouter } from './routes/test-setup';
 import { workerService } from './services/worker';
 import { webSocketService } from './services/websocket';
 import { env } from './config/env';
+import { runMigrations } from './db/migrate';
 
+async function startServer() {
+  // Run database migrations before starting the server
+  try {
+    await runMigrations();
+  } catch (error) {
+    console.error('Failed to run migrations, continuing anyway...');
+  }
 
-const app = createHono();
+  const app = createHono();
 
 // Middleware
 app.use('*', logger());
@@ -43,18 +51,25 @@ app.route('/api/stats', statsRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/test', testSetupRouter);
 
-// Start worker service
-workerService.start();
+  // Start worker service
+  workerService.start();
 
-const port = env.PORT || 3001;
-console.log(`🚀 AutoPWN Backend server starting on port ${port}`);
+  const port = env.PORT || 3001;
+  console.log(`🚀 AutoPWN Backend server starting on port ${port}`);
 
-const server = serve({
-  fetch: app.fetch,
-  port,
+  const server = serve({
+    fetch: app.fetch,
+    port,
+  });
+
+  // Initialize WebSocket service
+  webSocketService.initialize(server);
+
+  console.log(`🔌 WebSocket service initialized on port ${port}`);
+}
+
+// Start the server
+startServer().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });
-
-// Initialize WebSocket service
-webSocketService.initialize(server);
-
-console.log(`🔌 WebSocket service initialized on port ${port}`);

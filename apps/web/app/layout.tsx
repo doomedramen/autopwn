@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Navigation from '@/components/Navigation'
-import { ThemeToggle } from '@/components/theme-toggle'
+import '@/lib/crypto-polyfill'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/lib/auth-context'
@@ -18,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground">
+      <body className="min-h-screen text-foreground">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -26,24 +25,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-          <header className="border-b">
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-green-400">AutoPWN <span className="text-foreground">(⌐■_■)</span></h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground">WiFi Handshake Cracker</p>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4">
-                  <Navigation />
-                  <ThemeToggle />
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="container mx-auto px-4 py-6">
-            {children}
-          </main>
-          <Toaster />
+            <main className="min-h-screen flex flex-col">
+              {children}
+            </main>
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>

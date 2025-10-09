@@ -1,6 +1,7 @@
 import { test, expect } from '../../tests/helpers/test-client';
 import {
   createTestFileUpload,
+  createTestDictionaryFile,
   waitForJobCompletion,
   getJobStatus,
   navigateToJobs,
@@ -209,7 +210,7 @@ test.describe('Complete Cracking Workflow', () => {
     await expect(jobElement).not.toBeVisible();
   });
 
-  test('should handle dictionary management workflow', async ({
+  test('should handle dictionary management workflow with chunked uploads', async ({
     authenticatedPage,
     database,
     testUser
@@ -221,30 +222,43 @@ test.describe('Complete Cracking Workflow', () => {
     // Should show empty state initially
     await expect(authenticatedPage.locator('[data-testid="empty-dictionaries-state"]')).toBeVisible();
 
-    // Upload dictionary
-    await authenticatedPage.click('[data-testid="upload-dictionary-btn"]');
-    await expect(authenticatedPage.locator('[data-testid="dictionary-upload-dialog"]')).toBeVisible();
+    // Upload dictionary using new chunked upload system
+    await authenticatedPage.click('[data-testid="upload-dictionaries-btn"]');
+    await expect(authenticatedPage.locator('[data-testid="chunked-upload-dialog"]')).toBeVisible();
 
-    // Create test dictionary file
-    const dictionaryContent = 'password\n123456\nadmin\nletmein\nwelcome';
-    const dictionaryBuffer = Buffer.from(dictionaryContent, 'utf-8');
+    // Create test dictionary file using helper
+    const testDictionary = createTestDictionaryFile('test-dictionary.txt', 10);
 
+    // Upload file using new Uppy-based interface
     const fileChooserPromise = authenticatedPage.waitForEvent('filechooser');
-    await authenticatedPage.click('input[type="file"]');
+    await authenticatedPage.locator('[data-testid="uppy-dashboard"]').click();
     const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles({
-      name: 'test-dictionary.txt',
-      mimeType: 'text/plain',
-      buffer: dictionaryBuffer
-    });
+    await fileChooser.setFiles(testDictionary);
 
-    await authenticatedPage.fill('input[name="dictionary-name"]', 'Test Dictionary');
-    await authenticatedPage.click('button[type="submit"]');
+    // Should show file in upload queue
+    await expect(authenticatedPage.locator('[data-testid="uppy-file-item"]')).toBeVisible();
+
+    // Click upload button to start chunked upload
+    await authenticatedPage.click('[data-testid="upload-files-btn"]');
+
+    // Should show upload progress
+    await expect(authenticatedPage.locator('[data-testid="upload-progress"]')).toBeVisible();
+
+    // Wait for upload to complete
+    await expect(authenticatedPage.locator('[data-testid="upload-success"]')).toBeVisible({ timeout: 30000 });
+    await expect(authenticatedPage.locator('text=Successfully uploaded 1 file(s)')).toBeVisible();
+
+    // Dialog should close automatically
+    await expect(authenticatedPage.locator('[data-testid="chunked-upload-dialog"]')).not.toBeVisible({ timeout: 5000 });
 
     // Should show dictionary in list
     await expect(authenticatedPage.locator('[data-testid^="dictionary-item-"]')).toHaveCount(1);
-    await expect(authenticatedPage.locator('[data-testid="dictionary-name"]')).toContainText('Test Dictionary');
-    await expect(authenticatedPage.locator('[data-testid="dictionary-size"]')).toContainText('5');
+    await expect(authenticatedPage.locator('[data-testid="dictionary-name"]')).toContainText('test-dictionary.txt');
+
+    // Verify dictionary details
+    const dictElement = authenticatedPage.locator('[data-testid^="dictionary-item-"]').first();
+    await expect(dictElement.locator('[data-testid="dictionary-size"]')).toBeVisible();
+    await expect(dictElement.locator('[data-testid="dictionary-type"]')).toContainText('Dictionary');
 
     // Create job using this dictionary
     await navigateToJobs(authenticatedPage);
@@ -252,13 +266,13 @@ test.describe('Complete Cracking Workflow', () => {
     createTestFileUpload(authenticatedPage, 'wpa2-with-dict.cap');
     await authenticatedPage.fill('input[name="filename"]', 'wpa2-with-dict.cap');
 
-    // Select dictionary
-    await authenticatedPage.selectOption('[data-testid="dictionary-select"]', 'Test Dictionary');
+    // Select dictionary from dropdown
+    await authenticatedPage.selectOption('[data-testid="dictionary-select"]', 'test-dictionary.txt');
     await authenticatedPage.click('button[type="submit"]');
 
     // Should create job with dictionary
     await expect(authenticatedPage.locator('[data-testid^="job-item-"]')).toHaveCount(1);
-    await expect(authenticatedPage.locator('[data-testid="job-dictionary"]')).toContainText('Test Dictionary');
+    await expect(authenticatedPage.locator('[data-testid="job-dictionary"]')).toContainText('test-dictionary.txt');
 
     // Check dictionary effectiveness in analytics
     await navigateToAnalytics(authenticatedPage);
