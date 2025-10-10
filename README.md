@@ -16,6 +16,26 @@ Modern WPA/WPA2 handshake cracker with a web dashboard. Upload `.pcap` files, se
 - Unauthorized access to computer networks is illegal and punishable by law
 - Developers assume no liability for misuse of this software
 
+## 🔒 Critical Security Requirements
+
+**Before deploying AutoPWN, you MUST configure secure authentication secrets.**
+
+### Generate a Secure BETTER_AUTH_SECRET
+
+The default development secret **MUST NOT** be used in production. AutoPWN will **refuse to start** if you use weak or default secrets in production mode.
+
+```bash
+# Generate a secure 32+ character secret
+openssl rand -base64 32
+```
+
+⚠️ **Failing to set a secure secret will result in:**
+- Production server refusing to start
+- Potential unauthorized access to all user data
+- Complete compromise of authentication security
+
+See the [Configuration](#configuration) section for detailed setup instructions.
+
 ## Quick Start
 
 ### Docker Compose (Recommended)
@@ -26,9 +46,12 @@ git clone <repo>
 cd autopwn
 cp .env.example .env
 
-# Configure better-auth secret (IMPORTANT for security)
-# Generate a secure secret: openssl rand -base64 32
-echo "BETTER_AUTH_SECRET=your-generated-secret-here" >> .env
+# ⚠️ CRITICAL: Generate and configure a secure authentication secret
+# This step is MANDATORY before running in production
+openssl rand -base64 32
+
+# Add the generated secret to your .env file:
+# Edit .env and replace BETTER_AUTH_SECRET with your generated value
 
 # Add dictionaries
 cp /path/to/rockyou.txt volumes/dictionaries/
@@ -39,6 +62,12 @@ docker-compose up -d
 # Access dashboard
 open http://localhost:3000
 ```
+
+**🔐 Security Checklist Before First Run:**
+- ✅ Generated secure BETTER_AUTH_SECRET using `openssl rand -base64 32`
+- ✅ Replaced default secret in `.env` file
+- ✅ Verified `.env` is listed in `.gitignore`
+- ✅ Documented your secrets in a secure password manager
 
 ### GPU Support
 
@@ -69,6 +98,12 @@ AutoPWN now includes user authentication:
 # Install dependencies
 pnpm install
 
+# Configure environment (copy and edit .env)
+cp .env.example .env
+# For local development, the default secret is acceptable
+# For production deployment, generate a secure secret:
+# openssl rand -base64 32
+
 # Option 1: Development with Docker (Recommended)
 # Uses volume mounts for hot reloading and database
 docker-compose -f docker-compose.dev.yml up -d
@@ -85,6 +120,8 @@ pnpm run dev:web
 
 # Access at http://localhost:3000
 ```
+
+> **Note**: The development environment allows default secrets for convenience. Production mode (NODE_ENV=production) will enforce secure secret requirements.
 
 ### Development Environment
 
@@ -125,11 +162,32 @@ The project now includes a **Docker-based development environment** with:
 Edit `.env` file:
 
 ```bash
+# ========================================================================
+# 🔒 SECURITY CONFIGURATION - CRITICAL FOR PRODUCTION
+# ========================================================================
+
+# BETTER_AUTH_SECRET (MANDATORY - GENERATE YOUR OWN SECURE SECRET)
+#
+# ⚠️  DO NOT USE DEFAULT VALUES IN PRODUCTION
+# ⚠️  Server will refuse to start with weak secrets when NODE_ENV=production
+#
+# Generate a secure secret:
+#   openssl rand -base64 32
+#
+# Minimum requirements:
+#   - At least 32 characters long
+#   - Randomly generated (NOT a common word or phrase)
+#   - Unique to your deployment
+#   - Stored securely (use a password manager)
+#
+BETTER_AUTH_SECRET=REPLACE_THIS_WITH_YOUR_GENERATED_SECRET
+
+# ========================================================================
+# APPLICATION CONFIGURATION
+# ========================================================================
+
 # GPU Type: nvidia, amd, intel, cpu
 HASHCAT_DEVICE_TYPE=cpu
-
-# Better Auth Configuration (REQUIRED - generate your own secret)
-BETTER_AUTH_SECRET=your-secret-key-here
 
 # Paths (auto-configured for Docker and local development)
 PCAPS_PATH=/data/pcaps
@@ -139,17 +197,46 @@ JOBS_PATH=/data/jobs
 # Database (Docker sets this automatically)
 DATABASE_URL=postgresql://localhost/autopwn
 
-# Dashboard
+# Dashboard URLs
 NEXT_PUBLIC_API_URL=http://localhost:3000
 BETTER_AUTH_URL=http://localhost:3000
 ```
 
-### Security Notes
+### Security Requirements
 
-- **Always generate a secure `BETTER_AUTH_SECRET`** for production
-- Use a strong, randomly generated secret (minimum 32 characters)
-- Never commit secrets to version control
-- Database is automatically handled by Docker in production setup
+**Production Deployment Checklist:**
+
+1. **Generate Secure BETTER_AUTH_SECRET**
+   ```bash
+   openssl rand -base64 32
+   ```
+   - Minimum 32 characters required
+   - Server validates and rejects weak/default secrets
+   - Never reuse secrets across environments
+
+2. **Never Commit Secrets to Version Control**
+   - Verify `.env` is in `.gitignore`
+   - Use environment variables in CI/CD
+   - Store secrets in a secure vault/password manager
+
+3. **Database Security**
+   - Use strong PostgreSQL passwords
+   - Restrict database access to backend only
+   - Enable SSL/TLS for database connections in production
+
+4. **HTTPS in Production**
+   - Always use HTTPS for production deployments
+   - Update BETTER_AUTH_URL to use `https://` protocol
+   - Configure proper TLS certificates
+
+**Environment Validation:**
+
+AutoPWN uses [t3-env](https://env.t3.gg/) for environment validation. The server will:
+- ✅ Validate all required environment variables on startup
+- ✅ Enforce minimum secret length (32 characters)
+- ✅ Reject known weak/default secrets in production
+- ✅ Validate PostgreSQL connection strings
+- ❌ **Refuse to start** if validation fails
 
 ## Documentation
 

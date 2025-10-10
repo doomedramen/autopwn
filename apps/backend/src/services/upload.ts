@@ -3,6 +3,7 @@ import { join } from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { env } from '../config/env.js';
+import { db, pcapEssidMapping } from '../db';
 
 const execAsync = promisify(exec);
 
@@ -114,14 +115,28 @@ export class UploadService {
       console.log(`Extracted BSSIDs for ${filename}:`, bssids);
 
       // Store ESSID mappings in database
-      // For now, just log the mappings - database integration will be added later
-      console.log(`Would store ${essids.length} ESSID mappings for ${filename}:`);
+      console.log(`Storing ${essids.length} ESSID mappings for ${filename}...`);
       for (let i = 0; i < essids.length; i++) {
         const essid = essids[i];
-        const bssid = bssids[i] || undefined;
-        console.log(`- User: ${userId}, File: ${filename}, ESSID: ${essid}, BSSID: ${bssid || 'N/A'}`);
+        const bssid = bssids[i] || null;
+
+        try {
+          await db.insert(pcapEssidMapping).values({
+            userId,
+            pcapFilename: filename,
+            essid,
+            bssid,
+            createdAt: new Date(),
+          }).onConflictDoNothing();
+
+          console.log(`✓ Stored mapping: ${filename} -> ${essid} (${bssid || 'no BSSID'})`);
+        } catch (error) {
+          console.error(`Failed to store ESSID mapping for ${essid}:`, error);
+        }
       }
-      // TODO: Add database insertion once we have a local database schema setup
+
+      console.log(`✅ Successfully stored ${essids.length} ESSID mappings`);
+
     } catch (error) {
       console.error(`Failed to extract ESSIDs for ${filename}:`, error);
       // Don't fail the upload if ESSID extraction fails

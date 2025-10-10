@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
+    "module": "ESNext",
     "lib": ["ES2022"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -18,6 +18,9 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 }

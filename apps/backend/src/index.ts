@@ -15,13 +15,28 @@ import { workerService } from './services/worker';
 import { webSocketService } from './services/websocket';
 import { env } from './config/env';
 import { runMigrations } from './db/migrate';
+import { validateRequiredTools } from './utils/validate-tools';
 
 async function startServer() {
+  console.log('🚀 Starting AutoPWN Backend...\n');
+
+  // Validate required tools (hashcat, hcxpcapngtool)
+  try {
+    await validateRequiredTools();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : 'Tool validation failed');
+    console.error('\n⚠️  Cannot start server without required tools.');
+    process.exit(1);
+  }
+
   // Run database migrations before starting the server
   try {
+    console.log('🗄️  Running database migrations...');
     await runMigrations();
+    console.log('✅ Database migrations complete\n');
   } catch (error) {
-    console.error('Failed to run migrations, continuing anyway...');
+    console.error('❌ Failed to run migrations:', error);
+    console.error('Continuing anyway, but database may not be up to date...\n');
   }
 
   const app = createHono();

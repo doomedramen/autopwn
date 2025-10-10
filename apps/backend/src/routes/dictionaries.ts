@@ -2,8 +2,8 @@ import { createHono } from '../lib/hono.js';
 import { requireAuth } from '../middleware/auth.js';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { db, dictionaries } from '../db';
-import { eq, and } from 'drizzle-orm';
+import { db, dictionaries, jobDictionaries, results } from '../db';
+import { eq, and, count, sql } from 'drizzle-orm';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { env } from '../config/env.js';
@@ -31,14 +31,91 @@ dictionariesRouter.get('/', async (c) => {
   }
 });
 
-// In-memory storage for chunked uploads (in production, use Redis or database)
-const chunkedUploads = new Map<string, {
+/**
+ * Filesystem-based chunked upload storage
+ * Stores upload metadata and chunks in temporary directory
+ */
+interface ChunkedUploadMetadata {
   filename: string;
   userId: string;
-  chunks: Map<number, Buffer>;
   totalChunks: number;
   fileSize: number;
-}>();
+  createdAt: number;
+  receivedChunks: number[];
+}
+
+/**
+ * Get temporary directory for chunked uploads
+ */
+function getChunkedUploadDir(uploadId: string): string {
+  return join(env.JOBS_PATH, 'uploads', uploadId);
+}
+
+/**
+ * Get metadata file path for a chunked upload
+ */
+function getMetadataPath(uploadId: string): string {
+  return join(getChunkedUploadDir(uploadId), 'metadata.json');
+}
+
+/**
+ * Get chunk file path
+ */
+function getChunkPath(uploadId: string, chunkIndex: number): string {
+  return join(getChunkedUploadDir(uploadId), `chunk-${chunkIndex}`);
+}
+
+/**
+ * Save chunked upload metadata
+ */
+async function saveUploadMetadata(uploadId: string, metadata: ChunkedUploadMetadata): Promise<void> {
+  const metadataPath = getMetadataPath(uploadId);
+  await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+}
+
+/**
+ * Load chunked upload metadata
+ */
+async function loadUploadMetadata(uploadId: string): Promise<ChunkedUploadMetadata | null> {
+  try {
+    const metadataPath = getMetadataPath(uploadId);
+    const content = await fs.readFile(metadataPath, 'utf-8');
+    return JSON.parse(content);
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Clean up abandoned chunked uploads older than 24 hours
+ */
+async function cleanupAbandonedUploads(): Promise<void> {
+  try {
+    const uploadsDir = join(env.JOBS_PATH, 'uploads');
+
+    // Ensure directory exists
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    const entries = await fs.readdir(uploadsDir, { withFileTypes: true });
+    const now = Date.now();
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const uploadId = entry.name;
+        const metadata = await loadUploadMetadata(uploadId);
+
+        if (metadata && (now - metadata.createdAt) > maxAge) {
+          const uploadDir = getChunkedUploadDir(uploadId);
+          await fs.rm(uploadDir, { recursive: true, force: true });
+          console.log(`🧹 Cleaned up abandoned upload: ${uploadId}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to cleanup abandoned uploads:', error);
+  }
+}
 
 // Start chunked upload
 dictionariesRouter.post('/chunked/start', async (c) => {
@@ -64,14 +141,26 @@ dictionariesRouter.post('/chunked/start', async (c) => {
       return c.json({ error: 'Invalid file type' }, 400);
     }
 
+    // Cleanup old uploads before starting new one
+    await cleanupAbandonedUploads();
+
     const uploadId = randomUUID();
-    chunkedUploads.set(uploadId, {
+    const uploadDir = getChunkedUploadDir(uploadId);
+
+    // Create upload directory
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    // Save metadata
+    const metadata: ChunkedUploadMetadata = {
       filename,
       userId: user.id,
-      chunks: new Map(),
       totalChunks,
       fileSize,
-    });
+      createdAt: Date.now(),
+      receivedChunks: [],
+    };
+
+    await saveUploadMetadata(uploadId, metadata);
 
     return c.json({
       success: true,
@@ -97,19 +186,29 @@ dictionariesRouter.post('/chunked/:uploadId/chunk/:chunkIndex', async (c) => {
       return c.json({ error: 'No chunk data provided' }, 400);
     }
 
-    const upload = chunkedUploads.get(uploadId);
-    if (!upload || upload.userId !== user.id) {
+    // Load metadata
+    const metadata = await loadUploadMetadata(uploadId);
+    if (!metadata || metadata.userId !== user.id) {
       return c.json({ error: 'Invalid upload session' }, 404);
     }
 
+    // Save chunk to filesystem
     const chunkBuffer = Buffer.from(await chunk.arrayBuffer());
-    upload.chunks.set(chunkIndex, chunkBuffer);
+    const chunkPath = getChunkPath(uploadId, chunkIndex);
+    await fs.writeFile(chunkPath, chunkBuffer);
+
+    // Update metadata
+    if (!metadata.receivedChunks.includes(chunkIndex)) {
+      metadata.receivedChunks.push(chunkIndex);
+      metadata.receivedChunks.sort((a, b) => a - b);
+      await saveUploadMetadata(uploadId, metadata);
+    }
 
     return c.json({
       success: true,
       chunkIndex,
-      receivedChunks: upload.chunks.size,
-      totalChunks: upload.totalChunks,
+      receivedChunks: metadata.receivedChunks.length,
+      totalChunks: metadata.totalChunks,
       message: 'Chunk uploaded successfully',
     });
   } catch (error) {
@@ -123,17 +222,18 @@ dictionariesRouter.post('/chunked/:uploadId/complete', async (c) => {
   try {
     const user = c.get('user')!;
     const uploadId = c.req.param('uploadId');
-    const upload = chunkedUploads.get(uploadId);
 
-    if (!upload || upload.userId !== user.id) {
+    // Load metadata
+    const metadata = await loadUploadMetadata(uploadId);
+    if (!metadata || metadata.userId !== user.id) {
       return c.json({ error: 'Invalid upload session' }, 404);
     }
 
-    if (upload.chunks.size !== upload.totalChunks) {
+    if (metadata.receivedChunks.length !== metadata.totalChunks) {
       return c.json({
         error: 'Missing chunks',
-        received: upload.chunks.size,
-        expected: upload.totalChunks
+        received: metadata.receivedChunks.length,
+        expected: metadata.totalChunks
       }, 400);
     }
 
@@ -142,13 +242,14 @@ dictionariesRouter.post('/chunked/:uploadId/complete', async (c) => {
       .from(dictionaries)
       .where(and(
         eq(dictionaries.userId, user.id),
-        eq(dictionaries.name, upload.filename)
+        eq(dictionaries.name, metadata.filename)
       ))
       .limit(1);
 
     if (existing.length > 0) {
-      // Clean up upload session
-      chunkedUploads.delete(uploadId);
+      // Clean up upload directory
+      const uploadDir = getChunkedUploadDir(uploadId);
+      await fs.rm(uploadDir, { recursive: true, force: true });
       return c.json({ error: 'Dictionary already exists' }, 409);
     }
 
@@ -157,26 +258,30 @@ dictionariesRouter.post('/chunked/:uploadId/complete', async (c) => {
     await fs.mkdir(userDictDir, { recursive: true });
 
     // Combine chunks in order
-    const combinedBuffer = Buffer.concat(
-      Array.from(upload.chunks.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([, chunk]) => chunk)
-    );
+    const chunks: Buffer[] = [];
+    for (const chunkIndex of metadata.receivedChunks) {
+      const chunkPath = getChunkPath(uploadId, chunkIndex);
+      const chunkBuffer = await fs.readFile(chunkPath);
+      chunks.push(chunkBuffer);
+    }
+
+    const combinedBuffer = Buffer.concat(chunks);
 
     // Write to file system
-    const filepath = join(userDictDir, upload.filename);
+    const filepath = join(userDictDir, metadata.filename);
     await fs.writeFile(filepath, combinedBuffer);
 
     // Add to database
     const [newDict] = await db.insert(dictionaries).values({
       userId: user.id,
-      name: upload.filename,
+      name: metadata.filename,
       path: filepath,
       size: combinedBuffer.length,
     }).returning();
 
-    // Clean up upload session
-    chunkedUploads.delete(uploadId);
+    // Clean up upload directory
+    const uploadDir = getChunkedUploadDir(uploadId);
+    await fs.rm(uploadDir, { recursive: true, force: true });
 
     return c.json({
       success: true,
@@ -194,13 +299,17 @@ dictionariesRouter.delete('/chunked/:uploadId', async (c) => {
   try {
     const user = c.get('user')!;
     const uploadId = c.req.param('uploadId');
-    const upload = chunkedUploads.get(uploadId);
 
-    if (!upload || upload.userId !== user.id) {
+    // Load metadata
+    const metadata = await loadUploadMetadata(uploadId);
+    if (!metadata || metadata.userId !== user.id) {
       return c.json({ error: 'Invalid upload session' }, 404);
     }
 
-    chunkedUploads.delete(uploadId);
+    // Clean up upload directory
+    const uploadDir = getChunkedUploadDir(uploadId);
+    await fs.rm(uploadDir, { recursive: true, force: true });
+
     return c.json({
       success: true,
       message: 'Upload cancelled successfully',
@@ -377,8 +486,7 @@ dictionariesRouter.get('/:id/coverage', async (c) => {
     const dictId = parseInt(c.req.param('id'));
     const user = c.get('user')!;
 
-    // This would typically calculate which jobs have used this dictionary
-    // For now, return basic info
+    // Get dictionary information
     const dict = await db.select()
       .from(dictionaries)
       .where(and(
@@ -391,11 +499,52 @@ dictionariesRouter.get('/:id/coverage', async (c) => {
       return c.json({ error: 'Dictionary not found' }, 404);
     }
 
+    // Calculate how many jobs have used this dictionary
+    const jobsUsedResult = await db.select({ count: count() })
+      .from(jobDictionaries)
+      .where(eq(jobDictionaries.dictionaryId, dictId));
+
+    const jobsUsedCount = jobsUsedResult[0]?.count || 0;
+
+    // Get all job IDs that used this dictionary
+    const jobsWithDict = await db.select({ jobId: jobDictionaries.jobId })
+      .from(jobDictionaries)
+      .where(eq(jobDictionaries.dictionaryId, dictId));
+
+    const jobIds = jobsWithDict.map(j => j.jobId);
+
+    // Calculate success rate (jobs that resulted in at least one cracked password)
+    let successfulJobs = 0;
+    let totalCrackedPasswords = 0;
+
+    if (jobIds.length > 0) {
+      // Count jobs that produced results
+      const jobsWithResults = await db.select({
+        jobId: results.jobId,
+        crackedCount: count()
+      })
+        .from(results)
+        .where(and(
+          sql`${results.jobId} IN (${sql.join(jobIds.map(id => sql`${id}`), sql`, `)})`,
+          eq(results.userId, user.id)
+        ))
+        .groupBy(results.jobId);
+
+      successfulJobs = jobsWithResults.length;
+      totalCrackedPasswords = jobsWithResults.reduce((sum, j) => sum + (j.crackedCount as number), 0);
+    }
+
+    const successRate = jobsUsedCount > 0
+      ? Math.round((successfulJobs / jobsUsedCount) * 100)
+      : 0;
+
     return c.json({
       dictionary: dict[0],
       coverage: {
-        jobsUsed: 0, // TODO: Calculate actual coverage
-        successRate: 0, // TODO: Calculate actual success rate
+        jobsUsed: jobsUsedCount,
+        jobsSuccessful: successfulJobs,
+        successRate: successRate,
+        totalCrackedPasswords: totalCrackedPasswords,
       }
     });
   } catch (error) {
