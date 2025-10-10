@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Activity, Clock, Zap, FileText, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, Activity, Clock, Zap, FileText, CheckCircle } from 'lucide-react';
 import { JobCreationDialog } from './JobCreationDialog';
 import { JobDetailsDialog } from './JobDetailsDialog';
 import { FileUploadDialog } from './FileUploadDialog';
@@ -233,16 +233,19 @@ export function Dashboard() {
             <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {user.name || user.email}!</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Manage your WiFi handshake cracking jobs and results</p>
           </div>
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-2 text-sm">
             {wsConnected ? (
               <>
-                <Wifi className="h-4 w-4 text-green-500" />
-                <span className="text-green-500">Live updates</span>
+                <div className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </div>
+                <span className="text-green-600">Live updates</span>
               </>
             ) : (
               <>
-                <WifiOff className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-400">Offline</span>
+                <div className="h-3 w-3 rounded-full bg-gray-400"></div>
+                <span className="text-gray-500">Offline</span>
               </>
             )}
           </div>
