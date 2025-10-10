@@ -11,16 +11,22 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, Plus } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Plus } from 'lucide-react';
 
 interface Dictionary {
   id: number;
   name: string;
   size: number;
+}
+
+interface Capture {
+  filename: string;
+  size: number;
+  uploadedAt: string;
 }
 
 interface JobCreationDialogProps {
@@ -31,15 +37,15 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dictionaries, setDictionaries] = useState<Dictionary[]>([]);
+  const [captures, setCaptures] = useState<Capture[]>([]);
   const [selectedDicts, setSelectedDicts] = useState<number[]>([]);
-  const [jobData, setJobData] = useState({
-    filename: '',
-    priority: 0
-  });
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [priority, setPriority] = useState(0);
 
   useEffect(() => {
     if (open) {
       fetchDictionaries();
+      fetchCaptures();
     }
   }, [open]);
 
@@ -52,28 +58,59 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
     }
   };
 
+  const fetchCaptures = async () => {
+    try {
+      const data = await apiClient.getCaptures();
+      setCaptures(data as Capture[]);
+    } catch (error) {
+      console.error('Failed to fetch captures:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jobData.filename || selectedDicts.length === 0) {
+    if (selectedFiles.length === 0 || selectedDicts.length === 0) {
       return;
     }
 
     setLoading(true);
     try {
-      await apiClient.createJob({
-        filename: jobData.filename,
-        dictionaryIds: selectedDicts,
-        priority: jobData.priority
-      });
+      // Create a job for each selected PCAP file
+      await Promise.all(
+        selectedFiles.map(filename =>
+          apiClient.createJob({
+            filename,
+            dictionaryIds: selectedDicts,
+            priority
+          })
+        )
+      );
       onJobCreated();
       setOpen(false);
       // Reset form
-      setJobData({ filename: '', priority: 0 });
+      setSelectedFiles([]);
       setSelectedDicts([]);
+      setPriority(0);
     } catch (error) {
       console.error('Failed to create job:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileChange = (filename: string, checked: boolean) => {
+    if (checked) {
+      setSelectedFiles([...selectedFiles, filename]);
+    } else {
+      setSelectedFiles(selectedFiles.filter(f => f !== filename));
+    }
+  };
+
+  const handleSelectAllFiles = (checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(captures.map(c => c.filename));
+    } else {
+      setSelectedFiles([]);
     }
   };
 
@@ -82,6 +119,14 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
       setSelectedDicts([...selectedDicts, dictId]);
     } else {
       setSelectedDicts(selectedDicts.filter(id => id !== dictId));
+    }
+  };
+
+  const handleSelectAllDicts = (checked: boolean) => {
+    if (checked) {
+      setSelectedDicts(dictionaries.map(d => d.id));
+    } else {
+      setSelectedDicts([]);
     }
   };
 
@@ -102,21 +147,62 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="filename">PCAP Filename</Label>
-            <Input
-              id="filename"
-              placeholder="e.g., captured_handshakes.pcap"
-              value={jobData.filename}
-              onChange={(e) => setJobData({ ...jobData, filename: e.target.value })}
-              required
-            />
+            <div className="flex items-center justify-between">
+              <Label>Select PCAP Files</Label>
+              <span className="text-xs text-muted-foreground">
+                {selectedFiles.length} selected
+              </span>
+            </div>
+            <ScrollArea className="border rounded-lg h-48">
+              <div className="p-4 space-y-2">
+                {captures.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No PCAP files available. Upload files first.</p>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Checkbox
+                        id="select-all-files"
+                        checked={selectedFiles.length === captures.length && captures.length > 0}
+                        onCheckedChange={(checked) => handleSelectAllFiles(checked as boolean)}
+                      />
+                      <Label
+                        htmlFor="select-all-files"
+                        className="flex-1 text-sm font-medium cursor-pointer"
+                      >
+                        Select All
+                      </Label>
+                    </div>
+                    {captures.map((capture) => (
+                      <div key={capture.filename} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`file-${capture.filename}`}
+                          checked={selectedFiles.includes(capture.filename)}
+                          onCheckedChange={(checked) =>
+                            handleFileChange(capture.filename, checked as boolean)
+                          }
+                        />
+                        <Label
+                          htmlFor={`file-${capture.filename}`}
+                          className="flex-1 text-sm cursor-pointer"
+                        >
+                          {capture.filename}
+                        </Label>
+                        <span className="text-xs text-muted-foreground">
+                          {(capture.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </ScrollArea>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="priority">Priority</Label>
             <Select
-              value={jobData.priority.toString()}
-              onValueChange={(value) => setJobData({ ...jobData, priority: parseInt(value) })}
+              value={priority.toString()}
+              onValueChange={(value) => setPriority(parseInt(value))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select priority" />
@@ -130,33 +216,55 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Select Dictionaries</Label>
-            <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-2">
-              {dictionaries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No dictionaries available</p>
-              ) : (
-                dictionaries.map((dict) => (
-                  <div key={dict.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`dict-${dict.id}`}
-                      checked={selectedDicts.includes(dict.id)}
-                      onCheckedChange={(checked) =>
-                        handleDictChange(dict.id, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`dict-${dict.id}`}
-                      className="flex-1 text-sm cursor-pointer"
-                    >
-                      {dict.name}
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      {(dict.size / 1024).toFixed(1)} KB
-                    </span>
-                  </div>
-                ))
-              )}
+            <div className="flex items-center justify-between">
+              <Label>Select Dictionaries</Label>
+              <span className="text-xs text-muted-foreground">
+                {selectedDicts.length} selected
+              </span>
             </div>
+            <ScrollArea className="border rounded-lg h-48">
+              <div className="p-4 space-y-2">
+                {dictionaries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No dictionaries available</p>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2 pb-2 border-b">
+                      <Checkbox
+                        id="select-all-dicts"
+                        checked={selectedDicts.length === dictionaries.length && dictionaries.length > 0}
+                        onCheckedChange={(checked) => handleSelectAllDicts(checked as boolean)}
+                      />
+                      <Label
+                        htmlFor="select-all-dicts"
+                        className="flex-1 text-sm font-medium cursor-pointer"
+                      >
+                        Select All
+                      </Label>
+                    </div>
+                    {dictionaries.map((dict) => (
+                      <div key={dict.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`dict-${dict.id}`}
+                          checked={selectedDicts.includes(dict.id)}
+                          onCheckedChange={(checked) =>
+                            handleDictChange(dict.id, checked as boolean)
+                          }
+                        />
+                        <Label
+                          htmlFor={`dict-${dict.id}`}
+                          className="flex-1 text-sm cursor-pointer"
+                        >
+                          {dict.name}
+                        </Label>
+                        <span className="text-xs text-muted-foreground">
+                          {(dict.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </ScrollArea>
           </div>
 
           <div className="flex justify-end space-x-2">
@@ -165,9 +273,9 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
             </Button>
             <Button
               type="submit"
-              disabled={loading || !jobData.filename || selectedDicts.length === 0}
+              disabled={loading || selectedFiles.length === 0 || selectedDicts.length === 0}
             >
-              {loading ? 'Creating...' : 'Create Job'}
+              {loading ? 'Creating...' : `Create ${selectedFiles.length > 1 ? `${selectedFiles.length} Jobs` : 'Job'}`}
             </Button>
           </div>
         </form>
