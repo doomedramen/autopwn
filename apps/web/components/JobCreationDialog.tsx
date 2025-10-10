@@ -61,9 +61,12 @@ export function JobCreationDialog({ onJobCreated }: JobCreationDialogProps) {
   const fetchCaptures = async () => {
     try {
       const data = await apiClient.getCaptures();
-      setCaptures(data as Capture[]);
+      // Handle both array response and object with captures property
+      const capturesArray = Array.isArray(data) ? data : (data as any)?.captures || [];
+      setCaptures(capturesArray as Capture[]);
     } catch (error) {
       console.error('Failed to fetch captures:', error);
+      setCaptures([]); // Set empty array on error
     }
   };
 

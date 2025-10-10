@@ -230,30 +230,28 @@ export function Dashboard() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {user.name || user.email}!</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">Manage your WiFi handshake cracking jobs and results</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {user.name || user.email}</h1>
+            <div className="flex items-center gap-2 mt-1">
+              {wsConnected ? (
+                <>
+                  <div className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </div>
+                  <span className="text-sm text-green-600">Live</span>
+                </>
+              ) : (
+                <>
+                  <div className="h-2 w-2 rounded-full bg-gray-400"></div>
+                  <span className="text-sm text-gray-500">Offline</span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            {wsConnected ? (
-              <>
-                <div className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </div>
-                <span className="text-green-600">Live updates</span>
-              </>
-            ) : (
-              <>
-                <div className="h-3 w-3 rounded-full bg-gray-400"></div>
-                <span className="text-gray-500">Offline</span>
-              </>
-            )}
+          <div className="flex gap-2">
+            <FileUploadDialog onUploadComplete={fetchData} />
+            <JobCreationDialog onJobCreated={fetchData} />
           </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
-          <FileUploadDialog onUploadComplete={fetchData} />
-          <JobCreationDialog onJobCreated={fetchData} />
         </div>
       </div>
 
@@ -314,19 +312,12 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>All Jobs</CardTitle>
-              <CardDescription>
-                All your WiFi handshake cracking jobs
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {jobs.length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="mx-auto h-12 w-12 text-gray-400" />
                   <p className="text-muted-foreground mt-4">No jobs yet</p>
-                  <div className="flex gap-2 justify-center mt-4">
-                    <FileUploadDialog onUploadComplete={fetchData} />
-                    <JobCreationDialog onJobCreated={fetchData} />
-                  </div>
                 </div>
               ) : (
                 <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -411,18 +402,12 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Results</CardTitle>
-              <CardDescription>
-                Your most recently cracked WiFi passwords
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {recentResults.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="mx-auto h-12 w-12 text-gray-400" />
                   <p className="text-muted-foreground mt-4">No results yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    Start by uploading PCAP files and creating cracking jobs
-                  </p>
                 </div>
               ) : (
                 <Table>
@@ -462,9 +447,6 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Active Jobs</CardTitle>
-              <CardDescription>
-                Jobs that are currently running, paused, or pending
-              </CardDescription>
             </CardHeader>
             <CardContent>
               {activeJobs.length === 0 ? (

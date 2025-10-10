@@ -6,11 +6,9 @@ import { getApiUrl } from '@/lib/runtime-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Trash2, FileText, Plus, AlertCircle, Rocket } from 'lucide-react';
+import { Upload, Trash2, FileText, Plus, AlertCircle } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils';
 import ChunkedFileUpload from '@/components/ChunkedFileUpload';
 
@@ -116,32 +114,37 @@ export default function DictionariesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Dictionary Management</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your password dictionaries for WiFi cracking
+          <h1 className="text-3xl font-bold">Dictionaries</h1>
+          <p className="text-muted-foreground mt-1">
+            {dictionaries.length} {dictionaries.length === 1 ? 'dictionary' : 'dictionaries'}
           </p>
         </div>
 
         <div className="flex gap-2">
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload
+          </Button>
+
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
-                Create Dictionary
+                Create
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Create New Dictionary</DialogTitle>
+                <DialogTitle>Create Dictionary</DialogTitle>
                 <DialogDescription>
-                  Create a simple dictionary by entering words manually.
+                  Enter passwords manually, one per line.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dict-name">Dictionary Name</Label>
+                  <Label htmlFor="dict-name">Name</Label>
                   <Input
                     id="dict-name"
                     placeholder="e.g., custom_passwords"
@@ -150,11 +153,11 @@ export default function DictionariesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dict-content">Content (one password per line)</Label>
+                  <Label htmlFor="dict-content">Passwords (one per line)</Label>
                   <textarea
                     id="dict-content"
                     className="w-full h-32 px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none rounded-md"
-                    placeholder="password123&#10;admin123&#10;123456&#10;..."
+                    placeholder="password123&#10;admin123&#10;123456"
                     value={newDictContent}
                     onChange={(e) => setNewDictContent(e.target.value)}
                   />
@@ -191,11 +194,11 @@ export default function DictionariesPage() {
             }}
             uploadEndpoint={uploadEndpoint}
             title="Upload Dictionaries"
-            description="Upload large dictionary files with chunked, resumable uploads. Supports all hashcat-compatible formats including compressed files up to 5GB."
+            description="Upload dictionary files up to 5GB. Supports all hashcat-compatible formats including compressed files."
             allowedFileTypes={dictionaryFileTypes}
             maxFileSize={5 * 1024 * 1024 * 1024} // 5GB
-            note={`Hashcat-compatible dictionaries up to 5GB. Formats: ${dictionaryFileTypes.join(', ')}`}
-            dropText="Drop dictionary files here or click to browse"
+            note={`Up to 5GB • Supports: ${dictionaryFileTypes.slice(0, 8).join(', ')}, and more`}
+            dropText="Drop files here or click to browse"
           />
         </div>
       </div>
@@ -213,77 +216,64 @@ export default function DictionariesPage() {
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Dictionaries</CardTitle>
-          <CardDescription>
-            Total dictionaries: {dictionaries.length}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Loading dictionaries...
-            </div>
-          ) : dictionaries.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No dictionaries yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Upload dictionary files or create a custom dictionary to get started.
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button onClick={() => setUploadDialogOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Files
-                </Button>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Dictionary
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {dictionaries.map((dict) => (
-                <div
-                  key={dict.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <FileText className="h-8 w-8 text-blue-500" />
-                    <div>
-                      <h4 className="font-medium">{dict.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {formatFileSize(dict.size)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary">Dictionary</Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteDictionary(dict.id, dict.name)}
-                      disabled={deleting === dict.id}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      {deleting === dict.id ? (
-                        "Deleting..."
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </>
-                      )}
-                    </Button>
-                  </div>
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground">
+          Loading dictionaries...
+        </div>
+      ) : dictionaries.length === 0 ? (
+        <div className="text-center py-12">
+          <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No dictionaries yet</h3>
+          <p className="text-muted-foreground mb-6">
+            Upload files or create a custom dictionary to get started.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Files
+            </Button>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Dictionary
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {dictionaries.map((dict) => (
+            <div
+              key={dict.id}
+              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center space-x-4">
+                <FileText className="h-8 w-8 text-blue-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <h4 className="font-medium truncate">{dict.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {formatFileSize(dict.size)}
+                  </p>
                 </div>
-              ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteDictionary(dict.id, dict.name)}
+                disabled={deleting === dict.id}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+              >
+                {deleting === dict.id ? (
+                  "Deleting..."
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
