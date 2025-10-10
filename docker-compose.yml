@@ -31,7 +31,7 @@ services:
       - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn
       # Better Auth configuration
       - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-Og7Th4UCtg8lL6Zz96Ui4f51KEaFkY6qiUw35sY9/p0=}"
-      - BETTER_AUTH_URL=http://localhost:3001
+      - BETTER_AUTH_URL=${API_URL:-http://192.168.1.242:3001}
       # GPU Configuration
       - HASHCAT_DEVICE_TYPE=${HASHCAT_DEVICE_TYPE:-cpu}
       # File paths (using /data for consistent volume mounting)
@@ -53,10 +53,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Backend API URL
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
-      # Better Auth configuration (for client-side auth)
-      - BETTER_AUTH_URL=http://localhost:3001
+      # Runtime API Configuration (no NEXT_PUBLIC_ prefix needed)
+      # These are read at runtime by /api/config endpoint
+      - API_URL=${API_URL:-http://192.168.1.242:3001}
+      - WS_URL=${WS_URL:-ws://192.168.1.242:3001}
+      # Legacy support (fallback for /api/auth proxy route)
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://192.168.1.242:3001}
     volumes:
       - ./volumes:/data:ro  # Read-only access for frontend
     restart: unless-stopped

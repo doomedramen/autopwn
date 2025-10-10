@@ -1,3 +1,5 @@
+import { getApiUrl } from './runtime-config';
+
 // Auth interface matching better-auth response structure
 export interface AuthUser {
   id: string;
@@ -23,25 +25,12 @@ export interface AuthSession {
   };
 }
 
-// Use the correct host for Docker tests
-const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // Handle IPv6 addresses by converting them to IPv4 localhost for now
-    if (hostname === '[::1]' || hostname === '::1' || hostname === 'localhost') {
-      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    }
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
 // Simple auth client that works with our backend
 export const authClient = {
   async signIn(data: { email: string; password: string }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/sign-in/email`, {
+      const apiUrl = await getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +53,8 @@ export const authClient = {
 
   async signUp(data: { email: string; password: string; name?: string }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/sign-up/email`, {
+      const apiUrl = await getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +77,8 @@ export const authClient = {
 
   async signOut() {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/sign-out`, {
+      const apiUrl = await getApiUrl();
+      await fetch(`${apiUrl}/api/auth/sign-out`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -99,16 +90,17 @@ export const authClient = {
 
   async getSession() {
     try {
-      console.log('Fetching session from:', `${API_BASE_URL}/api/auth/get-session`);
-      
+      const apiUrl = await getApiUrl();
+      console.log('Fetching session from:', `${apiUrl}/api/auth/get-session`);
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/get-session`, {
+
+      const response = await fetch(`${apiUrl}/api/auth/get-session`, {
         credentials: 'include',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       console.log('Session response status:', response.status);
 

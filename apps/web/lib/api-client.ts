@@ -1,28 +1,21 @@
-// Use the correct host for Docker tests
-const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname === '[::1]' || hostname === '::1') {
-      return 'http://[::1]:3001';
-    }
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { getApiUrl } from './runtime-config';
 
 class ApiClient {
-  private baseUrl: string;
+  private baseUrlPromise: Promise<string> | null = null;
 
-  constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl;
+  private async getBaseUrl(): Promise<string> {
+    if (!this.baseUrlPromise) {
+      this.baseUrlPromise = getApiUrl();
+    }
+    return this.baseUrlPromise;
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const baseUrl = await this.getBaseUrl();
+    const url = `${baseUrl}${endpoint}`;
 
     const defaultHeaders = {
       'Content-Type': 'application/json',
@@ -277,8 +270,9 @@ class ApiClient {
       });
     }
     const queryString = params.toString();
+    const baseUrl = await this.getBaseUrl();
 
-    const response = await fetch(`${this.baseUrl}/api/results/export${queryString ? `?${queryString}` : ''}`, {
+    const response = await fetch(`${baseUrl}/api/results/export${queryString ? `?${queryString}` : ''}`, {
       credentials: 'include',
     });
 

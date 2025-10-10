@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from './auth-context';
+import { getWsUrl } from './runtime-config';
 
 interface WebSocketMessage {
   type: string;
@@ -24,14 +25,13 @@ export function useWebSocket(): WebSocketHookReturn {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!user || wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL ||
-                   `ws://localhost:3001`;
+      const wsUrl = await getWsUrl();
 
       console.log('Connecting to WebSocket:', wsUrl);
       wsRef.current = new WebSocket(wsUrl);
