@@ -1,16 +1,14 @@
-version: '3.8'
-
 services:
   # PostgreSQL database
   postgres:
     image: postgres:15-alpine
-    container_name: autopwn-postgres-dev
+    container_name: autopwn-postgres
     environment:
       - POSTGRES_DB=autopwn
       - POSTGRES_USER=autopwn
       - POSTGRES_PASSWORD=autopwn_password
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     restart: unless-stopped
     healthcheck:
@@ -21,12 +19,12 @@ services:
     ports:
       - "5432:5432"
 
-  # Backend API + Worker Service (Development)
+  # Backend API + Worker Service
   backend:
     build:
       context: .
-      dockerfile: apps/backend/Dockerfile.dev
-    container_name: autopwn-backend-dev
+      dockerfile: apps/backend/Dockerfile
+    container_name: autopwn-backend
     ports:
       - "3001:3001"
     environment:
@@ -34,38 +32,28 @@ services:
       # Database configuration
       - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn
       # Better Auth configuration
-      - BETTER_AUTH_SECRET=development-secret-key-not-for-production
+      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-Og7Th4UCtg8lL6Zz96Ui4f51KEaFkY6qiUw35sY9/p0=}"
       - BETTER_AUTH_URL=http://localhost:3001
       # GPU Configuration
-      - HASHCAT_DEVICE_TYPE=cpu
+      - HASHCAT_DEVICE_TYPE=${HASHCAT_DEVICE_TYPE:-cpu}
       # File paths (using /data for consistent volume mounting)
       - PCAPS_PATH=/data/pcaps
       - DICTIONARIES_PATH=/data/dictionaries
       - JOBS_PATH=/data/jobs
-      - NODE_ENV=development
+      - NODE_ENV=production
     volumes:
-      # Source code mounts for hot reloading
-      - ./packages/shared:/app/packages/shared
-      - ./apps/backend:/app/apps/backend
-      - ./package.json:/app/package.json
-      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
-      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml
-      # Data volume
       - ./volumes:/data
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-    # Force IPv4
-    sysctls:
-      - net.ipv6.conf.all.disable_ipv6=1
 
-  # Frontend (Next.js) - Development mode with hot reloading
+  # Frontend (Next.js)
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile.dev
-    container_name: autopwn-web-dev
+      dockerfile: apps/web/Dockerfile
+    container_name: autopwn-web
     ports:
       - "3000:3000"
     environment:
@@ -73,16 +61,7 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:3001
       # Better Auth configuration (for client-side auth)
       - BETTER_AUTH_URL=http://localhost:3001
-      # Development environment
-      - NODE_ENV=development
     volumes:
-      # Source code mounts for hot reloading
-      - ./packages/shared:/app/packages/shared
-      - ./apps/web:/app/apps/web
-      - ./package.json:/app/package.json
-      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
-      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml
-      # Data volume
       - ./volumes:/data:ro  # Read-only access for frontend
     restart: unless-stopped
     depends_on:
@@ -90,10 +69,8 @@ services:
         condition: service_healthy
       backend:
         condition: service_started
-    # Force IPv4
-    sysctls:
-      - net.ipv6.conf.all.disable_ipv6=1
 
 volumes:
-  postgres_dev_data:
+  postgres_data:
     driver: local
+
