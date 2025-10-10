@@ -45,26 +45,42 @@ export default function ChunkedFileUpload({
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [initializingUppy, setInitializingUppy] = useState(false);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const uppyInstanceRef = useRef<Uppy | null>(null);
+  const initAttempts = useRef(0);
 
   useEffect(() => {
-    if (open && !uppy && dashboardRef.current) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(() => {
-        if (dashboardRef.current) {
+    if (open && !uppy) {
+      setInitializingUppy(true);
+      // Try to initialize with retries
+      const tryInit = () => {
+        if (dashboardRef.current && initAttempts.current < 5) {
           initializeUppy();
+          setInitializingUppy(false);
+        } else if (initAttempts.current < 5) {
+          initAttempts.current++;
+          setTimeout(tryInit, 100);
+        } else {
+          setInitializingUppy(false);
+          setError('Failed to initialize uploader. Please try closing and reopening the dialog.');
         }
-      }, 100);
+      };
+
+      const timer = setTimeout(tryInit, 50);
       return () => clearTimeout(timer);
     } else if (!open && uppy) {
       cleanupUppy();
+      initAttempts.current = 0;
     }
 
     return () => {
-      cleanupUppy();
+      if (!open) {
+        cleanupUppy();
+        initAttempts.current = 0;
+      }
     };
-  }, [open]);
+  }, [open, uppy]);
 
   const initializeUppy = () => {
     if (!dashboardRef.current) {
@@ -322,7 +338,15 @@ export default function ChunkedFileUpload({
             </div>
           )}
 
-          <div className="border rounded-lg">
+          <div className="border rounded-lg min-h-[300px] relative">
+            {initializingUppy && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Initializing uploader...</p>
+                </div>
+              </div>
+            )}
             <div ref={dashboardRef} />
           </div>
 
