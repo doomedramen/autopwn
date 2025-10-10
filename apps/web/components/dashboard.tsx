@@ -10,11 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Activity, Clock, Zap, FileText, CheckCircle, Wifi, WifiOff, BookOpen } from 'lucide-react';
+import { Loader2, Activity, Clock, Zap, FileText, CheckCircle, Wifi, WifiOff } from 'lucide-react';
 import { JobCreationDialog } from './JobCreationDialog';
 import { JobDetailsDialog } from './JobDetailsDialog';
 import { FileUploadDialog } from './FileUploadDialog';
-import { DictionaryManagementDialog } from './DictionaryManagementDialog';
 
 interface Job {
   id: number;
@@ -252,12 +251,6 @@ export function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
           <FileUploadDialog onUploadComplete={fetchData} />
           <JobCreationDialog onJobCreated={fetchData} />
-          <DictionaryManagementDialog onDictionaryChange={fetchData}>
-            <Button variant="outline">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Manage Dictionaries
-            </Button>
-          </DictionaryManagementDialog>
         </div>
       </div>
 

@@ -49,8 +49,14 @@ export default function ChunkedFileUpload({
   const uppyInstanceRef = useRef<Uppy | null>(null);
 
   useEffect(() => {
-    if (open && !uppy) {
-      initializeUppy();
+    if (open && !uppy && dashboardRef.current) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        if (dashboardRef.current) {
+          initializeUppy();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     } else if (!open && uppy) {
       cleanupUppy();
     }
@@ -61,13 +67,19 @@ export default function ChunkedFileUpload({
   }, [open]);
 
   const initializeUppy = () => {
+    if (!dashboardRef.current) {
+      console.error('Dashboard ref not ready');
+      return;
+    }
+
     const newUppy = new Uppy({
       id: 'file-uploader',
       autoProceed: false,
       restrictions: {
         maxFileSize,
         minFileSize: 1,
-        allowedFileTypes,
+        // Don't restrict by file type - dictionaries can have any extension
+        // allowedFileTypes is passed for display purposes only
       },
       infoTimeout: 0,
     });
@@ -75,7 +87,7 @@ export default function ChunkedFileUpload({
     // Add Dashboard UI
     newUppy.use(Dashboard, {
       inline: true,
-      target: dashboardRef.current!,
+      target: dashboardRef.current,
       proudlyDisplayPoweredByUppy: false,
       theme: 'light',
       note: note || `Files up to ${formatFileSize(maxFileSize)}`,

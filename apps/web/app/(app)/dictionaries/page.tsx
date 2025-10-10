@@ -30,7 +30,7 @@ export default function DictionariesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [uploadEndpoint, setUploadEndpoint] = useState<string>('');
+  const [uploadEndpoint, setUploadEndpoint] = useState<string>('/api/dictionaries');
 
   const [newDictName, setNewDictName] = useState('');
   const [newDictContent, setNewDictContent] = useState('');
@@ -45,10 +45,12 @@ export default function DictionariesPage() {
   useEffect(() => {
     fetchDictionaries();
 
-    // Load upload endpoint at runtime
-    getApiUrl().then(apiUrl => {
+    // Load upload endpoint at runtime - update from default to runtime URL
+    const loadEndpoint = async () => {
+      const apiUrl = await getApiUrl();
       setUploadEndpoint(`${apiUrl}/api/dictionaries`);
-    });
+    };
+    loadEndpoint();
   }, []);
 
   const fetchDictionaries = async () => {
@@ -180,23 +182,21 @@ export default function DictionariesPage() {
             </DialogContent>
           </Dialog>
 
-          {uploadEndpoint && (
-            <ChunkedFileUpload
-              open={uploadDialogOpen}
-              onOpenChange={setUploadDialogOpen}
-              onUploadComplete={() => {
-                fetchDictionaries();
-                setSuccess('Dictionary uploaded successfully');
-              }}
-              uploadEndpoint={uploadEndpoint}
-              title="Upload Dictionaries"
-              description="Upload large dictionary files with chunked, resumable uploads. Supports all hashcat-compatible formats including compressed files up to 5GB."
-              allowedFileTypes={dictionaryFileTypes}
-              maxFileSize={5 * 1024 * 1024 * 1024} // 5GB
-              note={`Hashcat-compatible dictionaries up to 5GB. Formats: ${dictionaryFileTypes.join(', ')}`}
-              dropText="Drop dictionary files here or click to browse"
-            />
-          )}
+          <ChunkedFileUpload
+            open={uploadDialogOpen}
+            onOpenChange={setUploadDialogOpen}
+            onUploadComplete={() => {
+              fetchDictionaries();
+              setSuccess('Dictionary uploaded successfully');
+            }}
+            uploadEndpoint={uploadEndpoint}
+            title="Upload Dictionaries"
+            description="Upload large dictionary files with chunked, resumable uploads. Supports all hashcat-compatible formats including compressed files up to 5GB."
+            allowedFileTypes={dictionaryFileTypes}
+            maxFileSize={5 * 1024 * 1024 * 1024} // 5GB
+            note={`Hashcat-compatible dictionaries up to 5GB. Formats: ${dictionaryFileTypes.join(', ')}`}
+            dropText="Drop dictionary files here or click to browse"
+          />
         </div>
       </div>
 
