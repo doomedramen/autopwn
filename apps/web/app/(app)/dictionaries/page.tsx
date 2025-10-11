@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
-import { getApiUrl } from '@/lib/runtime-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, Trash2, FileText, Plus, AlertCircle } from 'lucide-react';
+import { Trash2, FileText, Plus, AlertCircle } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils';
-import ChunkedFileUpload from '@/components/ChunkedFileUpload';
+import { DictionaryUploadDialog } from '@/components/DictionaryUploadDialog';
 
 interface Dictionary {
   id: number;
@@ -24,31 +23,15 @@ export default function DictionariesPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [uploadEndpoint, setUploadEndpoint] = useState<string>('/api/dictionaries');
 
   const [newDictName, setNewDictName] = useState('');
   const [newDictContent, setNewDictContent] = useState('');
 
-  // Define hashcat-compatible dictionary file types
-  const dictionaryFileTypes = [
-    '.txt', '.dict', '.wordlist', '.rule', '.rule2', '.hcchr2', '.hcmask', '.hcmask2',
-    '.gz', '.bz2', '.zip', '.7z', '.rar', '.cap', '.hccapx', '.pcapng', '.16800', '.22000',
-    '.pmkid', '.ehc', '.john', '.pot', '.log', '.out', '.diz', '.list'
-  ];
-
   useEffect(() => {
     fetchDictionaries();
-
-    // Load upload endpoint at runtime - update from default to runtime URL
-    const loadEndpoint = async () => {
-      const apiUrl = await getApiUrl();
-      setUploadEndpoint(`${apiUrl}/api/dictionaries`);
-    };
-    loadEndpoint();
   }, []);
 
   const fetchDictionaries = async () => {
@@ -66,6 +49,11 @@ export default function DictionariesPage() {
   };
 
   
+  const handleUploadComplete = () => {
+    fetchDictionaries();
+    setSuccess('Dictionary uploaded successfully');
+  };
+
   const handleCreateDictionary = async () => {
     if (!newDictName.trim() || !newDictContent.trim()) {
       setError('Name and content are required');
@@ -123,10 +111,7 @@ export default function DictionariesPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={() => setUploadDialogOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload
-          </Button>
+          <DictionaryUploadDialog onUploadComplete={handleUploadComplete} />
 
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
@@ -184,22 +169,6 @@ export default function DictionariesPage() {
               </div>
             </DialogContent>
           </Dialog>
-
-          <ChunkedFileUpload
-            open={uploadDialogOpen}
-            onOpenChange={setUploadDialogOpen}
-            onUploadComplete={() => {
-              fetchDictionaries();
-              setSuccess('Dictionary uploaded successfully');
-            }}
-            uploadEndpoint={uploadEndpoint}
-            title="Upload Dictionaries"
-            description="Upload dictionary files up to 5GB. Supports all hashcat-compatible formats including compressed files."
-            allowedFileTypes={dictionaryFileTypes}
-            maxFileSize={5 * 1024 * 1024 * 1024} // 5GB
-            note={`Up to 5GB • Supports: ${dictionaryFileTypes.slice(0, 8).join(', ')}, and more`}
-            dropText="Drop files here or click to browse"
-          />
         </div>
       </div>
 
@@ -228,10 +197,7 @@ export default function DictionariesPage() {
             Upload files or create a custom dictionary to get started.
           </p>
           <div className="flex gap-2 justify-center">
-            <Button onClick={() => setUploadDialogOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Files
-            </Button>
+            <DictionaryUploadDialog onUploadComplete={handleUploadComplete} />
             <Button variant="outline" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Dictionary
