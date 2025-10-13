@@ -93,7 +93,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, searchTerm, roleFilter]);
+  }, [fetchUsers]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
