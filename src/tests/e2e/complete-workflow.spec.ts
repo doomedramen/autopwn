@@ -15,6 +15,12 @@ test.describe('Complete Workflow: Upload and Crack', () => {
 
     // Initialize system and get credentials
     await page.goto('/setup');
+
+    // Wait for the initialize button to be visible and clickable
+    await page.waitForSelector('[data-testid="initialize-system-button"]', {
+      state: 'visible',
+      timeout: 10000
+    });
     await page.click('[data-testid="initialize-system-button"]');
 
     const emailElement = await page.locator('[data-testid="superuser-email"]');
@@ -44,14 +50,21 @@ test.describe('Complete Workflow: Upload and Crack', () => {
     await page.waitForTimeout(3000); // Wait for redirect
     await expect(page).toHaveURL(/.*\/$/, { timeout: 10000 });
 
+    // Wait a bit more to ensure session is properly established after password change
+    await page.waitForTimeout(2000);
+
     // Get session cookie for API requests
     const cookies = await context.cookies();
     const sessionCookie = cookies.find(c => c.name === 'better-auth.session_token');
 
+    console.log('Session cookie found:', !!sessionCookie);
     if (sessionCookie) {
+      console.log('Session cookie value:', sessionCookie.value.substring(0, 20) + '...');
       authHeaders = {
         'Cookie': `${sessionCookie.name}=${sessionCookie.value}`
       };
+    } else {
+      console.log('Available cookies:', cookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' })));
     }
 
     await context.close();

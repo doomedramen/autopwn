@@ -11,6 +11,12 @@ test.describe('User Management', () => {
 
     // Initialize system and get superuser credentials
     await page.goto('/setup');
+
+    // Wait for the initialize button to be visible and clickable
+    await page.waitForSelector('[data-testid="initialize-system-button"]', {
+      state: 'visible',
+      timeout: 10000
+    });
     await page.click('[data-testid="initialize-system-button"]');
 
     const emailElement = await page.locator('[data-testid="superuser-email"]');
