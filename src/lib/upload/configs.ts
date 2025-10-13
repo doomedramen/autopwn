@@ -25,7 +25,7 @@ export const PCAP_UPLOAD_CONFIG: UploadConfig = {
     // This will be used during job creation to merge hash files instead of reprocessing PCAPs
     const { promises: fs } = await import('fs');
     const { HcxPcapNgTool } = await import('@/tools/hcxpcapngtool');
-    const { basename, dirname } = await import('path');
+    const { dirname } = await import('path');
 
     try {
       const stats = await fs.stat(filePath);
@@ -35,7 +35,7 @@ export const PCAP_UPLOAD_CONFIG: UploadConfig = {
       const result = await hcxTool.processPcapForUpload(filePath, dirname(filePath));
 
       if (result.success && result.data) {
-        const { networks, hashFile, essidList, pcapInfo } = result.data;
+        const { networks, hashFile, essidList } = result.data;
 
         // Count networks with handshakes
         const networksWithHandshakes = networks.filter(n => n.hasHandshake).length;
