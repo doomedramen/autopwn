@@ -136,7 +136,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || "Failed to create user");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to create user");
     }
   };
@@ -168,7 +168,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || "Failed to update user");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update user");
     }
   };
@@ -192,7 +192,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || "Failed to update user status");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update user status");
     }
   };
