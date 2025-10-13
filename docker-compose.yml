@@ -1,72 +1,26 @@
+version: '3.8'
+
 services:
-  # PostgreSQL database
   postgres:
     image: postgres:15-alpine
     container_name: autopwn-postgres
-    environment:
-      - POSTGRES_DB=autopwn
-      - POSTGRES_USER=autopwn
-      - POSTGRES_PASSWORD=autopwn_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autopwn -d autopwn"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    environment:
+      POSTGRES_DB: autopwn
+      POSTGRES_USER: autopwn
+      POSTGRES_PASSWORD: autopwn_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
-
-  # Backend API + Worker Service
-  backend:
-    image: doomedramen/autopwn-backend:latest
-    container_name: autopwn-backend
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      # Database configuration
-      - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn
-      # Better Auth configuration
-      - "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-Og7Th4UCtg8lL6Zz96Ui4f51KEaFkY6qiUw35sY9/p0=}"
-      - BETTER_AUTH_URL=${API_URL:-http://192.168.1.242:3001}
-      # GPU Configuration
-      - HASHCAT_DEVICE_TYPE=${HASHCAT_DEVICE_TYPE:-cpu}
-      # File paths (using /data for consistent volume mounting)
-      - PCAPS_PATH=/data/pcaps
-      - DICTIONARIES_PATH=/data/dictionaries
-      - JOBS_PATH=/data/jobs
-      - NODE_ENV=production
     volumes:
-      - ./volumes:/data
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # Frontend (Next.js)
-  web:
-    image: doomedramen/autopwn-web:latest
-    container_name: autopwn-web
-    ports:
-      - "3000:3000"
-    environment:
-      # Runtime API Configuration (no NEXT_PUBLIC_ prefix needed)
-      # These are read at runtime by /api/config endpoint
-      - API_URL=${API_URL:-http://192.168.1.242:3001}
-      - WS_URL=${WS_URL:-ws://192.168.1.242:3001}
-      # Legacy support (fallback for /api/auth proxy route)
-      - NEXT_PUBLIC_API_URL=${API_URL:-http://192.168.1.242:3001}
-    volumes:
-      - ./volumes:/data:ro  # Read-only access for frontend
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      backend:
-        condition: service_started
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autopwn"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   postgres_data:
