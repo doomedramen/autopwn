@@ -11,27 +11,49 @@ import {
   jsonb,
   primaryKey,
   unique,
-  index
+  index,
+  pgEnum
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Users table
+// User roles enum
+export const userRoleEnum = pgEnum('user_role', ['superuser', 'admin', 'user']);
+
+// Better-auth compatible users table - minimal fields required by better-auth
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  username: varchar('username', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }), // Better-auth expects this field
   email: varchar('email', { length: 255 }).notNull().unique(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  emailVerified: boolean('email_verified').default(false), // Better-auth expects this field
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  usernameIdx: index('users_username_idx').on(table.username),
   emailIdx: index('users_email_idx').on(table.email),
+}));
+
+// User profiles table - stores our custom user data
+export const userProfiles = pgTable('user_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
+  username: varchar('username', { length: 255 }).notNull().unique(),
+  role: userRoleEnum('role').notNull().default('user'),
+  isActive: boolean('is_active').notNull().default(true),
+  isEmailVerified: boolean('is_email_verified').notNull().default(false),
+  requirePasswordChange: boolean('require_password_change').notNull().default(false),
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index('user_profiles_user_id_idx').on(table.userId),
+  usernameIdx: index('user_profiles_username_idx').on(table.username),
+  roleIdx: index('user_profiles_role_idx').on(table.role),
+  activeIdx: index('user_profiles_active_idx').on(table.isActive),
 }));
 
 // Uploaded files (PCAPs + Dictionaries)
 export const uploads = pgTable('uploads', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => userProfiles.id, { onDelete: 'cascade' }),
   filename: varchar('filename', { length: 255 }).notNull(),
   originalName: varchar('original_name', { length: 255 }).notNull(),
   filePath: text('file_path').notNull(),
@@ -69,7 +91,7 @@ export const networks = pgTable('networks', {
 // Jobs
 export const jobs = pgTable('jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => userProfiles.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
   progress: integer('progress').default(0),
@@ -127,6 +149,54 @@ export const jobDictionaries = pgTable('job_dictionaries', {
   uploadIdx: index('job_dictionaries_upload_idx').on(table.uploadId),
 }));
 
+// Better-auth tables
+export const accounts = pgTable('accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  accountId: varchar('account_id', { length: 255 }).notNull(),
+  providerId: varchar('provider_id', { length: 255 }).notNull(),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at'),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  scope: varchar('scope', { length: 255 }),
+  password: varchar('password', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index('accounts_user_id_idx').on(table.userId),
+  accountIdx: unique('accounts_account_idx').on(table.accountId, table.providerId),
+}));
+
+export const sessions = pgTable('sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token: varchar('token', { length: 255 }).notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index('sessions_user_id_idx').on(table.userId),
+  tokenIdx: index('sessions_token_idx').on(table.token),
+  expiresAtIdx: index('sessions_expires_at_idx').on(table.expiresAt),
+}));
+
+export const verifications = pgTable('verifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  identifier: varchar('identifier', { length: 255 }).notNull(),
+  value: varchar('value', { length: 255 }).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  identifierIdx: index('verifications_identifier_idx').on(table.identifier),
+  valueIdx: index('verifications_value_idx').on(table.value),
+  expiresAtIdx: index('verifications_expires_at_idx').on(table.expiresAt),
+}));
+
 // Cracked passwords results
 export const crackedPasswords = pgTable('cracked_passwords', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -146,6 +216,8 @@ export const crackedPasswords = pgTable('cracked_passwords', {
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type NewUserProfile = typeof userProfiles.$inferInsert;
 
 export type Upload = typeof uploads.$inferSelect;
 export type NewUpload = typeof uploads.$inferInsert;
@@ -168,16 +240,54 @@ export type NewJobDictionary = typeof jobDictionaries.$inferInsert;
 export type CrackedPassword = typeof crackedPasswords.$inferSelect;
 export type NewCrackedPassword = typeof crackedPasswords.$inferInsert;
 
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+
+export type Verification = typeof verifications.$inferSelect;
+export type NewVerification = typeof verifications.$inferInsert;
+
 // Relations
-export const crackedPasswordsRelations = relations(crackedPasswords, ({ one }) => ({
-  job: one(jobs, {
-    fields: [crackedPasswords.jobId],
-    references: [jobs.id]
+export const usersRelations = relations(users, ({ one, many }) => ({
+  profile: one(userProfiles, {
+    fields: [users.id],
+    references: [userProfiles.userId]
   }),
-  network: one(networks, {
-    fields: [crackedPasswords.networkId],
-    references: [networks.id]
+  accounts: many(accounts),
+  sessions: many(sessions)
+}));
+
+export const userProfilesRelations = relations(userProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [userProfiles.userId],
+    references: [users.id]
+  }),
+  uploads: many(uploads),
+  jobs: many(jobs)
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id]
   })
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id]
+  })
+}));
+
+export const uploadsRelations = relations(uploads, ({ one, many }) => ({
+  user: one(userProfiles, {
+    fields: [uploads.userId],
+    references: [userProfiles.id]
+  }),
+  networks: many(networks)
 }));
 
 export const networksRelations = relations(networks, ({ many, one }) => ({
@@ -188,6 +298,21 @@ export const networksRelations = relations(networks, ({ many, one }) => ({
   })
 }));
 
-export const jobsRelations = relations(jobs, ({ many }) => ({
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
+  user: one(userProfiles, {
+    fields: [jobs.userId],
+    references: [userProfiles.id]
+  }),
   crackedPasswords: many(crackedPasswords)
+}));
+
+export const crackedPasswordsRelations = relations(crackedPasswords, ({ one }) => ({
+  job: one(jobs, {
+    fields: [crackedPasswords.jobId],
+    references: [jobs.id]
+  }),
+  network: one(networks, {
+    fields: [crackedPasswords.networkId],
+    references: [networks.id]
+  })
 }));

@@ -86,11 +86,11 @@ export async function cleanDatabase() {
     for (const seq of sequences) {
       try {
         await db.execute(sql`ALTER SEQUENCE ${sql.identifier(seq)} RESTART WITH 1`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Sequence doesn't exist, which is fine
-        if (error.message?.includes('does not exist') ||
-            error.message?.includes('relation') ||
-            error.cause?.code === '42P01') {
+        if (error instanceof Error &&
+            (error.message.includes('does not exist') ||
+             error.message.includes('relation'))) {
           console.log(`Sequence ${seq} does not exist, skipping...`);
         } else {
           console.error(`Unexpected error resetting sequence ${seq}:`, error);
@@ -100,8 +100,8 @@ export async function cleanDatabase() {
     }
 
     // Recreate default user for job creation tests
-    await db.execute(sql`INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
-      VALUES (gen_random_uuid(), 'default_user', 'default@example.com', 'hashed_password', NOW(), NOW())`);
+    await db.execute(sql`INSERT INTO users (id, name, email, created_at, updated_at)
+      VALUES (gen_random_uuid(), 'default_user', 'default@example.com', NOW(), NOW())`);
 
     console.log('✅ Database cleaned successfully and default user recreated');
   } catch (error) {

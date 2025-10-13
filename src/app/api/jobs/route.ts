@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // For now, use a default user (in production, get from authentication)
     const defaultUser = await db.query.users.findFirst({
-      where: eq(users.username, 'default_user')
+      where: eq(users.name, 'default_user')
     });
 
     if (!defaultUser) {

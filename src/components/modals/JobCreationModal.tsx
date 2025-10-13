@@ -24,7 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import type { HashcatDeviceInfo } from '@/types';
 import { formatFileSize } from '@/lib/utils/file-size';
-import { Zap, Wifi, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { Zap, Wifi, FileText, AlertCircle, CheckCircle, Monitor, Cpu, HardDrive } from 'lucide-react';
 
 interface NetworkInfo {
   essid: string;
@@ -39,6 +39,7 @@ interface DictionaryInfo {
   name: string;
   lineCount: number;
   size: number;
+  isCompressed: boolean;
 }
 
 interface JobConfig {
@@ -202,13 +203,13 @@ export function JobCreationModal({
   const getDeviceIcon = (type: string) => {
     switch (type) {
       case 'gpu':
-        return '🎮';
+        return <Monitor className="h-5 w-5 text-blue-600" />;
       case 'cpu':
-        return '🖥️';
+        return <Cpu className="h-5 w-5 text-green-600" />;
       case 'accelerator':
-        return '⚡';
+        return <HardDrive className="h-5 w-5 text-purple-600" />;
       default:
-        return '❓';
+        return <AlertCircle className="h-5 w-5 text-gray-600" />;
     }
   };
 
@@ -243,169 +244,214 @@ export function JobCreationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Zap className="h-5 w-5 text-orange-500" />
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto animate-scale-in">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="flex items-center space-x-3 text-xl">
+            <div className="p-2 rounded-lg bg-orange-500/10">
+              <Zap className="h-6 w-6 text-orange-600" />
+            </div>
             <span>Create Cracking Job</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-base">
             Configure a new password cracking job using uploaded PCAP files and dictionaries.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Job Configuration */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="jobName">Job Name</Label>
-              <Input
-                id="jobName"
-                value={jobName}
-                onChange={(e) => setJobName(e.target.value)}
-                placeholder="Enter job name..."
-              />
-            </div>
-
-            <div>
-              <Label>Attack Mode</Label>
-              <Select value={attackMode} onValueChange={setAttackMode}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">0 - Straight (Dictionary)</SelectItem>
-                  <SelectItem value="1">1 - Combination</SelectItem>
-                  <SelectItem value="3">3 - Brute-force</SelectItem>
-                  <SelectItem value="6">6 - Hybrid Wordlist + Mask</SelectItem>
-                  <SelectItem value="7">7 - Hybrid Mask + Wordlist</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {getAttackModeDescription(attackMode)}
-              </p>
-            </div>
-
-            <div>
-              <Label>Workload Profile</Label>
-              <Select value={workloadProfile} onValueChange={setWorkloadProfile}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Desktop</SelectItem>
-                  <SelectItem value="2">2 - Laptop</SelectItem>
-                  <SelectItem value="3">3 - High Performance Desktop</SelectItem>
-                  <SelectItem value="4">4 - Fanless/Embedded</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {getWorkloadProfileDescription(workloadProfile)}
-              </p>
-            </div>
-
-            <div>
-              <Label>Hardware Devices</Label>
-              {isLoadingDevices ? (
-                <div className="text-sm text-muted-foreground mt-2">
-                  Loading available devices...
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-lg">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <Zap className="h-5 w-5 text-blue-600" />
                 </div>
-              ) : availableDevices.length > 0 ? (
-                <div className="mt-2 space-y-2 max-h-32 overflow-y-auto border rounded-lg p-2">
-                  {availableDevices.map((device) => (
-                    <div
-                      key={device.deviceId}
-                      className="flex items-center space-x-2 p-2 rounded hover:bg-muted cursor-pointer"
-                      onClick={() => toggleDevice(device.deviceId)}
-                    >
-                      <Checkbox
-                        checked={selectedDevices.includes(device.deviceId)}
-                        onCheckedChange={() => toggleDevice(device.deviceId)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="flex items-center space-x-2 flex-1">
-                        <span className="text-lg">{getDeviceIcon(device.type)}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {device.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {device.type.toUpperCase()} • ID: {device.deviceId} • {formatMemory(device.memory)}
-                          </p>
+                <span>Job Configuration</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="jobName" className="text-base font-medium">Job Name</Label>
+                  <Input
+                    id="jobName"
+                    value={jobName}
+                    onChange={(e) => setJobName(e.target.value)}
+                    placeholder="Enter job name..."
+                    className="text-base h-11 focus-ring"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Attack Mode</Label>
+                  <Select value={attackMode} onValueChange={setAttackMode}>
+                    <SelectTrigger className="h-11 focus-ring">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 - Straight (Dictionary)</SelectItem>
+                      <SelectItem value="1">1 - Combination</SelectItem>
+                      <SelectItem value="3">3 - Brute-force</SelectItem>
+                      <SelectItem value="6">6 - Hybrid Wordlist + Mask</SelectItem>
+                      <SelectItem value="7">7 - Hybrid Mask + Wordlist</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {getAttackModeDescription(attackMode)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Workload Profile</Label>
+                <Select value={workloadProfile} onValueChange={setWorkloadProfile}>
+                  <SelectTrigger className="h-11 focus-ring">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 - Desktop</SelectItem>
+                    <SelectItem value="2">2 - Laptop</SelectItem>
+                    <SelectItem value="3">3 - High Performance Desktop</SelectItem>
+                    <SelectItem value="4">4 - Fanless/Embedded</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {getWorkloadProfileDescription(workloadProfile)}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Hardware Devices</Label>
+                {isLoadingDevices ? (
+                  <div className="flex items-center justify-center p-8 border-2 border-dashed rounded-lg">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-sm text-muted-foreground">Loading available devices...</p>
+                    </div>
+                  </div>
+                ) : availableDevices.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {availableDevices.map((device) => (
+                      <div
+                        key={device.deviceId}
+                        className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all hover-lift ${
+                          selectedDevices.includes(device.deviceId)
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => toggleDevice(device.deviceId)}
+                      >
+                        <Checkbox
+                          checked={selectedDevices.includes(device.deviceId)}
+                          onCheckedChange={() => toggleDevice(device.deviceId)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex items-center space-x-3 flex-1">
+                          {getDeviceIcon(device.type)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              {device.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {device.type.toUpperCase()} • ID: {device.deviceId} • {formatMemory(device.memory)}
+                            </p>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center p-8 border-2 border-dashed border-red-200 rounded-lg">
+                    <div className="text-center">
+                      <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                      <p className="text-sm text-red-600">
+                        No hashcat-compatible devices found
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Make sure hashcat is properly installed
+                      </p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-red-500 mt-2">
-                  No hashcat-compatible devices found. Make sure hashcat is properly installed.
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Select which hardware devices to use for cracking. GPU devices are recommended for best performance.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium">Advanced Options</h4>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="gpuTempAbort"
-                  checked={gpuTempAbort}
-                  onCheckedChange={(checked) => setGpuTempAbort(checked === true)}
-                />
-                <Label htmlFor="gpuTempAbort" className="text-sm">
-                  Stop if GPU temperature exceeds 80°C
-                </Label>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Select which hardware devices to use for cracking. GPU devices are recommended for best performance.
+                </p>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="gpuTempDisable"
-                  checked={gpuTempDisable}
-                  onCheckedChange={(checked) => setGpuTempAbortTemp(checked === true)}
-                />
-                <Label htmlFor="gpuTempDisable" className="text-sm">
-                  Disable GPU temperature monitoring
-                </Label>
+              <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
+                <h4 className="text-base font-semibold">Advanced Options</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
+                    <Checkbox
+                      id="gpuTempAbort"
+                      checked={gpuTempAbort}
+                      onCheckedChange={(checked) => setGpuTempAbort(checked === true)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="gpuTempAbort" className="text-sm font-medium cursor-pointer">
+                        Stop if GPU temperature exceeds 80°C
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Prevent overheating by pausing jobs
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
+                    <Checkbox
+                      id="gpuTempDisable"
+                      checked={gpuTempDisable}
+                      onCheckedChange={(checked) => setGpuTempAbortTemp(checked === true)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="gpuTempDisable" className="text-sm font-medium cursor-pointer">
+                        Disable GPU temperature monitoring
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Run without temperature limits
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Network Selection */}
-          <Card className="transition-all hover:shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-sm">
-                <Wifi className="h-4 w-4 text-blue-500" />
-                <span>Select Networks</span>
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-lg">
+                  <div className="p-2 rounded-lg bg-blue-500/10">
+                    <Wifi className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span>Select Networks</span>
+                </div>
                 {selectedNetworks.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
                     {selectedNetworks.length} selected
                   </Badge>
                 )}
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-base">
                 Choose networks with handshakes to crack
                 {networksWithHandshakes.length === 0 && (
-                  <div className="flex items-center space-x-1 text-red-500 mt-1">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>No networks with handshakes available. Upload PCAP files first.</span>
+                  <div className="flex items-center space-x-2 text-red-500 mt-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">No networks with handshakes available. Upload PCAP files first.</span>
                   </div>
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-48 overflow-y-auto">
+            <CardContent className="max-h-64 overflow-y-auto">
               {networksWithHandshakes.length > 0 ? (
-                <div className="space-y-2">
+                <div className="grid gap-3">
                   {networksWithHandshakes.map((network) => (
                     <div
                       key={network.bssid}
-                      className={`flex items-center space-x-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all hover-lift ${
                         selectedNetworks.includes(network.bssid)
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-muted border border-transparent'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                          : 'border-border hover:border-blue-300'
                       }`}
                       onClick={() => toggleNetwork(network.bssid)}
                     >
@@ -413,30 +459,33 @@ export function JobCreationModal({
                         checked={selectedNetworks.includes(network.bssid)}
                         onCheckedChange={() => toggleNetwork(network.bssid)}
                         onClick={(e) => e.stopPropagation()}
+                        className="h-5 w-5"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium truncate">
+                        <div className="flex items-center space-x-3">
+                          <p className="text-base font-semibold truncate">
                             {network.essid || 'Unknown Network'}
                           </p>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs px-2 py-1">
                             {network.encryption}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {network.bssid} • Channel {network.channel} • {network.encryption}
                         </p>
                       </div>
                       {selectedNetworks.includes(network.bssid) && (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-5 w-5 text-green-500" />
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6">
-                  <Wifi className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                    <Wifi className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-base text-muted-foreground">
                     No networks with handshakes available
                   </p>
                 </div>
@@ -445,37 +494,41 @@ export function JobCreationModal({
           </Card>
 
           {/* Dictionary Selection */}
-          <Card className="transition-all hover:shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-sm">
-                <FileText className="h-4 w-4 text-green-500" />
-                <span>Select Dictionaries</span>
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-lg">
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <FileText className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <span>Select Dictionaries</span>
+                </div>
                 {selectedDictionaries.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
                     {selectedDictionaries.length} selected
                   </Badge>
                 )}
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-base">
                 Choose password dictionaries to use
                 {dictionaries.length === 0 && (
-                  <div className="flex items-center space-x-1 text-red-500 mt-1">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>No dictionaries available. Upload dictionary files first.</span>
+                  <div className="flex items-center space-x-2 text-red-500 mt-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">No dictionaries available. Upload dictionary files first.</span>
                   </div>
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-48 overflow-y-auto">
+            <CardContent className="max-h-64 overflow-y-auto">
               {dictionaries.length > 0 ? (
-                <div className="space-y-2">
+                <div className="grid gap-3">
                   {dictionaries.map((dictionary) => (
                     <div
                       key={dictionary.id}
-                      className={`flex items-center space-x-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all hover-lift ${
                         selectedDictionaries.includes(dictionary.id)
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-muted border border-transparent'
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
+                          : 'border-border hover:border-emerald-300'
                       }`}
                       onClick={() => toggleDictionary(dictionary.id)}
                     >
@@ -483,32 +536,35 @@ export function JobCreationModal({
                         checked={selectedDictionaries.includes(dictionary.id)}
                         onCheckedChange={() => toggleDictionary(dictionary.id)}
                         onClick={(e) => e.stopPropagation()}
+                        className="h-5 w-5"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium truncate">
+                        <div className="flex items-center space-x-3">
+                          <p className="text-base font-semibold truncate">
                             {dictionary.name}
                           </p>
                           {dictionary.isCompressed && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs px-2 py-1">
                               Compressed
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {(dictionary.lineCount / 1000000).toFixed(1)}M words • {formatFileSize(dictionary.size)}
                         </p>
                       </div>
                       {selectedDictionaries.includes(dictionary.id) && (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-5 w-5 text-green-500" />
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6">
-                  <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                    <FileText className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-base text-muted-foreground">
                     No dictionaries available
                   </p>
                 </div>
@@ -517,13 +573,18 @@ export function JobCreationModal({
           </Card>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex gap-3 pt-6">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="hover-lift"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleCreateJob}
             disabled={selectedNetworks.length === 0 || selectedDictionaries.length === 0 || !jobName.trim()}
+            className="hover-lift glow-primary min-w-[120px]"
           >
             Create Job
           </Button>

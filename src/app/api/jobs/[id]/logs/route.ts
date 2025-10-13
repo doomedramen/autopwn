@@ -62,8 +62,8 @@ export async function GET(
       `Speed: ${Number(job.speedCurrent || 0).toLocaleString()} ${job.speedUnit || 'H/s'}`,
       job.eta ? `ETA: ${job.eta}` : '',
       job.startedAt ? `Started: ${new Date(job.startedAt).toLocaleString()}` : '',
-      job.finishedAt ? `Finished: ${new Date(job.finishedAt).toLocaleString()}` : '',
-      job.error ? `Error: ${job.error}` : ''
+      job.updatedAt && (job.status === 'completed' || job.status === 'failed') ? `Finished: ${new Date(job.updatedAt).toLocaleString()}` : '',
+      job.errorMessage ? `Error: ${job.errorMessage}` : ''
     ].filter(line => line.trim());
 
     // Combine hashcat logs with status logs

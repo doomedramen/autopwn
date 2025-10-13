@@ -76,14 +76,13 @@ export async function POST(request: NextRequest) {
 
       // Get or create default user
       let defaultUser = await db.query.users.findFirst({
-        where: eq(users.username, 'default_user')
+        where: eq(users.name, 'default_user')
       });
 
       if (!defaultUser) {
         [defaultUser] = await db.insert(users).values({
-          username: 'default_user',
-          email: 'default@autopwn.local',
-          passwordHash: 'default_password_hash'
+          name: 'default_user',
+          email: 'default@autopwn.local'
         }).returning();
       }
 

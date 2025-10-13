@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { JobMonitorProvider } from "@/components/job-monitor-provider";
+import { AuthProvider } from "@/components/auth-provider";
+import { UniversalHeader } from "@/components/universal-header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AutoPWN - WiFi Network Analysis & Password Cracking",
-  description: "Advanced WiFi network analysis and password cracking platform with real-time monitoring and automated attack management.",
+  description: "AUTOPWN: AUTOMATED WIFI NETWORK ANALYSIS AND PASSWORD CRACKING!",
 };
 
 export default function RootLayout({
@@ -28,14 +30,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
-        <ThemeProvider
-          defaultTheme="system"
-        >
-          <JobMonitorProvider />
-          {children}
-          <Toaster />
+        <ThemeProvider defaultTheme="system">
+          <AuthProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <JobMonitorProvider />
+              {children}
+              <Toaster />
+            </div>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

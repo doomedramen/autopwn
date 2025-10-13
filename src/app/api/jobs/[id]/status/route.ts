@@ -52,9 +52,6 @@ export async function GET(
         eta: job.eta || '',
         hashcatSession: job.hashcatSession,
         startedAt: job.startedAt,
-        finishedAt: job.finishedAt,
-        completedAt: job.completedAt,
-        error: job.error,
         errorMessage: job.errorMessage,
         createdAt: job.createdAt,
         updatedAt: job.updatedAt

@@ -138,8 +138,8 @@ export class JobMonitor {
         .set({
           progress: updateData.progress,
           cracked: updateData.cracked,
-          speedCurrent: updateData.speedCurrent,
-          speedAverage: updateData.speedAverage,
+          speedCurrent: updateData.speedCurrent.toString(),
+          speedAverage: updateData.speedAverage.toString(),
           speedUnit: updateData.speedUnit,
           eta: updateData.eta,
           status: updateData.status,

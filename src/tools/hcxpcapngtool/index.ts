@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { join, resolve, dirname, basename } from 'path';
+import { randomUUID } from 'crypto';
 import { PcapInfo, NetworkInfo, ToolResult, ToolExecutionOptions } from '@/types';
 
 export interface HcxOptions {
@@ -214,6 +215,7 @@ export class HcxPcapNgTool {
         size: fileStats.size,
         checksum: '', // Would need to calculate this
         networks: networks.map(n => ({
+          id: randomUUID(),
           essid: n.essid,
           bssid: n.bssid,
           channel: n.channel,
@@ -743,6 +745,7 @@ export class HcxPcapNgTool {
         const encryption = encryptionMatch ? encryptionMatch[1] : undefined;
 
         networks.push({
+          id: randomUUID(),
           essid,
           bssid,
           channel,

@@ -76,9 +76,14 @@ async function globalSetup() {
     await client`DELETE FROM jobs`;
     await client`DELETE FROM networks`;
     await client`DELETE FROM uploads`;
+
+    // Delete authentication tables
+    await client`DELETE FROM sessions`;
+    await client`DELETE FROM accounts`;
+    await client`DELETE FROM verifications`;
     await client`DELETE FROM users`;
 
-    console.log('✓ Cleared database tables');
+    console.log('✓ Cleared database tables including authentication');
   } catch (error) {
     console.error('❌ Failed to clear database:', error);
     throw error;

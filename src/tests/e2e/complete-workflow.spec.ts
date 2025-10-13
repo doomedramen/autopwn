@@ -6,6 +6,57 @@ const DICTIONARY_PATH = path.join(__dirname, '../fixtures/dictionaries/test-pass
 const PCAP_PATH = path.join(__dirname, '../fixtures/pcaps/wpa2-ikeriri-5g.pcap');
 
 test.describe('Complete Workflow: Upload and Crack', () => {
+  let authHeaders: Record<string, string> = {};
+
+  test.beforeAll(async ({ browser }) => {
+    // Setup: Authenticate user for API requests
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Initialize system and get credentials
+    await page.goto('/setup');
+    await page.click('[data-testid="initialize-system-button"]');
+
+    const emailElement = await page.locator('[data-testid="superuser-email"]');
+    const passwordElement = await page.locator('[data-testid="superuser-password"]');
+    const emailText = await emailElement.textContent();
+    const passwordText = await passwordElement.textContent();
+
+    const credentials = {
+      email: emailText!.replace('Email:', '').trim(),
+      password: passwordText!.replace('Password:', '').trim()
+    };
+
+    // Login and change password
+    await page.goto('/login');
+    await page.fill('input[type="email"]', credentials.email);
+    await page.fill('input[type="password"]', credentials.password);
+    await page.click('button:has-text("Sign In")');
+
+    // Change password
+    await page.fill('input[name="currentPassword"]', credentials.password);
+    await page.fill('input[name="newPassword"]', 'TestPassword123!');
+    await page.fill('input[name="confirmPassword"]', 'TestPassword123!');
+    await page.click('button:has-text("Change Password")');
+
+    // Wait for success message and redirect to dashboard
+    await page.waitForSelector('text=Password Updated!', { timeout: 10000 });
+    await page.waitForTimeout(3000); // Wait for redirect
+    await expect(page).toHaveURL(/.*\/$/, { timeout: 10000 });
+
+    // Get session cookie for API requests
+    const cookies = await context.cookies();
+    const sessionCookie = cookies.find(c => c.name === 'better-auth.session_token');
+
+    if (sessionCookie) {
+      authHeaders = {
+        'Cookie': `${sessionCookie.name}=${sessionCookie.value}`
+      };
+    }
+
+    await context.close();
+  });
+
   test('should upload dictionary, upload pcap, start job, and successfully crack password', async ({ request }) => {
     // Step 1: Upload dictionary
     console.log('📚 Uploading dictionary...');
@@ -21,6 +72,7 @@ test.describe('Complete Workflow: Upload and Crack', () => {
           buffer: dictionaryFile,
         },
       },
+      headers: authHeaders,
     });
 
     expect(dictionaryResponse.ok()).toBeTruthy();
@@ -45,6 +97,7 @@ test.describe('Complete Workflow: Upload and Crack', () => {
           buffer: pcapFile,
         },
       },
+      headers: authHeaders,
     });
 
     expect(pcapResponse.ok()).toBeTruthy();
@@ -54,7 +107,7 @@ test.describe('Complete Workflow: Upload and Crack', () => {
     expect(pcapData.data.networks.length).toBeGreaterThan(0);
 
     const networks = pcapData.data.networks;
-    const networkBssids = networks.map((network: any) => network.bssid);
+    const networkBssids = networks.map((network: { bssid: string }) => network.bssid);
     const pcapPath = pcapData.data.upload.savedPath;
     console.log(`✓ PCAP uploaded with ${networks.length} network(s)`);
     console.log(`  Networks: ${networkBssids.join(', ')}`);
@@ -76,6 +129,7 @@ test.describe('Complete Workflow: Upload and Crack', () => {
           potfileDisable: true, // Disable potfile for tests to ensure passwords are actually cracked
         },
       },
+      headers: authHeaders,
     });
 
     if (!jobResponse.ok()) {
@@ -99,7 +153,9 @@ test.describe('Complete Workflow: Upload and Crack', () => {
     const pollInterval = 1000; // 1 second
 
     while (attempts < maxAttempts) {
-      const statusResponse = await request.get(`/api/jobs/${jobId}/status`);
+      const statusResponse = await request.get(`/api/jobs/${jobId}/status`, {
+      headers: authHeaders,
+    });
       expect(statusResponse.ok()).toBeTruthy();
 
       const statusData = await statusResponse.json();
