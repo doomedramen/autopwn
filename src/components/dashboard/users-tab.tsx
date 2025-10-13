@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
     isActive: true,
   });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!isAdmin) return;
 
     setIsLoading(true);
@@ -89,7 +89,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAdmin, currentPage, searchTerm, roleFilter]);
 
   useEffect(() => {
     fetchUsers();
