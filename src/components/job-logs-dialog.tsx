@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -19,7 +19,7 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     if (!jobId) return;
 
     setIsLoading(true);
@@ -42,7 +42,7 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [jobId]);
 
   // Load logs when dialog opens
   useEffect(() => {
@@ -60,7 +60,7 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isOpen, jobId]);
+  }, [isOpen, jobId, loadLogs]);
 
   const getLogType = (message: string): 'info' | 'error' | 'success' | 'warning' => {
     const lowerMessage = message.toLowerCase();

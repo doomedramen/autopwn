@@ -37,7 +37,7 @@ interface NetworksTabProps {
 
 // Component to display cracked passwords for a network
 function NetworkPasswords({ networkId }: { networkId: string }) {
-  const { passwords, isLoading, error, fetchPasswords } = useNetworkPasswords(networkId);
+  const { passwords, isLoading, error } = useNetworkPasswords(networkId);
 
   if (isLoading) {
     return (

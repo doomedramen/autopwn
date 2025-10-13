@@ -163,7 +163,7 @@ export default function Home() {
     }
   };
 
-  const handleUploadComplete = (type: string, results: unknown[]) => {
+  const handleUploadComplete = (_type: string, _results: unknown[]) => {
     // Refresh data after upload
     loadDashboardData();
   };

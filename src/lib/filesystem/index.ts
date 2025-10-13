@@ -1,10 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { Stats } from 'node:fs';
 import { join, resolve, dirname, extname } from 'path';
 import { createHash } from 'crypto';
 import { pipeline } from 'stream/promises';
-import { PcapInfo, DictionaryInfo, FileUploadOptions, DirectoryOptions } from '@/types';
+import { FileUploadOptions, DirectoryOptions } from '@/types';
 
 export class FileSystemManager {
   private basePath: string;
@@ -44,7 +43,7 @@ export class FileSystemManager {
   /**
    * Get file stats
    */
-  async getStats(path: string): Promise<Stats | null> {
+  async getStats(path: string) {
     try {
       return await fs.stat(resolve(this.basePath, path));
     } catch {

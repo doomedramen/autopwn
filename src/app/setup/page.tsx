@@ -13,8 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Shield,
-  Wifi,
   CheckCircle,
   AlertTriangle,
   Loader2,
@@ -33,7 +31,6 @@ interface SuperUserData {
 }
 
 export default function SetupPage() {
-  const router = useRouter();
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [superUser, setSuperUser] = useState<SuperUserData | null>(null);
@@ -53,8 +50,8 @@ export default function SetupPage() {
       } else {
         setIsInitialized(false);
       }
-    } catch (error) {
-      console.error("Failed to check initialization status:", error);
+    } catch {
+      console.error("Failed to check initialization status");
       setError("Failed to check system status");
     }
   };

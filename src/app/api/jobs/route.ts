@@ -338,29 +338,3 @@ export async function GET() {
   }
 }
 
-/**
- * Helper function to update job status from hashcat session
- */
-async function updateJobStatus(job: any) {
-  try {
-    if (job.hashcatSession) {
-      // This would typically query hashcat for session status
-      // For now, return current job status
-      return {
-        status: job.status,
-        progress: job.progress || 0,
-        cracked: job.cracked || 0,
-        speed: {
-          current: job.speedCurrent || 0,
-          average: job.speedAverage || 0,
-          unit: job.speedUnit || 'H/s'
-        },
-        eta: job.eta || ''
-      };
-    }
-  } catch (error) {
-    console.error(`Failed to update status for job ${job.id}:`, error);
-  }
-
-  return {};
-}

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, userProfiles } from "@/lib/db/schema";
 import { eq, and, or, ilike } from "drizzle-orm";
-import { createUserBySuperUser, getAllUsers, deactivateUser, activateUser } from "@/lib/auth";
+import { createUserBySuperUser, getAllUsers } from "@/lib/auth";
 import { z } from "zod";
 
 export const runtime = "nodejs";

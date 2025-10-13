@@ -1,5 +1,4 @@
 import { UploadConfig } from './index';
-import { NetworkInfo } from '@/types';
 import { dirname, extname, basename } from 'path';
 import { promises as fs, createReadStream } from 'fs';
 import * as readline from 'readline';
@@ -21,7 +20,6 @@ export const PCAP_UPLOAD_CONFIG: UploadConfig = {
     backgroundProcessing: true,
     progressTracking: true
   },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   customProcessing: async (filePath: string, _config: UploadConfig) => {
     // NEW WORKFLOW: Process PCAP during upload to extract networks and create individual .hc22000 file
     // This will be used during job creation to merge hash files instead of reprocessing PCAPs
@@ -139,7 +137,6 @@ export const DICTIONARY_UPLOAD_CONFIG: UploadConfig = {
     backgroundProcessing: true,
     progressTracking: true
   },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   customProcessing: async (filePath: string, _config: UploadConfig) => {
     const { FileSystemManager } = await import('@/lib/filesystem');
     const fsManager = new FileSystemManager(dirname(filePath));
@@ -160,7 +157,6 @@ export const DICTIONARY_UPLOAD_CONFIG: UploadConfig = {
           lineCount = await fsManager.countLinesStreaming(
             basename(filePath), // Use basename instead of full path to avoid doubling
             encoding,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             (_lines, _bytes, _total) => {
               // This could be used for progress tracking during processing
             }

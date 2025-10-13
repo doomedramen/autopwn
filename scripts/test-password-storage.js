@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 // Simple test to verify password storage functionality
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
 
 async function testPasswordStorage() {
   console.log('🧪 Testing password storage functionality...\n');
@@ -12,11 +11,12 @@ async function testPasswordStorage() {
     // 1. Start the app (if not already running)
     console.log('1. Ensuring app is running...');
     try {
-      const response = await fetch('http://localhost:3000/api/health');
+      await fetch('http://localhost:3000/api/health');
       console.log('✓ App is already running');
-    } catch (error) {
+    } catch {
       console.log('Starting app...');
-      const appProcess = require('child_process').spawn('npm', ['run', 'dev'], {
+      const { spawn } = await import('child_process');
+      const appProcess = spawn('npm', ['run', 'dev'], {
         stdio: 'inherit',
         detached: true
       });
@@ -121,7 +121,6 @@ async function testPasswordStorage() {
 
     // 7. Check for cracked passwords in database
     console.log('7. Checking database for cracked passwords...');
-    const { execSync } = require('child_process');
     try {
       const dbResult = execSync(`PGPASSWORD=autopwn_password docker exec autopwn-postgres psql -U autopwn -d autopwn -c "SELECT COUNT(*) FROM cracked_passwords;"`, { encoding: 'utf8' });
       const count = parseInt(dbResult.split('\n')[2].trim());
@@ -132,8 +131,8 @@ async function testPasswordStorage() {
         console.log('Cracked passwords:');
         console.log(passwords);
       }
-    } catch (error) {
-      console.log('⚠ Could not check database:', error.message);
+    } catch {
+      console.log('⚠ Could not check database');
     }
 
     console.log('\n✅ Password storage test completed successfully!');

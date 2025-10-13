@@ -29,7 +29,7 @@ export async function cleanUploadsDirectory() {
             await fs.rm(join(dirPath, file), { recursive: true, force: true });
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Directory doesn't exist, which is fine
         console.log(`Directory ${dirPath} doesn't exist, skipping...`);
       }
@@ -43,7 +43,7 @@ export async function cleanUploadsDirectory() {
       for (const file of files) {
         await fs.rm(join(jobsDir, file), { recursive: true, force: true });
       }
-    } catch (error) {
+    } catch (_error) {
       // Directory doesn't exist, which is fine
       console.log(`Directory ${jobsDir} doesn't exist, skipping...`);
     }

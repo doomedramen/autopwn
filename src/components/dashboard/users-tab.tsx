@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, UserPlus, Search, Shield, ShieldCheck, Settings, Loader2, Trash2, Edit, Ban, CheckCircle } from "lucide-react";
+import { Users, UserPlus, Search, Shield, ShieldCheck, Loader2, Edit } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { toast } from "sonner";
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface CrackedPassword {
   id: string;
@@ -29,7 +29,7 @@ export function useNetworkPasswords(networkId?: string): UseNetworkPasswordsResu
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPasswords = async () => {
+  const fetchPasswords = useCallback(async () => {
     if (!networkId) return;
 
     setIsLoading(true);
@@ -55,13 +55,13 @@ export function useNetworkPasswords(networkId?: string): UseNetworkPasswordsResu
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [networkId]);
 
   useEffect(() => {
     if (networkId) {
       fetchPasswords();
     }
-  }, [networkId]);
+  }, [networkId, fetchPasswords]);
 
   return {
     passwords,

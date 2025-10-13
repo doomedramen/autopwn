@@ -1,6 +1,6 @@
 import { hashcat } from '@/tools/hashcat';
 import { db } from '@/lib/db';
-import { jobs, crackedPasswords, networks, jobNetworks } from '@/lib/db/schema';
+import { jobs, crackedPasswords, networks } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 interface JobStatusUpdate {

@@ -94,7 +94,7 @@ export default function ChangePasswordPage() {
         setError(data.error || "Failed to update password");
         toast.error(data.error || "Failed to update password");
       }
-    } catch (error) {
+    } catch {
       const errorMessage = "Failed to update password";
       setError(errorMessage);
       toast.error(errorMessage);
@@ -130,7 +130,7 @@ export default function ChangePasswordPage() {
         setError(data.error || "Failed to update profile");
         toast.error(data.error || "Failed to update profile");
       }
-    } catch (error) {
+    } catch {
       const errorMessage = "Failed to update profile";
       setError(errorMessage);
       toast.error(errorMessage);
