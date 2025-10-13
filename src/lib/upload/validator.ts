@@ -188,7 +188,6 @@ export class FileValidator {
         validate: async (filePath: string) => {
           try {
             const ext = extname(filePath).toLowerCase();
-            const stats = await fs.stat(filePath);
 
             // Check if it's a compressed file
             if (['.gz', '.bz2', '.zip'].includes(ext)) {
