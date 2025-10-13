@@ -170,7 +170,6 @@ export class FileSystemManager {
       const sourceStats = await fs.stat(sourcePath);
       const totalBytes = sourceStats.size;
       let bytesCopied = 0;
-      const startTime = Date.now();
 
       // Create streams
       const readStream = createReadStream(sourcePath);
