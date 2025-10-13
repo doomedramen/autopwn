@@ -39,7 +39,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Dialog states
@@ -84,7 +84,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || "Failed to fetch users");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to fetch users");
     } finally {
       setIsLoading(false);
