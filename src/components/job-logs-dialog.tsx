@@ -49,7 +49,7 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
     if (isOpen && jobId) {
       loadLogs();
     }
-  }, [isOpen, jobId]);
+  }, [isOpen, jobId, loadLogs]);
 
   // Auto-refresh logs every 5 seconds if job is still running
   useEffect(() => {
