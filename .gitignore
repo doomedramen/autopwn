@@ -23,6 +23,11 @@
 # misc
 .DS_Store
 *.pem
+*.log
+*.tmp
+*.cache
+/coverage
+/nyc_output
 
 # debug
 npm-debug.log*

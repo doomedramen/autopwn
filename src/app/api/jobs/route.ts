@@ -136,25 +136,21 @@ export async function POST(request: NextRequest) {
     const consolidatedHashFile = join(jobDir, 'hashes.hc22000');
     const pcapFilePaths = Array.from(pcapFiles);
 
-    console.log(`Converting ${pcapFilePaths.length} PCAP files to single .hc22000 file: ${pcapFilePaths.join(', ')}`);
-
     // Use hcxpcapngtool to process multiple PCAP files and output one consolidated .hc22000 file
-    console.log(`Calling hcxpcapngtool with output file: ${consolidatedHashFile}`);
     const extractResult = await hcxTool.extractHandshakes(
       pcapFilePaths, // Pass array of PCAP files
       consolidatedHashFile,
       { outputFormat: 'hc22000' }
     );
 
-    console.log(`hcxpcapngtool result:`, {
-      success: extractResult.success,
-      hasData: !!extractResult.data,
-      hasOutputFile: !!extractResult.data?.outputFile,
-      outputFile: extractResult.data?.outputFile,
-      expectedFile: consolidatedHashFile,
-      stderr: extractResult.stderr,
-      stdout: extractResult.stdout
-    });
+    // Log error details if extraction failed
+    if (!extractResult.success || !extractResult.data?.outputFile) {
+      console.error('hcxpcapngtool failed:', {
+        success: extractResult.success,
+        stderr: extractResult.stderr,
+        stdout: extractResult.stdout
+      });
+    }
 
     if (!extractResult.success || !extractResult.data?.outputFile) {
       // Clean up job directory
@@ -177,10 +173,8 @@ export async function POST(request: NextRequest) {
 
     // Check if the output file actually exists
     const actualOutputFile = extractResult.data.outputFile;
-    console.log(`Checking if output file exists: ${actualOutputFile}`);
     try {
       await fs.access(actualOutputFile);
-      console.log(`Output file exists!`);
     } catch (error) {
       console.error(`Output file does not exist: ${actualOutputFile}`, error);
       // Clean up job directory
@@ -214,8 +208,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Successfully created consolidated .hc22000 file with ${hashCount} hashes from ${pcapFilePaths.length} PCAP files`);
-
+    
     // Step 3: Create and start hashcat job
     const dictionaryPaths = selectedDictionariesData.map(dict => resolve(process.cwd(), dict.filePath));
 
@@ -294,7 +287,6 @@ export async function POST(request: NextRequest) {
     // Step 7: Start tracking the hashcat session for progress monitoring
     if (hashcatResult.data?.sessionId) {
       jobMonitor.trackSession(hashcatResult.data.sessionId);
-      console.log(`Started tracking hashcat session: ${hashcatResult.data.sessionId}`);
     }
 
     // Step 8: Return job data
