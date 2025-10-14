@@ -18,6 +18,7 @@ WiFi Network Analysis & Password Cracking Tool
 ### Docker Compose (Recommended & Default Deployment)
 
 The Docker Compose setup includes:
+
 - **AutoPWN Application** (Next.js frontend + API)
 - **PostgreSQL Database** (persistent data storage)
 - **Health Checks** for both services
@@ -63,9 +64,11 @@ pnpm dev
 ## 📋 Requirements
 
 ### For Docker Compose Deployment (Recommended)
+
 - **Docker** & **Docker Compose**
 
 ### For Local Development
+
 - **Node.js** 20+
 - **pnpm** package manager
 - **PostgreSQL** 15+
@@ -74,20 +77,20 @@ pnpm dev
 
 ### Required Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `BETTER_AUTH_SECRET` | Authentication secret (32+ chars) | Required |
-| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
-| `NEXT_PUBLIC_APP_URL` | Public application URL | `http://localhost:3000` |
+| Variable              | Description                       | Default                 |
+| --------------------- | --------------------------------- | ----------------------- |
+| `DATABASE_URL`        | PostgreSQL connection string      | Required                |
+| `BETTER_AUTH_SECRET`  | Authentication secret (32+ chars) | Required                |
+| `BETTER_AUTH_URL`     | Base URL for auth callbacks       | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | Public application URL            | `http://localhost:3000` |
 
 ### Key Security Settings
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MIN_PASSWORD_LENGTH` | Minimum password length | `8` |
-| `ACCOUNT_LOCKOUT_ATTEMPTS` | Failed attempts before lockout | `5` |
-| `SESSION_TIMEOUT` | Session timeout in hours | `24` |
+| Variable                   | Description                    | Default |
+| -------------------------- | ------------------------------ | ------- |
+| `MIN_PASSWORD_LENGTH`      | Minimum password length        | `8`     |
+| `ACCOUNT_LOCKOUT_ATTEMPTS` | Failed attempts before lockout | `5`     |
+| `SESSION_TIMEOUT`          | Session timeout in hours       | `24`    |
 
 ## 🗄️ Database Management
 
@@ -108,6 +111,7 @@ pnpm db:reset
 ## 🐳 Docker Commands
 
 ### Docker Compose (Recommended)
+
 ```bash
 # Start all services (app + PostgreSQL)
 docker-compose up -d
@@ -123,6 +127,7 @@ docker-compose restart
 ```
 
 ### Standalone Docker
+
 ```bash
 # Build custom image
 docker build -t autopwn:latest .
