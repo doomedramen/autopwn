@@ -125,6 +125,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            NEXT_PUBLIC_APP_URL=http://localhost:3000
+            BETTER_AUTH_SECRET=github-action-build-secret-32-chars-long
+            BETTER_AUTH_URL=http://localhost:3000
+            DATABASE_URL=postgresql://test:test@localhost:5432/test
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
