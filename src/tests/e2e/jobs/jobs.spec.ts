@@ -230,7 +230,7 @@ test.describe('Job Management', () => {
           }
 
           await page.waitForTimeout(2000);
-        } catch (error) {
+        } catch {
           // Progress element might not be available yet
           await page.waitForTimeout(1000);
         }

@@ -178,6 +178,7 @@ export default function Home() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleUploadComplete = (_type: string, _results: unknown[]) => {
     // Refresh data after upload
     loadDashboardData();

@@ -81,7 +81,7 @@ export default function SetupPage() {
         setError(data.error || 'Initialization failed');
         toast.error(data.error || 'Initialization failed');
       }
-    } catch (_error) {
+    } catch {
       const errorMessage = 'Failed to initialize system';
       setError(errorMessage);
       toast.error(errorMessage);

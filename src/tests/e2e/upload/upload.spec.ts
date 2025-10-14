@@ -5,7 +5,7 @@ import { TestHelpers } from '../helpers/test-helpers';
 test.describe('File Upload', () => {
   let authHeaders: Record<string, string>;
 
-  test.beforeAll(async ({ browser, request }) => {
+  test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
 

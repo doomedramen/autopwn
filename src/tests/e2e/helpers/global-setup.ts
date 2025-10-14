@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { chromium, FullConfig } from '@playwright/test';
+import { FullConfig } from '@playwright/test';
 
 /**
  * Global setup for e2e tests
@@ -8,12 +8,14 @@ import { chromium, FullConfig } from '@playwright/test';
  * - Sets up test environment
  * - Ensures clean test state
  */
-async function globalSetup(config: FullConfig) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function globalSetup(_config: FullConfig) {
   console.log('🧹 Running global setup for organized tests...');
 
   // Set environment variables to indicate test environment
   process.env.PLAYWRIGHT = 'true';
-  process.env.DISABLE_AUTH = 'true';
+  // Remove DISABLE_AUTH to ensure tests work with authentication
+  delete process.env.DISABLE_AUTH;
 
   // Load environment variables from .env.local
   try {
@@ -30,8 +32,8 @@ async function globalSetup(config: FullConfig) {
       }
     });
     console.log('✓ Loaded environment variables from .env.local');
-  } catch (error) {
-    console.log('⚠ Could not load .env.local file:', error);
+  } catch {
+    console.log('⚠ Could not load .env.local file');
   }
 
   // Create test results directory
@@ -39,8 +41,8 @@ async function globalSetup(config: FullConfig) {
   try {
     await fs.mkdir(testResultsDir, { recursive: true });
     console.log('✓ Created test results directory');
-  } catch (error) {
-    console.log('⚠ Could not create test results directory:', error);
+  } catch {
+    console.log('⚠ Could not create test results directory');
   }
 
   // Ensure test fixtures exist
@@ -55,7 +57,7 @@ async function globalSetup(config: FullConfig) {
     try {
       await fs.access(fixturePath);
       console.log(`✓ Found fixture: ${fixture}`);
-    } catch (error) {
+    } catch {
       console.log(`⚠ Missing fixture: ${fixture}`);
     }
   }
@@ -65,8 +67,8 @@ async function globalSetup(config: FullConfig) {
   try {
     await fs.rm(uploadsDir, { recursive: true, force: true });
     console.log('✓ Cleared uploads directory');
-  } catch (error) {
-    console.log('⚠ Could not clear uploads directory:', error);
+  } catch {
+    console.log('⚠ Could not clear uploads directory');
   }
 
   // Recreate uploads directory structure
@@ -76,8 +78,8 @@ async function globalSetup(config: FullConfig) {
     await fs.mkdir(path.join(uploadsDir, 'dictionary'), { recursive: true });
     await fs.mkdir(path.join(process.cwd(), 'jobs'), { recursive: true });
     console.log('✓ Recreated uploads directory structure');
-  } catch (error) {
-    console.log('⚠ Could not create uploads directory:', error);
+  } catch {
+    console.log('⚠ Could not create uploads directory');
   }
 
   // Clear hashcat potfile for clean tests
@@ -89,8 +91,8 @@ async function globalSetup(config: FullConfig) {
   try {
     await fs.rm(potfilePath, { force: true });
     console.log('✓ Cleared hashcat potfile');
-  } catch (error) {
-    console.log('⚠ Could not clear hashcat potfile:', error);
+  } catch {
+    console.log('⚠ Could not clear hashcat potfile');
   }
 
   console.log('✅ Global setup complete for organized tests\n');

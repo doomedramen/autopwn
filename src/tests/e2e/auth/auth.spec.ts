@@ -212,7 +212,6 @@ test.describe('Auth Disabled Mode', () => {
   });
 
   test('should create user via API directly in auth disabled mode', async ({
-    page,
     request,
   }) => {
     // Skip this test unless auth is disabled

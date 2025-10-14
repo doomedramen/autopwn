@@ -147,6 +147,7 @@ export async function createSuperUserIfNotExists() {
   return { ...superUser, plainPassword: randomPassword };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateSecurePassword(): string {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';

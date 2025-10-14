@@ -6,6 +6,7 @@ import type { AuthUser } from '@/lib/auth';
 
 // Feature flag to disable authentication for testing
 // Note: This is server-side only. Client-side will check via API
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isAuthDisabled, setIsAuthDisabled] = useState(false);
 
   const refreshUser = async () => {
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     checkAuthStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   const isAuthenticated = !!user;

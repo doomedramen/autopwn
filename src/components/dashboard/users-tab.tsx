@@ -68,6 +68,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [currentPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [totalPages, setTotalPages] = useState(1);
 
   // Dialog states
@@ -112,7 +113,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || 'Failed to fetch users');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to fetch users');
     } finally {
       setIsLoading(false);
@@ -164,7 +165,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || 'Failed to create user');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to create user');
     }
   };
@@ -196,7 +197,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || 'Failed to update user');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to update user');
     }
   };
@@ -225,7 +226,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       } else {
         toast.error(data.error || 'Failed to update user status');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to update user status');
     }
   };

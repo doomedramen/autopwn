@@ -4,7 +4,7 @@ import { TestHelpers } from '../helpers/test-helpers';
 test.describe('Complete Workflow: Upload and Crack Passwords', () => {
   let authHeaders: Record<string, string>;
 
-  test.beforeAll(async ({ browser, request }) => {
+  test.beforeAll(async ({ browser }) => {
     console.log('🔧 Setting up test environment...');
 
     const context = await browser.newContext();

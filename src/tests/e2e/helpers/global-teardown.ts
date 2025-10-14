@@ -8,7 +8,8 @@ import { FullConfig } from '@playwright/test';
  * - Cleans up test artifacts
  * - Generates test reports
  */
-async function globalTeardown(config: FullConfig) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function globalTeardown(_config: FullConfig) {
   console.log('🧹 Running global teardown for organized tests...');
 
   // Generate test summary
@@ -94,7 +95,8 @@ async function globalTeardown(config: FullConfig) {
   console.log('✅ Global teardown complete\n');
 }
 
-function generateTestSummary(testResultsDir: string): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function generateTestSummary(_testResultsDir: string): string {
   const timestamp = new Date().toISOString();
 
   return `# E2E Test Summary
