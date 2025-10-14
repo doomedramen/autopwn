@@ -1,4 +1,10 @@
 pre-commit:
   commands:
+    lint-fix:
+      run: pnpm lint:fix
+    format-fix:
+      run: pnpm format:write
+    typecheck:
+      run: pnpm typecheck
     build:
       run: pnpm build

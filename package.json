@@ -10,7 +10,7 @@
     "lint:fix": "eslint --fix",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
-    "tsc": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run src/tests/integration/real-pcap-tests.test.ts",
     "test:watch": "vitest src/tests/integration/real-pcap-tests.test.ts",
     "test:run": "vitest run --passWithNoTests",
