@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Logo } from "@/components/ui/Logo";
-import { Shield, Wifi } from "lucide-react";
+import React from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ThemeSwitcher } from '@/components/theme-switcher';
+import { Logo } from '@/components/ui/Logo';
+import { Shield, Wifi } from 'lucide-react';
 
 interface UniversalHeaderProps {
   showActions?: boolean;
@@ -21,15 +21,18 @@ export function UniversalHeader({
   onUploadClick,
   onCreateJobClick,
   disabledJobButton = false,
-  title = "AutoPWN",
-  subtitle = "WiFi Network Analysis Platform"
+  title = 'AutoPWN',
+  subtitle = 'WiFi Network Analysis Platform',
 }: UniversalHeaderProps) {
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           {/* Logo and Title */}
-          <Link href="/" className="flex items-center space-x-3 sm:space-x-4 group">
+          <Link
+            href="/"
+            className="flex items-center space-x-3 sm:space-x-4 group"
+          >
             <div className="flex items-center space-x-2 sm:space-x-3">
               <Logo size="md" className="text-primary" />
               <div className="hidden sm:block">
@@ -37,7 +40,9 @@ export function UniversalHeader({
                   {title}
                 </h1>
                 {subtitle && (
-                  <p className="text-xs sm:text-sm text-muted-foreground hidden lg:block">{subtitle}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground hidden lg:block">
+                    {subtitle}
+                  </p>
                 )}
               </div>
             </div>

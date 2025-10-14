@@ -1,22 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { accounts, userProfiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { updateUserPassword, updateUserProfile } from "@/lib/auth";
-import { z } from "zod";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { accounts, userProfiles } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { updateUserPassword, updateUserProfile } from '@/lib/auth';
+import { z } from 'zod';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 // Schema for password change
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
-  confirmPassword: z.string().min(8),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8),
+    confirmPassword: z.string().min(8),
+  })
+  .refine(data => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 // Schema for profile update
 const updateProfileSchema = z.object({
@@ -34,16 +36,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const { type } = body;
 
-    if (type === "password") {
+    if (type === 'password') {
       const validatedData = changePasswordSchema.parse(body);
 
       // Get current user's account to verify current password
@@ -56,7 +55,7 @@ export async function POST(request: NextRequest) {
 
       if (!currentAccount) {
         return NextResponse.json(
-          { error: "User account not found" },
+          { error: 'User account not found' },
           { status: 404 }
         );
       }
@@ -74,23 +73,20 @@ export async function POST(request: NextRequest) {
 
         if (!signInResult?.user) {
           return NextResponse.json(
-            { error: "Current password is incorrect" },
+            { error: 'Current password is incorrect' },
             { status: 400 }
           );
         }
       } catch (error) {
-        console.error("Password verification error:", error);
+        console.error('Password verification error:', error);
         return NextResponse.json(
-          { error: "Current password is incorrect" },
+          { error: 'Current password is incorrect' },
           { status: 400 }
         );
       }
 
       // Update password
-      await updateUserPassword(
-        session.user.id,
-        validatedData.newPassword
-      );
+      await updateUserPassword(session.user.id, validatedData.newPassword);
 
       // Get updated profile to check password change requirement
       const updatedProfile = await db.query.userProfiles.findFirst({
@@ -99,12 +95,12 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: "Password updated successfully",
+        message: 'Password updated successfully',
         data: {
           requirePasswordChange: updatedProfile?.requirePasswordChange || false,
         },
       });
-    } else if (type === "profile") {
+    } else if (type === 'profile') {
       const validatedData = updateProfileSchema.parse(body);
 
       // Check if email already exists (excluding current user)
@@ -119,8 +115,8 @@ export async function POST(request: NextRequest) {
       if (existingUser) {
         return NextResponse.json(
           {
-            error: "Email already registered",
-            message: "Email already registered",
+            error: 'Email already registered',
+            message: 'Email already registered',
           },
           { status: 400 }
         );
@@ -138,24 +134,27 @@ export async function POST(request: NextRequest) {
       if (existingProfile) {
         return NextResponse.json(
           {
-            error: "Username already taken",
-            message: "Username already taken",
+            error: 'Username already taken',
+            message: 'Username already taken',
           },
           { status: 400 }
         );
       }
 
       // Update profile
-      const updatedUser = await updateUserProfile(session.user.id, validatedData);
+      const updatedUser = await updateUserProfile(
+        session.user.id,
+        validatedData
+      );
 
       return NextResponse.json({
         success: true,
-        message: "Profile updated successfully",
+        message: 'Profile updated successfully',
         data: updatedUser,
       });
     } else {
       return NextResponse.json(
-        { error: "Invalid request type" },
+        { error: 'Invalid request type' },
         { status: 400 }
       );
     }
@@ -163,18 +162,18 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: 'Validation failed',
           details: error.issues,
         },
         { status: 400 }
       );
     }
 
-    console.error("User update error:", error);
+    console.error('User update error:', error);
     return NextResponse.json(
       {
-        error: "Failed to update user",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to update user',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

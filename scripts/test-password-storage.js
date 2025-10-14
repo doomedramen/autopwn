@@ -18,7 +18,7 @@ async function testPasswordStorage() {
       const { spawn } = await import('child_process');
       const appProcess = spawn('npm', ['run', 'dev'], {
         stdio: 'inherit',
-        detached: true
+        detached: true,
       });
       appProcess.unref();
 
@@ -30,12 +30,19 @@ async function testPasswordStorage() {
     console.log('2. Uploading dictionary...');
     const dictPath = 'src/tests/fixtures/test-passwords.txt';
     const dictFormData = new FormData();
-    dictFormData.append('file', new Blob([fs.readFileSync(dictPath)], { type: 'text/plain' }), 'test-passwords.txt');
+    dictFormData.append(
+      'file',
+      new Blob([fs.readFileSync(dictPath)], { type: 'text/plain' }),
+      'test-passwords.txt'
+    );
 
-    const dictResponse = await fetch('http://localhost:3000/api/upload/dictionary', {
-      method: 'POST',
-      body: dictFormData
-    });
+    const dictResponse = await fetch(
+      'http://localhost:3000/api/upload/dictionary',
+      {
+        method: 'POST',
+        body: dictFormData,
+      }
+    );
 
     if (!dictResponse.ok) {
       throw new Error(`Dictionary upload failed: ${dictResponse.statusText}`);
@@ -49,11 +56,17 @@ async function testPasswordStorage() {
     console.log('3. Uploading PCAP...');
     const pcapPath = 'src/tests/fixtures/wpa2-ikeriri-5g.pcap';
     const pcapFormData = new FormData();
-    pcapFormData.append('file', new Blob([fs.readFileSync(pcapPath)], { type: 'application/octet-stream' }), 'wpa2-ikeriri-5g.pcap');
+    pcapFormData.append(
+      'file',
+      new Blob([fs.readFileSync(pcapPath)], {
+        type: 'application/octet-stream',
+      }),
+      'wpa2-ikeriri-5g.pcap'
+    );
 
     const pcapResponse = await fetch('http://localhost:3000/api/upload/pcap', {
       method: 'POST',
-      body: pcapFormData
+      body: pcapFormData,
     });
 
     if (!pcapResponse.ok) {
@@ -66,7 +79,9 @@ async function testPasswordStorage() {
 
     // 4. Get networks from PCAP
     console.log('4. Getting networks...');
-    const networksResponse = await fetch(`http://localhost:3000/api/pcap/${pcapId}/networks`);
+    const networksResponse = await fetch(
+      `http://localhost:3000/api/pcap/${pcapId}/networks`
+    );
     const networksData = await networksResponse.json();
     const networkBssid = networksData.data[0].bssid;
     console.log(`✓ Found network: ${networkBssid}`);
@@ -83,9 +98,9 @@ async function testPasswordStorage() {
         options: {
           attackMode: 0,
           hashType: 22000,
-          workloadProfile: 3
-        }
-      })
+          workloadProfile: 3,
+        },
+      }),
     });
 
     if (!jobResponse.ok) {
@@ -105,11 +120,15 @@ async function testPasswordStorage() {
     while (jobStatus === 'processing' && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 5000));
 
-      const statusResponse = await fetch(`http://localhost:3000/api/jobs/${jobId}/status`);
+      const statusResponse = await fetch(
+        `http://localhost:3000/api/jobs/${jobId}/status`
+      );
       const statusData = await statusResponse.json();
       jobStatus = statusData.data.status;
 
-      console.log(`   Status: ${jobStatus}, Cracked: ${statusData.data.cracked}/${statusData.data.totalHashes}`);
+      console.log(
+        `   Status: ${jobStatus}, Cracked: ${statusData.data.cracked}/${statusData.data.totalHashes}`
+      );
       attempts++;
     }
 
@@ -122,12 +141,18 @@ async function testPasswordStorage() {
     // 7. Check for cracked passwords in database
     console.log('7. Checking database for cracked passwords...');
     try {
-      const dbResult = execSync(`PGPASSWORD=autopwn_password docker exec autopwn-postgres psql -U autopwn -d autopwn -c "SELECT COUNT(*) FROM cracked_passwords;"`, { encoding: 'utf8' });
+      const dbResult = execSync(
+        `PGPASSWORD=autopwn_password docker exec autopwn-postgres psql -U autopwn -d autopwn -c "SELECT COUNT(*) FROM cracked_passwords;"`,
+        { encoding: 'utf8' }
+      );
       const count = parseInt(dbResult.split('\n')[2].trim());
       console.log(`✓ Found ${count} cracked passwords in database`);
 
       if (count > 0) {
-        const passwords = execSync(`PGPASSWORD=autopwn_password docker exec autopwn-postgres psql -U autopwn -d autopwn -c "SELECT essid, plain_password, jobs.name FROM cracked_passwords JOIN networks ON cracked_passwords.network_id = networks.id JOIN jobs ON cracked_passwords.job_id = jobs.id;"`, { encoding: 'utf8' });
+        const passwords = execSync(
+          `PGPASSWORD=autopwn_password docker exec autopwn-postgres psql -U autopwn -d autopwn -c "SELECT essid, plain_password, jobs.name FROM cracked_passwords JOIN networks ON cracked_passwords.network_id = networks.id JOIN jobs ON cracked_passwords.job_id = jobs.id;"`,
+          { encoding: 'utf8' }
+        );
         console.log('Cracked passwords:');
         console.log(passwords);
       }
@@ -136,7 +161,6 @@ async function testPasswordStorage() {
     }
 
     console.log('\n✅ Password storage test completed successfully!');
-
   } catch (error) {
     console.error('\n❌ Test failed:', error.message);
     process.exit(1);

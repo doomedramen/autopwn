@@ -24,14 +24,11 @@ export async function GET(
 
     // Get job from database
     const job = await db.query.jobs.findFirst({
-      where: eq(jobs.id, jobId)
+      where: eq(jobs.id, jobId),
     });
 
     if (!job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
     // Return job status information
@@ -47,17 +44,16 @@ export async function GET(
         speed: {
           current: Number(job.speedCurrent) || 0,
           average: Number(job.speedAverage) || 0,
-          unit: job.speedUnit || 'H/s'
+          unit: job.speedUnit || 'H/s',
         },
         eta: job.eta || '',
         hashcatSession: job.hashcatSession,
         startedAt: job.startedAt,
         errorMessage: job.errorMessage,
         createdAt: job.createdAt,
-        updatedAt: job.updatedAt
-      }
+        updatedAt: job.updatedAt,
+      },
     });
-
   } catch (error) {
     console.error('Job status fetch error:', error);
 
@@ -65,7 +61,7 @@ export async function GET(
       {
         success: false,
         error: 'Failed to fetch job status',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

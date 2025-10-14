@@ -2,10 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Upload,
-  Play
-} from 'lucide-react';
+import { Upload, Play } from 'lucide-react';
 
 interface FloatingActionsProps {
   networksWithHandshakesCount: number;
@@ -18,7 +15,7 @@ export function FloatingActions({
   networksWithHandshakesCount,
   dictionariesCount,
   onUploadClick,
-  onCreateJobClick
+  onCreateJobClick,
 }: FloatingActionsProps) {
   return (
     <div className="md:hidden fixed bottom-6 right-6 z-50 flex flex-col space-y-2">

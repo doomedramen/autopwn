@@ -13,7 +13,7 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
   const sizeClasses = {
     sm: 'size-4',
     md: 'size-6',
-    lg: 'size-8'
+    lg: 'size-8',
   };
 
   return <ShadcnSpinner className={cn(sizeClasses[size], className)} />;
@@ -30,7 +30,7 @@ export function Loading({ message, size = 'md', className }: LoadingProps) {
     <div className={cn('flex items-center space-x-2', className)}>
       <Spinner size={size} />
       {message && (
-        <span className='text-sm text-muted-foreground'>{message}</span>
+        <span className="text-sm text-muted-foreground">{message}</span>
       )}
     </div>
   );

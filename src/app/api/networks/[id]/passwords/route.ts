@@ -31,18 +31,19 @@ export async function GET(
             id: true,
             name: true,
             createdAt: true,
-            completedAt: true
-          }
-        }
+            completedAt: true,
+          },
+        },
       },
-      orderBy: (crackedPasswords, { desc }) => [desc(crackedPasswords.crackedAt)]
+      orderBy: (crackedPasswords, { desc }) => [
+        desc(crackedPasswords.crackedAt),
+      ],
     });
 
     return NextResponse.json({
       success: true,
-      data: passwords
+      data: passwords,
     });
-
   } catch (error) {
     console.error('Failed to fetch cracked passwords:', error);
 
@@ -50,7 +51,7 @@ export async function GET(
       {
         success: false,
         error: 'Failed to fetch cracked passwords',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

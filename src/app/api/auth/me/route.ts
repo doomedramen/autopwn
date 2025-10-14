@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { users, userProfiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { users, userProfiles } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 /**
  * Get current user information
@@ -16,10 +16,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user and profile data
@@ -32,10 +29,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user || !profile) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Return combined user data
@@ -52,11 +46,11 @@ export async function GET(request: NextRequest) {
       updatedAt: user.updatedAt,
     });
   } catch (error) {
-    console.error("Get user error:", error);
+    console.error('Get user error:', error);
     return NextResponse.json(
       {
-        error: "Failed to get user information",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to get user information',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

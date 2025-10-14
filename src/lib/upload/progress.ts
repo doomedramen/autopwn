@@ -27,7 +27,7 @@ export class ProgressTracker extends EventEmitter {
       updateInterval: 100, // 100ms default
       maxHistory: 100,
       enableEvents: true,
-      ...options
+      ...options,
     };
   }
 
@@ -41,7 +41,7 @@ export class ProgressTracker extends EventEmitter {
       percentage: 0,
       speed: 0,
       eta: 0,
-      stage: 'uploading'
+      stage: 'uploading',
     };
 
     this.progress.set(fileId, progress);
@@ -66,7 +66,9 @@ export class ProgressTracker extends EventEmitter {
 
     // Calculate derived values
     if (update.bytesUploaded !== undefined) {
-      updated.percentage = Math.round((updated.bytesUploaded / updated.totalBytes) * 100);
+      updated.percentage = Math.round(
+        (updated.bytesUploaded / updated.totalBytes) * 100
+      );
 
       // Calculate speed and ETA if bytes have increased
       if (updated.bytesUploaded > previous.bytesUploaded) {
@@ -76,7 +78,12 @@ export class ProgressTracker extends EventEmitter {
         if (timeDiff > 0) {
           const bytesDiff = updated.bytesUploaded - previous.bytesUploaded;
           updated.speed = bytesDiff / timeDiff; // bytes per second
-          updated.eta = updated.speed > 0 ? Math.round((updated.totalBytes - updated.bytesUploaded) / updated.speed) : 0;
+          updated.eta =
+            updated.speed > 0
+              ? Math.round(
+                  (updated.totalBytes - updated.bytesUploaded) / updated.speed
+                )
+              : 0;
         }
       }
     }
@@ -90,7 +97,7 @@ export class ProgressTracker extends EventEmitter {
     history.push({
       fileId,
       progress: updated,
-      timestamp: updated.timestamp
+      timestamp: updated.timestamp,
     });
 
     // Limit history size
@@ -133,11 +140,15 @@ export class ProgressTracker extends EventEmitter {
     this.updateProgress(fileId, {
       stage: 'completed',
       percentage: 100,
-      message: 'Upload completed successfully'
+      message: 'Upload completed successfully',
     });
 
     if (this.options.enableEvents) {
-      this.emit('completed', { fileId, progress: this.progress.get(fileId), result });
+      this.emit('completed', {
+        fileId,
+        progress: this.progress.get(fileId),
+        result,
+      });
     }
 
     // Stop any periodic updates
@@ -153,11 +164,15 @@ export class ProgressTracker extends EventEmitter {
   failTracking(fileId: string, error: string): void {
     this.updateProgress(fileId, {
       stage: 'error',
-      message: error
+      message: error,
     });
 
     if (this.options.enableEvents) {
-      this.emit('failed', { fileId, progress: this.progress.get(fileId), error });
+      this.emit('failed', {
+        fileId,
+        progress: this.progress.get(fileId),
+        error,
+      });
     }
 
     // Stop any periodic updates
@@ -173,7 +188,7 @@ export class ProgressTracker extends EventEmitter {
   cancelTracking(fileId: string): void {
     this.updateProgress(fileId, {
       stage: 'error',
-      message: 'Upload cancelled'
+      message: 'Upload cancelled',
     });
 
     if (this.options.enableEvents) {
@@ -190,12 +205,18 @@ export class ProgressTracker extends EventEmitter {
   /**
    * Start periodic progress updates (for streaming uploads)
    */
-  startPeriodicUpdate(fileId: string, updateFn: () => Partial<UploadProgress>): void {
+  startPeriodicUpdate(
+    fileId: string,
+    updateFn: () => Partial<UploadProgress>
+  ): void {
     this.stopPeriodicUpdate(fileId); // Clear any existing timer
 
     const timer = setInterval(() => {
       const progress = this.progress.get(fileId);
-      if (!progress || (progress.stage !== 'uploading' && progress.stage !== 'processing')) {
+      if (
+        !progress ||
+        (progress.stage !== 'uploading' && progress.stage !== 'processing')
+      ) {
         this.stopPeriodicUpdate(fileId);
         return;
       }
@@ -265,7 +286,7 @@ export class ProgressTracker extends EventEmitter {
       failed,
       totalBytes,
       uploadedBytes,
-      averageSpeed: speedCount > 0 ? totalSpeed / speedCount : 0
+      averageSpeed: speedCount > 0 ? totalSpeed / speedCount : 0,
     };
   }
 
@@ -277,9 +298,11 @@ export class ProgressTracker extends EventEmitter {
     const stalled: string[] = [];
 
     for (const [fileId, progress] of this.progress) {
-      if ((progress.stage === 'uploading' || progress.stage === 'processing') &&
-          progress.timestamp &&
-          (now - progress.timestamp) > timeoutMs) {
+      if (
+        (progress.stage === 'uploading' || progress.stage === 'processing') &&
+        progress.timestamp &&
+        now - progress.timestamp > timeoutMs
+      ) {
         stalled.push(fileId);
       }
     }
@@ -350,7 +373,7 @@ export class ProgressTracker extends EventEmitter {
     return {
       fileId,
       progress,
-      history: this.history.get(fileId)
+      history: this.history.get(fileId),
     };
   }
 }

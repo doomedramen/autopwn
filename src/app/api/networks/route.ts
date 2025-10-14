@@ -11,14 +11,13 @@ export async function GET() {
     // Start with a simple query without relations
     const networkList = await db.query.networks.findMany({
       where: isNotNull(networks.bssid),
-      orderBy: (networks, { desc }) => [desc(networks.createdAt)]
+      orderBy: (networks, { desc }) => [desc(networks.createdAt)],
     });
 
     return NextResponse.json({
       success: true,
-      data: networkList
+      data: networkList,
     });
-
   } catch (error) {
     console.error('Networks fetch error:', error);
 
@@ -26,7 +25,7 @@ export async function GET() {
       {
         success: false,
         error: 'Failed to fetch networks',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

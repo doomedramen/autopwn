@@ -11,6 +11,10 @@ import postgres from 'postgres';
 async function globalSetup() {
   console.log('🧹 Running global setup...');
 
+  // Set environment variables to indicate test environment
+  process.env.PLAYWRIGHT = 'true';
+  process.env.DISABLE_AUTH = 'true';
+
   // Load environment variables from .env.local
   try {
     const envPath = path.join(process.cwd(), '.env.local');
@@ -40,7 +44,11 @@ async function globalSetup() {
   }
 
   // Clear hashcat potfile
-  const potfilePath = path.join(process.env.HOME || '', '.hashcat', 'hashcat.potfile');
+  const potfilePath = path.join(
+    process.env.HOME || '',
+    '.hashcat',
+    'hashcat.potfile'
+  );
   try {
     await fs.rm(potfilePath, { force: true });
     console.log('✓ Cleared hashcat potfile');
@@ -58,38 +66,11 @@ async function globalSetup() {
     console.log('⚠ Could not create uploads directory:', error);
   }
 
-  // Clear database
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.log('⚠ DATABASE_URL not set, skipping database cleanup');
-    return;
-  }
-
-  const client = postgres(databaseUrl);
-
-  try {
-    // Delete all data from tables in the correct order (respecting foreign keys)
-    await client`DELETE FROM cracked_passwords`;
-    await client`DELETE FROM job_dictionaries`;
-    await client`DELETE FROM job_networks`;
-    await client`DELETE FROM job_pcaps`;
-    await client`DELETE FROM jobs`;
-    await client`DELETE FROM networks`;
-    await client`DELETE FROM uploads`;
-
-    // Delete authentication tables
-    await client`DELETE FROM sessions`;
-    await client`DELETE FROM accounts`;
-    await client`DELETE FROM verifications`;
-    await client`DELETE FROM users`;
-
-    console.log('✓ Cleared database tables including authentication');
-  } catch (error) {
-    console.error('❌ Failed to clear database:', error);
-    throw error;
-  } finally {
-    await client.end();
-  }
+  // NOTE: With true test isolation, we don't clear the database in global setup
+  // Each test will handle its own initialization
+  console.log(
+    '📝 Database cleanup handled by individual tests for true isolation'
+  );
 
   console.log('✅ Global setup complete\n');
 }

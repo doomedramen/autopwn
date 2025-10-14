@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push hooks..."
+
+# Run all tests
+echo "  🧪 Running all unit tests..."
+pnpm test:run
+
+# Run integration tests
+echo "  🔗 Running integration tests..."
+pnpm test:integration
+
+# Run E2E tests (comment out if they take too long for pre-push)
+echo "  🌐 Running E2E tests..."
+# pnpm test:e2e
+echo "  ⚠️  E2E tests skipped (run them manually before important releases)"
+
+echo "✅ Pre-push hooks passed!"

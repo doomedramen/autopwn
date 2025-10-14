@@ -2,7 +2,13 @@
 
 import React from 'react';
 import { formatFileSize } from '@/lib/utils/file-size';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,16 +18,10 @@ import {
   ItemContent,
   ItemActions,
   ItemTitle,
-  ItemDescription
+  ItemDescription,
 } from '@/components/ui/item';
-import {
-  BookOpen,
-  Upload
-} from 'lucide-react';
-import {
-  EmptyState,
-  CardGridSkeleton
-} from '@/components/loading';
+import { BookOpen, Upload } from 'lucide-react';
+import { EmptyState, CardGridSkeleton } from '@/components/loading';
 
 interface DictionaryInfo {
   id: string;
@@ -40,7 +40,11 @@ interface DictionariesTabProps {
   onUploadClick: () => void;
 }
 
-export function DictionariesTab({ dictionaries, isInitialLoad, onUploadClick }: DictionariesTabProps) {
+export function DictionariesTab({
+  dictionaries,
+  isInitialLoad,
+  onUploadClick,
+}: DictionariesTabProps) {
   return (
     <Card>
       <CardHeader>
@@ -54,18 +58,23 @@ export function DictionariesTab({ dictionaries, isInitialLoad, onUploadClick }: 
           <CardGridSkeleton count={4} />
         ) : dictionaries.length > 0 ? (
           <ItemGroup className="gap-3">
-            {dictionaries.map((dictionary) => (
+            {dictionaries.map(dictionary => (
               <Item key={dictionary.id} variant="outline">
-                <ItemMedia variant="icon" className="!self-center !translate-y-0">
+                <ItemMedia
+                  variant="icon"
+                  className="!self-center !translate-y-0"
+                >
                   <BookOpen className="size-4" />
                 </ItemMedia>
                 <ItemContent>
                   <ItemTitle>{dictionary.name}</ItemTitle>
                   <ItemDescription>
-                    {dictionary.lineCount.toLocaleString()} words • {formatFileSize(dictionary.size)}
+                    {dictionary.lineCount.toLocaleString()} words •{' '}
+                    {formatFileSize(dictionary.size)}
                     {dictionary.isCompressed && ' • Compressed'}
                     <br />
-                    Uploaded {new Date(dictionary.uploadDate).toLocaleDateString()}
+                    Uploaded{' '}
+                    {new Date(dictionary.uploadDate).toLocaleDateString()}
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>

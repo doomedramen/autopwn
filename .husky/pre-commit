@@ -1,0 +1,19 @@
+echo "🔍 Running pre-commit hooks..."
+
+# Run type check
+echo "  📝 Running TypeScript type check..."
+pnpm tsc --noEmit
+
+# Run ESLint with auto-fix
+echo "  🔧 Running ESLint..."
+pnpm lint:fix
+
+# Run format check
+echo "  🎨 Checking code formatting..."
+pnpm format:check
+
+# Run build to ensure it compiles
+echo "  🏗️  Building project..."
+pnpm build
+
+echo "✅ Pre-commit hooks passed!"

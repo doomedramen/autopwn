@@ -10,7 +10,13 @@ interface JobProgressProps {
   job: {
     id: string;
     name: string;
-    status: 'pending' | 'processing' | 'paused' | 'completed' | 'failed' | 'stopped';
+    status:
+      | 'pending'
+      | 'processing'
+      | 'paused'
+      | 'completed'
+      | 'failed'
+      | 'stopped';
     progress: number;
     speed?: string;
     eta?: string;
@@ -41,7 +47,6 @@ export function JobProgress({ job, showDetails = false }: JobProgressProps) {
     }
   };
 
-  
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'pending':
@@ -74,7 +79,8 @@ export function JobProgress({ job, showDetails = false }: JobProgressProps) {
                 {job.status}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                {job.cracked.toLocaleString()} / {job.total.toLocaleString()} passwords
+                {job.cracked.toLocaleString()} / {job.total.toLocaleString()}{' '}
+                passwords
               </span>
             </div>
           </div>
@@ -93,7 +99,9 @@ export function JobProgress({ job, showDetails = false }: JobProgressProps) {
             {job.currentDictionary && (
               <div className="flex justify-between">
                 <span>Dictionary:</span>
-                <span className="truncate max-w-[200px]">{job.currentDictionary}</span>
+                <span className="truncate max-w-[200px]">
+                  {job.currentDictionary}
+                </span>
               </div>
             )}
             {job.speed && (

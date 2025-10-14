@@ -2,12 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Wifi,
-  BookOpen,
-  Activity,
-  Zap
-} from 'lucide-react';
+import { Wifi, BookOpen, Activity, Zap } from 'lucide-react';
 import { LoadingOverlay } from '@/components/loading';
 
 interface DashboardStatsProps {
@@ -29,14 +24,18 @@ export function DashboardStats({
   completedJobsCount,
   totalJobsCount,
   totalWordsCount,
-  isLoading
+  isLoading,
 }: DashboardStatsProps) {
-  const successRate = totalJobsCount > 0
-    ? Math.round((completedJobsCount / totalJobsCount) * 100)
-    : 0;
+  const successRate =
+    totalJobsCount > 0
+      ? Math.round((completedJobsCount / totalJobsCount) * 100)
+      : 0;
 
   return (
-    <LoadingOverlay isLoading={isLoading || false} message={isLoading ? 'Updating dashboard...' : undefined}>
+    <LoadingOverlay
+      isLoading={isLoading || false}
+      message={isLoading ? 'Updating dashboard...' : undefined}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Networks Card */}
         <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] hover-lift group">
@@ -51,7 +50,9 @@ export function DashboardStats({
             {networksWithHandshakesCount > 0 && (
               <div className="flex items-center space-x-1">
                 <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs text-green-600 font-medium">Active</span>
+                <span className="text-xs text-green-600 font-medium">
+                  Active
+                </span>
               </div>
             )}
           </CardHeader>
@@ -64,7 +65,12 @@ export function DashboardStats({
                 {networksWithHandshakesCount} with handshakes
               </p>
               <div className="text-xs text-blue-600 bg-blue-500/10 px-2 py-1 rounded-full">
-                {networksCount > 0 ? Math.round((networksWithHandshakesCount / networksCount) * 100) : 0}%
+                {networksCount > 0
+                  ? Math.round(
+                      (networksWithHandshakesCount / networksCount) * 100
+                    )
+                  : 0}
+                %
               </div>
             </div>
           </CardContent>
@@ -78,7 +84,9 @@ export function DashboardStats({
               <div className="p-2 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
                 <BookOpen className="h-4 w-4 text-emerald-600" />
               </div>
-              <CardTitle className="text-sm font-semibold">Dictionaries</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Dictionaries
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -104,12 +112,16 @@ export function DashboardStats({
               <div className="p-2 rounded-lg bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
                 <Activity className="h-4 w-4 text-orange-600" />
               </div>
-              <CardTitle className="text-sm font-semibold">Active Jobs</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Active Jobs
+              </CardTitle>
             </div>
             {activeJobsCount > 0 && (
               <div className="flex items-center space-x-1">
                 <div className="h-2 w-2 bg-orange-500 rounded-full animate-pulse" />
-                <span className="text-xs text-orange-600 font-medium">Running</span>
+                <span className="text-xs text-orange-600 font-medium">
+                  Running
+                </span>
               </div>
             )}
           </CardHeader>
@@ -121,11 +133,13 @@ export function DashboardStats({
               <p className="text-sm text-muted-foreground">
                 {completedJobsCount} completed
               </p>
-              <div className={`text-xs px-2 py-1 rounded-full ${
-                activeJobsCount > 0
-                  ? 'text-orange-600 bg-orange-500/10'
-                  : 'text-gray-600 bg-gray-500/10'
-              }`}>
+              <div
+                className={`text-xs px-2 py-1 rounded-full ${
+                  activeJobsCount > 0
+                    ? 'text-orange-600 bg-orange-500/10'
+                    : 'text-gray-600 bg-gray-500/10'
+                }`}
+              >
                 {activeJobsCount > 0 ? 'Processing' : 'Idle'}
               </div>
             </div>
@@ -140,7 +154,9 @@ export function DashboardStats({
               <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
                 <Zap className="h-4 w-4 text-green-600" />
               </div>
-              <CardTitle className="text-sm font-semibold">Success Rate</CardTitle>
+              <CardTitle className="text-sm font-semibold">
+                Success Rate
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -151,14 +167,22 @@ export function DashboardStats({
               <p className="text-sm text-muted-foreground">
                 {completedJobsCount} of {totalJobsCount} jobs
               </p>
-              <div className={`text-xs px-2 py-1 rounded-full ${
-                successRate >= 70
-                  ? 'text-green-600 bg-green-500/10'
+              <div
+                className={`text-xs px-2 py-1 rounded-full ${
+                  successRate >= 70
+                    ? 'text-green-600 bg-green-500/10'
+                    : successRate >= 40
+                      ? 'text-yellow-600 bg-yellow-500/10'
+                      : 'text-red-600 bg-red-500/10'
+                }`}
+              >
+                {successRate >= 70
+                  ? 'Excellent'
                   : successRate >= 40
-                  ? 'text-yellow-600 bg-yellow-500/10'
-                  : 'text-red-600 bg-red-500/10'
-              }`}>
-                {successRate >= 70 ? 'Excellent' : successRate >= 40 ? 'Good' : totalJobsCount > 0 ? 'Poor' : 'No Data'}
+                    ? 'Good'
+                    : totalJobsCount > 0
+                      ? 'Poor'
+                      : 'No Data'}
               </div>
             </div>
           </CardContent>

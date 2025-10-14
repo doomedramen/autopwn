@@ -15,13 +15,18 @@ export class FileSystemManager {
   /**
    * Ensure a directory exists, create if missing
    */
-  async ensureDirectory(path: string, options: DirectoryOptions = { createIfMissing: false }): Promise<string> {
+  async ensureDirectory(
+    path: string,
+    options: DirectoryOptions = { createIfMissing: false }
+  ): Promise<string> {
     const fullPath = resolve(this.basePath, path);
 
     if (options.createIfMissing) {
       await fs.mkdir(fullPath, {
         recursive: options.recursive ?? true,
-        mode: options.permissions ? parseInt(options.permissions, 8) : undefined
+        mode: options.permissions
+          ? parseInt(options.permissions, 8)
+          : undefined,
       });
     }
 
@@ -66,7 +71,12 @@ export class FileSystemManager {
   async validateFileUpload(
     filePath: string,
     options: FileUploadOptions
-  ): Promise<{ valid: boolean; error?: string; size?: number; checksum?: string }> {
+  ): Promise<{
+    valid: boolean;
+    error?: string;
+    size?: number;
+    checksum?: string;
+  }> {
     const fullPath = resolve(this.basePath, filePath);
 
     try {
@@ -77,7 +87,7 @@ export class FileSystemManager {
       if (stats.size > options.maxSize) {
         return {
           valid: false,
-          error: `File size ${(stats.size / 1024 / 1024).toFixed(2)}MB exceeds maximum size of ${(options.maxSize / 1024 / 1024).toFixed(2)}MB`
+          error: `File size ${(stats.size / 1024 / 1024).toFixed(2)}MB exceeds maximum size of ${(options.maxSize / 1024 / 1024).toFixed(2)}MB`,
         };
       }
 
@@ -86,7 +96,7 @@ export class FileSystemManager {
       if (!options.allowedExtensions.includes(fileExt)) {
         return {
           valid: false,
-          error: `File extension ${fileExt} not allowed. Allowed extensions: ${options.allowedExtensions.join(', ')}`
+          error: `File extension ${fileExt} not allowed. Allowed extensions: ${options.allowedExtensions.join(', ')}`,
         };
       }
 
@@ -100,19 +110,22 @@ export class FileSystemManager {
       if (options.validateContent && stats.size === 0) {
         return {
           valid: false,
-          error: 'File is empty'
+          error: 'File is empty',
         };
       }
 
       return {
         valid: true,
         size: stats.size,
-        checksum
+        checksum,
       };
     } catch (error) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : 'Unknown error during file validation'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during file validation',
       };
     }
   }
@@ -136,8 +149,13 @@ export class FileSystemManager {
       const sourceStats = await fs.stat(fullSourcePath);
 
       // Use streams for large files to track progress
-      if (sourceStats.size > 10 * 1024 * 1024) { // 10MB threshold
-        return await this.copyLargeFile(fullSourcePath, fullDestPath, onProgress);
+      if (sourceStats.size > 10 * 1024 * 1024) {
+        // 10MB threshold
+        return await this.copyLargeFile(
+          fullSourcePath,
+          fullDestPath,
+          onProgress
+        );
       }
 
       // For smaller files, use simple copy
@@ -145,12 +163,15 @@ export class FileSystemManager {
 
       return {
         success: true,
-        bytesCopied: sourceStats.size
+        bytesCopied: sourceStats.size,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during file copy'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during file copy',
       };
     }
   }
@@ -187,7 +208,7 @@ export class FileSystemManager {
           }
 
           callback(null, chunk);
-        }
+        },
       });
 
       // Copy using streams with progress tracking
@@ -195,12 +216,15 @@ export class FileSystemManager {
 
       return {
         success: true,
-        bytesCopied: totalBytes
+        bytesCopied: totalBytes,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during large file copy'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during large file copy',
       };
     }
   }
@@ -224,7 +248,9 @@ export class FileSystemManager {
 
       readStream.on('data', (chunk: Buffer | string) => {
         hash.update(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        bytesProcessed += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+        bytesProcessed += Buffer.isBuffer(chunk)
+          ? chunk.length
+          : Buffer.byteLength(chunk);
 
         if (onProgress) {
           onProgress(bytesProcessed, totalBytes);
@@ -235,7 +261,7 @@ export class FileSystemManager {
         resolve(hash.digest('hex'));
       });
 
-      readStream.on('error', (error) => {
+      readStream.on('error', error => {
         reject(error);
       });
     });
@@ -247,7 +273,11 @@ export class FileSystemManager {
   async countLinesStreaming(
     filePath: string,
     encoding: BufferEncoding = 'utf8',
-    onProgress?: (linesProcessed: number, bytesProcessed: number, totalBytes: number) => void
+    onProgress?: (
+      linesProcessed: number,
+      bytesProcessed: number,
+      totalBytes: number
+    ) => void
   ): Promise<number> {
     const fullPath = resolve(this.basePath, filePath);
     const stats = await fs.stat(fullPath);
@@ -262,7 +292,9 @@ export class FileSystemManager {
       readStream.on('data', (chunk: Buffer | string) => {
         const text = Buffer.isBuffer(chunk) ? chunk.toString(encoding) : chunk;
         buffer += text;
-        bytesProcessed += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk, encoding);
+        bytesProcessed += Buffer.isBuffer(chunk)
+          ? chunk.length
+          : Buffer.byteLength(chunk, encoding);
 
         // Count lines in buffer
         const lines = buffer.split('\n');
@@ -285,7 +317,7 @@ export class FileSystemManager {
         resolve(linesProcessed);
       });
 
-      readStream.on('error', (error) => {
+      readStream.on('error', error => {
         reject(error);
       });
     });
@@ -338,7 +370,12 @@ export class FileSystemManager {
         // Copy in chunks
         const buffer = Buffer.alloc(chunkSize);
         while (bytesCopied < totalBytes) {
-          const { bytesRead } = await sourceFd.read(buffer, 0, chunkSize, bytesCopied);
+          const { bytesRead } = await sourceFd.read(
+            buffer,
+            0,
+            chunkSize,
+            bytesCopied
+          );
 
           if (bytesRead === 0) break;
 
@@ -353,7 +390,7 @@ export class FileSystemManager {
 
         return {
           success: true,
-          bytesCopied: totalBytes
+          bytesCopied: totalBytes,
         };
       } finally {
         await sourceFd.close();
@@ -362,7 +399,10 @@ export class FileSystemManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during streaming copy'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during streaming copy',
       };
     }
   }
@@ -389,7 +429,12 @@ export class FileSystemManager {
       sample?: string;
     };
   }> {
-    const { maxSize, allowedExtensions, encoding = 'utf8', sampleSize = 1024 } = options;
+    const {
+      maxSize,
+      allowedExtensions,
+      encoding = 'utf8',
+      sampleSize = 1024,
+    } = options;
     const fullPath = resolve(this.basePath, filePath);
 
     try {
@@ -402,7 +447,7 @@ export class FileSystemManager {
       if (maxSize && size > maxSize) {
         return {
           valid: false,
-          error: `File size ${size} exceeds maximum allowed size ${maxSize}`
+          error: `File size ${size} exceeds maximum allowed size ${maxSize}`,
         };
       }
 
@@ -410,7 +455,7 @@ export class FileSystemManager {
       if (allowedExtensions && !allowedExtensions.includes(extension)) {
         return {
           valid: false,
-          error: `File extension ${extension} not allowed`
+          error: `File extension ${extension} not allowed`,
         };
       }
 
@@ -419,7 +464,7 @@ export class FileSystemManager {
         extension,
         encoding: undefined as BufferEncoding | undefined,
         isText: false,
-        sample: undefined as string | undefined
+        sample: undefined as string | undefined,
       };
 
       // Sample file content for text detection
@@ -433,13 +478,21 @@ export class FileSystemManager {
 
           // Try to decode as text
           try {
-            const sample = buffer.toString(encoding, 0, buffer.indexOf(0) || sampleBytes);
+            const sample = buffer.toString(
+              encoding,
+              0,
+              buffer.indexOf(0) || sampleBytes
+            );
             metadata.sample = sample;
             metadata.encoding = encoding;
 
             // Check if content appears to be text
-            const printableChars = sample.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').length;
-            metadata.isText = sample.length > 0 && (printableChars / sample.length) > 0.9;
+            const printableChars = sample.replace(
+              /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,
+              ''
+            ).length;
+            metadata.isText =
+              sample.length > 0 && printableChars / sample.length > 0.9;
           } catch {
             metadata.isText = false;
           }
@@ -450,12 +503,15 @@ export class FileSystemManager {
 
       return {
         valid: true,
-        metadata
+        metadata,
       };
     } catch (error) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : 'Unknown error during validation'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during validation',
       };
     }
   }
@@ -502,7 +558,9 @@ export class FileSystemManager {
 
         // Track progress
         readStream.on('data', (chunk: Buffer | string) => {
-          bytesProcessed += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+          bytesProcessed += Buffer.isBuffer(chunk)
+            ? chunk.length
+            : Buffer.byteLength(chunk);
           if (onProgress) {
             onProgress(bytesProcessed, totalBytes);
           }
@@ -511,7 +569,9 @@ export class FileSystemManager {
         // Get compressed size
         let compressedSize = 0;
         compressStream.on('data', (chunk: Buffer | string) => {
-          compressedSize += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+          compressedSize += Buffer.isBuffer(chunk)
+            ? chunk.length
+            : Buffer.byteLength(chunk);
         });
 
         // Pipe streams
@@ -521,17 +581,20 @@ export class FileSystemManager {
           .on('finish', () => {
             resolve({
               success: true,
-              compressedSize
+              compressedSize,
             });
           })
-          .on('error', (error) => {
+          .on('error', error => {
             reject(error);
           });
       });
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during compression'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during compression',
       };
     }
   }
@@ -539,7 +602,10 @@ export class FileSystemManager {
   /**
    * Move file to destination
    */
-  async moveFile(sourcePath: string, destinationPath: string): Promise<{ success: boolean; error?: string }> {
+  async moveFile(
+    sourcePath: string,
+    destinationPath: string
+  ): Promise<{ success: boolean; error?: string }> {
     const fullSourcePath = resolve(this.basePath, sourcePath);
     const fullDestPath = resolve(this.basePath, destinationPath);
 
@@ -554,7 +620,10 @@ export class FileSystemManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during file move'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during file move',
       };
     }
   }
@@ -562,7 +631,10 @@ export class FileSystemManager {
   /**
    * Delete file or directory
    */
-  async delete(path: string, options: { force?: boolean; recursive?: boolean } = {}): Promise<{ success: boolean; error?: string }> {
+  async delete(
+    path: string,
+    options: { force?: boolean; recursive?: boolean } = {}
+  ): Promise<{ success: boolean; error?: string }> {
     const fullPath = resolve(this.basePath, path);
 
     try {
@@ -579,7 +651,8 @@ export class FileSystemManager {
           } else {
             return {
               success: false,
-              error: 'Directory is not empty. Use recursive option to delete non-empty directories.'
+              error:
+                'Directory is not empty. Use recursive option to delete non-empty directories.',
             };
           }
         }
@@ -591,7 +664,10 @@ export class FileSystemManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during deletion'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during deletion',
       };
     }
   }
@@ -607,7 +683,10 @@ export class FileSystemManager {
 
     try {
       if (options.recursive) {
-        return await this.listDirectoryRecursive(fullPath, options.includeHidden);
+        return await this.listDirectoryRecursive(
+          fullPath,
+          options.includeHidden
+        );
       }
 
       const entries = await fs.readdir(fullPath, { withFileTypes: true });
@@ -633,7 +712,10 @@ export class FileSystemManager {
       return {
         files: [],
         directories: [],
-        error: error instanceof Error ? error.message : 'Unknown error during directory listing'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during directory listing',
       };
     }
   }
@@ -654,7 +736,9 @@ export class FileSystemManager {
       const entries = await fs.readdir(fullPath, { withFileTypes: true });
 
       for (const entry of entries) {
-        const relativePath = currentPath ? join(currentPath, entry.name) : entry.name;
+        const relativePath = currentPath
+          ? join(currentPath, entry.name)
+          : entry.name;
 
         // Skip hidden files unless requested
         if (!includeHidden && entry.name.startsWith('.')) {
@@ -663,7 +747,11 @@ export class FileSystemManager {
 
         if (entry.isDirectory()) {
           directories.push(relativePath);
-          const subResult = await this.listDirectoryRecursive(basePath, includeHidden, relativePath);
+          const subResult = await this.listDirectoryRecursive(
+            basePath,
+            includeHidden,
+            relativePath
+          );
           files.push(...subResult.files);
           directories.push(...subResult.directories);
         } else {
@@ -676,7 +764,10 @@ export class FileSystemManager {
       return {
         files: [],
         directories: [],
-        error: error instanceof Error ? error.message : 'Unknown error during recursive directory listing'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during recursive directory listing',
       };
     }
   }
@@ -684,13 +775,18 @@ export class FileSystemManager {
   /**
    * Get directory size
    */
-  async getDirectorySize(path: string): Promise<{ size: number; fileCount: number; error?: string }> {
+  async getDirectorySize(
+    path: string
+  ): Promise<{ size: number; fileCount: number; error?: string }> {
     const fullPath = resolve(this.basePath, path);
     let totalSize = 0;
     let fileCount = 0;
 
     try {
-      const result = await this.listDirectory(path, { recursive: true, includeHidden: false });
+      const result = await this.listDirectory(path, {
+        recursive: true,
+        includeHidden: false,
+      });
 
       if (result.error) {
         return { size: 0, fileCount: 0, error: result.error };
@@ -708,7 +804,10 @@ export class FileSystemManager {
       return {
         size: 0,
         fileCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error calculating directory size'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error calculating directory size',
       };
     }
   }
@@ -722,7 +821,7 @@ export class FileSystemManager {
     options: { dryRun?: boolean; pattern?: RegExp } = {}
   ): Promise<{ deleted: string[]; error?: string }> {
     const fullPath = resolve(this.basePath, path);
-    const cutoffTime = Date.now() - (olderThanDays * 24 * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
     const deleted: string[] = [];
 
     try {
@@ -753,7 +852,10 @@ export class FileSystemManager {
     } catch (error) {
       return {
         deleted: [],
-        error: error instanceof Error ? error.message : 'Unknown error during cleanup'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error during cleanup',
       };
     }
   }

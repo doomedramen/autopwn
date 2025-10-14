@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Upload, Play } from "lucide-react";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Logo } from "@/components/ui/Logo";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Upload, Play } from 'lucide-react';
+import { ThemeSwitcher } from '@/components/theme-switcher';
+import { Logo } from '@/components/ui/Logo';
 
 interface DashboardHeaderProps {
   onUploadClick: () => void;

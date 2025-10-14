@@ -2,7 +2,12 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { join, resolve, dirname, basename } from 'path';
 import { randomUUID } from 'crypto';
-import { PcapInfo, NetworkInfo, ToolResult, ToolExecutionOptions } from '@/types';
+import {
+  PcapInfo,
+  NetworkInfo,
+  ToolResult,
+  ToolExecutionOptions,
+} from '@/types';
 
 export interface HcxOptions {
   inputPcap: string;
@@ -83,7 +88,9 @@ export class HcxPcapNgTool {
       await fs.access(inputFile);
 
       // Ensure output directory exists
-      const outputDir = options.outputDirectory ? resolve(options.outputDirectory) : dirname(inputFile);
+      const outputDir = options.outputDirectory
+        ? resolve(options.outputDirectory)
+        : dirname(inputFile);
       await fs.mkdir(outputDir, { recursive: true });
 
       // Build command arguments
@@ -92,7 +99,7 @@ export class HcxPcapNgTool {
       // Execute hcxpcapngtool
       const result = await this.execute(args.join(' '), {
         cwd: outputDir,
-        timeout: options.timeout || this.defaultTimeout
+        timeout: options.timeout || this.defaultTimeout,
       });
 
       if (!result.success) {
@@ -101,12 +108,16 @@ export class HcxPcapNgTool {
           stdout: result.stdout,
           stderr: result.stderr,
           exitCode: result.exitCode,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
       // Parse output and create PcapInfo
-      const pcapInfo = await this.parseOutput(result.stdout, inputFile, outputDir);
+      const pcapInfo = await this.parseOutput(
+        result.stdout,
+        inputFile,
+        outputDir
+      );
 
       return {
         success: true,
@@ -114,7 +125,7 @@ export class HcxPcapNgTool {
         stderr: result.stderr,
         exitCode: result.exitCode,
         data: pcapInfo,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -122,7 +133,7 @@ export class HcxPcapNgTool {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -134,18 +145,22 @@ export class HcxPcapNgTool {
   async processPcapForUpload(
     inputPcap: string,
     outputDirectory?: string
-  ): Promise<ToolResult<{
-    networks: HcxNetworkInfo[];
-    hashFile: string;
-    essidList: string[];
-    pcapInfo: PcapInfo;
-  }>> {
+  ): Promise<
+    ToolResult<{
+      networks: HcxNetworkInfo[];
+      hashFile: string;
+      essidList: string[];
+      pcapInfo: PcapInfo;
+    }>
+  > {
     const startTime = Date.now();
 
     try {
       const inputFile = resolve(inputPcap);
       // Always use dirname of the resolved inputFile to ensure absolute path
-      const outputDir = outputDirectory ? resolve(outputDirectory) : dirname(inputFile);
+      const outputDir = outputDirectory
+        ? resolve(outputDirectory)
+        : dirname(inputFile);
 
       // Ensure output directory exists
       await fs.mkdir(outputDir, { recursive: true });
@@ -156,16 +171,11 @@ export class HcxPcapNgTool {
       const essidFile = join(outputDir, `${baseName}_essids.txt`);
 
       // First, extract networks and hash file using --all flag
-      const extractArgs = [
-        '--all',
-        '-o', hashFile,
-        '-E', essidFile,
-        inputFile
-      ];
+      const extractArgs = ['--all', '-o', hashFile, '-E', essidFile, inputFile];
 
       const result = await this.execute(extractArgs.join(' '), {
         cwd: outputDir,
-        timeout: this.defaultTimeout
+        timeout: this.defaultTimeout,
       });
 
       if (!result.success) {
@@ -174,7 +184,7 @@ export class HcxPcapNgTool {
           stdout: result.stdout,
           stderr: result.stderr,
           exitCode: result.exitCode,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
@@ -199,7 +209,8 @@ export class HcxPcapNgTool {
       let essidList: string[] = [];
       try {
         const essidContent = await fs.readFile(essidFile, 'utf8');
-        essidList = essidContent.split('\n')
+        essidList = essidContent
+          .split('\n')
           .map(line => line.trim())
           .filter(line => line.length > 0);
       } catch (error) {
@@ -222,10 +233,11 @@ export class HcxPcapNgTool {
           encryption: n.encryption,
           hasHandshake: n.hasHandshake,
           firstSeen: new Date(),
-          lastSeen: new Date()
+          lastSeen: new Date(),
         })),
         isValid: networks.length > 0,
-        errorMessage: networks.length === 0 ? 'No networks found in PCAP file' : undefined
+        errorMessage:
+          networks.length === 0 ? 'No networks found in PCAP file' : undefined,
       };
 
       return {
@@ -237,18 +249,17 @@ export class HcxPcapNgTool {
           networks,
           hashFile: hasValidHashes ? hashFile : '',
           essidList,
-          pcapInfo
+          pcapInfo,
         },
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
-
     } catch (error) {
       return {
         success: false,
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -275,7 +286,8 @@ export class HcxPcapNgTool {
       const resolvedFiles = inputFiles.map(file => resolve(file));
 
       // Use provided outputFile or create one in the job directory
-      const defaultOutputFile = outputFile || join(dirname(resolvedFiles[0]), `consolidated.hccapx`);
+      const defaultOutputFile =
+        outputFile || join(dirname(resolvedFiles[0]), `consolidated.hccapx`);
 
       // Check if all input files exist
       for (const file of resolvedFiles) {
@@ -287,8 +299,9 @@ export class HcxPcapNgTool {
       await fs.mkdir(outputDir, { recursive: true });
 
       // Check if we need .hc22000 format
-      const isHc22000Format = options.outputFormat === 'hc22000' ||
-                            (outputFile && outputFile.endsWith('.hc22000'));
+      const isHc22000Format =
+        options.outputFormat === 'hc22000' ||
+        (outputFile && outputFile.endsWith('.hc22000'));
 
       if (isHc22000Format) {
         // For .hc22000 format, use direct hcxpcapngtool call with multiple input files
@@ -298,7 +311,10 @@ export class HcxPcapNgTool {
         args.push('-o', defaultOutputFile);
 
         // Add essid list file option (required for hash file creation)
-        const essidListFile = defaultOutputFile.replace('.hc22000', '_essidlist.txt');
+        const essidListFile = defaultOutputFile.replace(
+          '.hc22000',
+          '_essidlist.txt'
+        );
         args.push('-E', essidListFile);
 
         // Add any additional options
@@ -323,7 +339,7 @@ export class HcxPcapNgTool {
 
         const result = await this.execute(args.join(' '), {
           cwd: process.cwd(), // Use project root as working directory
-          timeout: options.timeout || this.defaultTimeout
+          timeout: options.timeout || this.defaultTimeout,
         });
 
         if (!result.success) {
@@ -332,7 +348,7 @@ export class HcxPcapNgTool {
             stdout: result.stdout,
             stderr: result.stderr,
             exitCode: result.exitCode,
-            executionTime: Date.now() - startTime
+            executionTime: Date.now() - startTime,
           };
         }
 
@@ -344,11 +360,10 @@ export class HcxPcapNgTool {
           exitCode: result.exitCode,
           data: {
             networks: [], // Networks will be parsed from job results instead
-            outputFile: defaultOutputFile
+            outputFile: defaultOutputFile,
           },
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
-
       } else {
         // For legacy formats, process each file individually and combine
         const allNetworks: HcxNetworkInfo[] = [];
@@ -358,13 +373,15 @@ export class HcxPcapNgTool {
             inputPcap: inputFile,
             outputDirectory: outputDir,
             outputFormat: 'hccapx',
-            ...options
+            ...options,
           };
 
           const result = await this.analyzePcap(hcxOptions);
 
           if (result.success && result.data) {
-            const networks = result.data.networks.map(this.convertToHcxNetworkInfo);
+            const networks = result.data.networks.map(
+              this.convertToHcxNetworkInfo
+            );
             allNetworks.push(...networks);
           }
         }
@@ -376,19 +393,18 @@ export class HcxPcapNgTool {
           exitCode: 0,
           data: {
             networks: allNetworks,
-            outputFile: defaultOutputFile
+            outputFile: defaultOutputFile,
           },
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
-
     } catch (error) {
       return {
         success: false,
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -406,18 +422,20 @@ export class HcxPcapNgTool {
     try {
       const inputFile = resolve(inputPcap);
       const outputDir = dirname(inputFile);
-      const defaultOutputFile = outputFile || join(outputDir, `${basename(inputFile, '.pcap')}.${outputFormat}`);
+      const defaultOutputFile =
+        outputFile ||
+        join(outputDir, `${basename(inputFile, '.pcap')}.${outputFormat}`);
 
       const hcxOptions: HcxOptions = {
         inputPcap,
         outputDirectory: outputDir,
-        outputFormat
+        outputFormat,
       };
 
       const args = this.buildCommandArgs(hcxOptions);
       const result = await this.execute(args.join(' '), {
         cwd: outputDir,
-        timeout: this.defaultTimeout
+        timeout: this.defaultTimeout,
       });
 
       return {
@@ -426,7 +444,7 @@ export class HcxPcapNgTool {
         stderr: result.stderr,
         exitCode: result.exitCode,
         data: result.success ? defaultOutputFile : undefined,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -434,7 +452,7 @@ export class HcxPcapNgTool {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -498,28 +516,35 @@ export class HcxPcapNgTool {
   private async execute(
     command: string,
     options: ToolExecutionOptions = {}
-  ): Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }> {
-    return new Promise((resolve) => {
+  ): Promise<{
+    success: boolean;
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+  }> {
+    return new Promise(resolve => {
       const args = command.split(' ');
-      console.log(`[hcxpcapngtool] Spawning: ${this.executablePath} ${args.join(' ')}`);
+      console.log(
+        `[hcxpcapngtool] Spawning: ${this.executablePath} ${args.join(' ')}`
+      );
       console.log(`[hcxpcapngtool] Working directory: ${options.cwd}`);
 
       const child = spawn(this.executablePath, args, {
         cwd: options.cwd,
         env: { ...process.env, ...options.env },
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
       });
 
       let stdout = '';
       let stderr = '';
 
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on('data', data => {
         const chunk = data.toString();
         stdout += chunk;
         console.log(`[hcxpcapngtool] stdout:`, chunk.trim());
       });
 
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on('data', data => {
         const chunk = data.toString();
         stderr += chunk;
         console.log(`[hcxpcapngtool] stderr:`, chunk.trim());
@@ -527,17 +552,19 @@ export class HcxPcapNgTool {
 
       const timeout = options.timeout || this.defaultTimeout;
       const timeoutId = setTimeout(() => {
-        console.log(`[hcxpcapngtool] Timeout after ${timeout}ms, killing process`);
+        console.log(
+          `[hcxpcapngtool] Timeout after ${timeout}ms, killing process`
+        );
         child.kill('SIGKILL');
         resolve({
           success: false,
           stdout,
           stderr: `Command timed out after ${timeout}ms`,
-          exitCode: -1
+          exitCode: -1,
         });
       }, timeout);
 
-      child.on('close', (code) => {
+      child.on('close', code => {
         clearTimeout(timeoutId);
         console.log(`[hcxpcapngtool] Process closed with code: ${code}`);
         console.log(`[hcxpcapngtool] Final stdout length: ${stdout.length}`);
@@ -546,18 +573,18 @@ export class HcxPcapNgTool {
           success: code === 0,
           stdout,
           stderr,
-          exitCode: code || 0
+          exitCode: code || 0,
         });
       });
 
-      child.on('error', (error) => {
+      child.on('error', error => {
         clearTimeout(timeoutId);
         console.log(`[hcxpcapngtool] Process error:`, error);
         resolve({
           success: false,
           stdout,
           stderr: error.message,
-          exitCode: -1
+          exitCode: -1,
         });
       });
     });
@@ -566,7 +593,9 @@ export class HcxPcapNgTool {
   /**
    * Parse network information from hcxpcapngtool stderr output
    */
-  private async parseNetworksFromStderr(stderr: string): Promise<HcxNetworkInfo[]> {
+  private async parseNetworksFromStderr(
+    stderr: string
+  ): Promise<HcxNetworkInfo[]> {
     const networks: HcxNetworkInfo[] = [];
     const lines = stderr.split('\n');
 
@@ -613,8 +642,14 @@ export class HcxPcapNgTool {
       }
 
       // Look for handshake information
-      if (line.includes('EAPOL pairs written to 22000 hash file') &&
-          parseInt(line.match(/EAPOL pairs written to 22000 hash file\.\.\. (\d+)/)?.[1] || '0') > 0) {
+      if (
+        line.includes('EAPOL pairs written to 22000 hash file') &&
+        parseInt(
+          line.match(
+            /EAPOL pairs written to 22000 hash file\.\.\. (\d+)/
+          )?.[1] || '0'
+        ) > 0
+      ) {
         hasHandshake = true;
       }
 
@@ -634,8 +669,8 @@ export class HcxPcapNgTool {
             handshake: hasHandshake ? 1 : 0,
             eapol: 0,
             beacon: 0,
-            probe: 0
-          }
+            probe: 0,
+          },
         });
 
         // Reset for next network
@@ -652,7 +687,9 @@ export class HcxPcapNgTool {
   /**
    * Extract network information from hash file
    */
-  private async extractNetworksFromHashFile(hashFilePath: string): Promise<HcxNetworkInfo[]> {
+  private async extractNetworksFromHashFile(
+    hashFilePath: string
+  ): Promise<HcxNetworkInfo[]> {
     const networks: HcxNetworkInfo[] = [];
 
     try {
@@ -661,7 +698,9 @@ export class HcxPcapNgTool {
 
       // Read the hash file and extract network info from WPA* lines
       const hashContent = await fs.readFile(hashFilePath, 'utf8');
-      const hashLines = hashContent.split('\n').filter((line: string) => line.startsWith('WPA*'));
+      const hashLines = hashContent
+        .split('\n')
+        .filter((line: string) => line.startsWith('WPA*'));
 
       const seenNetworks = new Set<string>();
 
@@ -701,8 +740,8 @@ export class HcxPcapNgTool {
                 handshake: 1,
                 eapol: 0,
                 beacon: 0,
-                probe: 0
-              }
+                probe: 0,
+              },
             });
           }
         }
@@ -729,12 +768,15 @@ export class HcxPcapNgTool {
 
     for (const line of lines) {
       // Try to match network information patterns
-      const networkMatch = line.match(/ESSID:\s*(.+?)\s+BSSID:\s*([a-fA-F0-9:]+)/);
+      const networkMatch = line.match(
+        /ESSID:\s*(.+?)\s+BSSID:\s*([a-fA-F0-9:]+)/
+      );
       if (networkMatch) {
         const [, essid, bssid] = networkMatch;
 
         // Look for handshake indication
-        const hasHandshake = line.includes('handshake') || line.includes('PMKID');
+        const hasHandshake =
+          line.includes('handshake') || line.includes('PMKID');
 
         // Try to extract channel information
         const channelMatch = line.match(/channel\s*(\d+)/i);
@@ -752,7 +794,7 @@ export class HcxPcapNgTool {
           encryption,
           hasHandshake,
           firstSeen: new Date(),
-          lastSeen: new Date()
+          lastSeen: new Date(),
         });
       }
     }
@@ -773,7 +815,8 @@ export class HcxPcapNgTool {
       checksum: '', // Would need to calculate this
       networks,
       isValid: networks.length > 0,
-      errorMessage: networks.length === 0 ? 'No networks found in PCAP file' : undefined
+      errorMessage:
+        networks.length === 0 ? 'No networks found in PCAP file' : undefined,
     };
   }
 
@@ -785,7 +828,7 @@ export class HcxPcapNgTool {
     const outputFiles = [
       join(outputDir, 'output.json'),
       join(outputDir, 'output.hccapx'),
-      join(outputDir, 'output.cap')
+      join(outputDir, 'output.cap'),
     ];
 
     for (const file of outputFiles) {
@@ -827,8 +870,8 @@ export class HcxPcapNgTool {
         handshake: network.hasHandshake ? 1 : 0,
         eapol: 0,
         beacon: 0,
-        probe: 0
-      }
+        probe: 0,
+      },
     };
   }
 }

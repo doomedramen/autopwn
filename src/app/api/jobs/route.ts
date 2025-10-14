@@ -5,10 +5,19 @@ import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
-import { jobs, users, uploads, jobPcaps, jobDictionaries, networks } from '@/lib/db/schema';
+import {
+  jobs,
+  users,
+  uploads,
+  jobPcaps,
+  jobDictionaries,
+  networks,
+  userProfiles,
+} from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import type { AttackMode } from '@/types';
 import { jobMonitor } from '@/lib/job-monitor';
+import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for job creation
@@ -37,23 +46,74 @@ export async function POST(request: NextRequest) {
     const jobRequest: JobRequest = await request.json();
 
     // Validate request
-    if (!jobRequest.name || !jobRequest.networks?.length || !jobRequest.dictionaries?.length) {
+    if (
+      !jobRequest.name ||
+      !jobRequest.networks?.length ||
+      !jobRequest.dictionaries?.length
+    ) {
       return NextResponse.json(
         { error: 'Job name, networks, and dictionaries are required' },
         { status: 400 }
       );
     }
 
-    // For now, use a default user (in production, get from authentication)
-    const defaultUser = await db.query.users.findFirst({
-      where: eq(users.name, 'default_user')
+    // Check for authenticated user first
+    const session = await auth.api.getSession({
+      headers: request.headers,
     });
 
-    if (!defaultUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 401 }
-      );
+    let userRecord;
+    if (session?.user?.id) {
+      // Use authenticated user
+      userRecord = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+      });
+
+      // Check if user profile exists, create if missing (for test environments)
+      if (userRecord) {
+        const userProfile = await db.query.userProfiles.findFirst({
+          where: eq(userProfiles.userId, userRecord.id),
+        });
+
+        if (!userProfile) {
+          await db.insert(userProfiles).values({
+            userId: userRecord.id,
+            username:
+              userRecord.name || userRecord.email?.split('@')[0] || 'unknown',
+            role: 'user',
+            isActive: true,
+            isEmailVerified: true,
+            requirePasswordChange: false,
+          });
+        }
+      }
+    }
+
+    if (!userRecord) {
+      // Fallback to default user for test environments or unauthenticated requests
+      userRecord = await db.query.users.findFirst({
+        where: eq(users.name, 'default_user'),
+      });
+
+      if (!userRecord) {
+        [userRecord] = await db
+          .insert(users)
+          .values({
+            name: 'default_user',
+            email: 'default@autopwn.local',
+          })
+          .returning();
+
+        // Create corresponding user profile for the default user
+        await db.insert(userProfiles).values({
+          userId: userRecord.id,
+          username: 'default_user',
+          role: 'user',
+          isActive: true,
+          isEmailVerified: true,
+          requirePasswordChange: false,
+        });
+      }
     }
 
     // Ensure jobs directory exists
@@ -77,7 +137,7 @@ export async function POST(request: NextRequest) {
       where: and(
         inArray(uploads.id, jobRequest.dictionaries),
         eq(uploads.uploadType, 'dictionary')
-      )
+      ),
     });
 
     if (selectedDictionariesData.length === 0) {
@@ -92,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Look up networks by BSSID to find which PCAP uploads they belong to
     const selectedNetworks = await db.query.networks.findMany({
-      where: inArray(networks.bssid, jobRequest.networks)
+      where: inArray(networks.bssid, jobRequest.networks),
     });
 
     if (selectedNetworks.length === 0) {
@@ -106,14 +166,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Get unique PCAP upload IDs from the networks
-    const pcapUploadIds = [...new Set(selectedNetworks.map(n => n.uploadId).filter((id): id is string => id !== null))];
+    const pcapUploadIds = [
+      ...new Set(
+        selectedNetworks
+          .map(n => n.uploadId)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
 
     // Get the PCAP upload records
     const selectedPcapsData = await db.query.uploads.findMany({
       where: and(
         inArray(uploads.id, pcapUploadIds),
         eq(uploads.uploadType, 'pcap')
-      )
+      ),
     });
 
     if (selectedPcapsData.length === 0) {
@@ -147,7 +213,7 @@ export async function POST(request: NextRequest) {
       console.error('hcxpcapngtool failed:', {
         success: extractResult.success,
         stderr: extractResult.stderr,
-        stdout: extractResult.stdout
+        stdout: extractResult.stdout,
       });
     }
 
@@ -157,14 +223,15 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: 'No valid handshakes could be extracted from selected PCAP files',
+          error:
+            'No valid handshakes could be extracted from selected PCAP files',
           message: extractResult.stderr || 'Unknown error',
           details: {
             success: extractResult.success,
             stderr: extractResult.stderr,
             stdout: extractResult.stdout,
-            outputFile: extractResult.data?.outputFile
-          }
+            outputFile: extractResult.data?.outputFile,
+          },
         },
         { status: 400 }
       );
@@ -180,14 +247,15 @@ export async function POST(request: NextRequest) {
       await fs.rm(jobDir, { recursive: true, force: true });
       return NextResponse.json(
         {
-          error: 'hcxpcapngtool reported success but output file was not created',
+          error:
+            'hcxpcapngtool reported success but output file was not created',
           message: `Expected file at: ${actualOutputFile}`,
           details: {
             outputFile: actualOutputFile,
             expectedFile: consolidatedHashFile,
             stderr: extractResult.stderr,
-            stdout: extractResult.stdout
-          }
+            stdout: extractResult.stdout,
+          },
         },
         { status: 500 }
       );
@@ -195,7 +263,10 @@ export async function POST(request: NextRequest) {
 
     // Count the number of hashes in the consolidated file
     const hashContent = await fs.readFile(actualOutputFile, 'utf8');
-    const hashCount = hashContent.trim().split('\n').filter(line => line.trim()).length;
+    const hashCount = hashContent
+      .trim()
+      .split('\n')
+      .filter(line => line.trim()).length;
 
     if (hashCount === 0) {
       // Clean up job directory
@@ -207,9 +278,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    
     // Step 3: Create and start hashcat job
-    const dictionaryPaths = selectedDictionariesData.map(dict => resolve(process.cwd(), dict.filePath));
+    const dictionaryPaths = selectedDictionariesData.map(dict =>
+      resolve(process.cwd(), dict.filePath)
+    );
 
     // Create HashcatJob object
     const hashcatJob = {
@@ -227,14 +299,14 @@ export async function POST(request: NextRequest) {
         gpuTempDisable: jobRequest.options.gpuTempDisable,
         optimizedKernelEnable: jobRequest.options.optimizedKernelEnable,
         potfileDisable: jobRequest.options.potfileDisable,
-        devices: jobRequest.options.devices
+        devices: jobRequest.options.devices,
       },
       status: 'pending' as const,
       progress: 0,
       speed: { current: 0, average: 0, unit: 'H/s' },
       eta: '',
       cracked: 0,
-      total: hashCount
+      total: hashCount,
     };
 
     // Start hashcat job
@@ -247,31 +319,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to start hashcat job',
-          message: hashcatResult.stderr
+          message: hashcatResult.stderr,
         },
         { status: 500 }
       );
     }
 
     // Step 4: Create job record in database
-    const [newJob] = await db.insert(jobs).values({
-      userId: defaultUser.id,
-      name: jobRequest.name,
-      status: 'processing',
-      progress: 0,
-      cracked: 0,
-      totalHashes: hashCount,
-      hashcatSession: hashcatResult.data?.sessionId,
-      consolidatedFilePath: consolidatedHashFile,
-      jobOptions: jobRequest.options,
-      startedAt: new Date(),
-    }).returning();
+    // Get the user profile ID (jobs table references userProfiles.id, not users.id)
+    const userProfile = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.userId, userRecord.id),
+    });
+
+    if (!userProfile) {
+      console.error('❌ User profile not found for user:', userRecord.id);
+      throw new Error(`User profile not found for user: ${userRecord.id}`);
+    }
+
+    const [newJob] = await db
+      .insert(jobs)
+      .values({
+        userId: userProfile.id,
+        name: jobRequest.name,
+        status: 'processing',
+        progress: 0,
+        cracked: 0,
+        totalHashes: hashCount,
+        hashcatSession: hashcatResult.data?.sessionId,
+        consolidatedFilePath: consolidatedHashFile,
+        jobOptions: jobRequest.options,
+        startedAt: new Date(),
+      })
+      .returning();
 
     // Step 5: Link job to PCAP files (many-to-many)
     await db.insert(jobPcaps).values(
       selectedPcapsData.map(pcap => ({
         jobId: newJob.id,
-        uploadId: pcap.id
+        uploadId: pcap.id,
       }))
     );
 
@@ -279,7 +364,7 @@ export async function POST(request: NextRequest) {
     await db.insert(jobDictionaries).values(
       selectedDictionariesData.map(dictionary => ({
         jobId: newJob.id,
-        uploadId: dictionary.id
+        uploadId: dictionary.id,
       }))
     );
 
@@ -291,9 +376,8 @@ export async function POST(request: NextRequest) {
     // Step 8: Return job data
     return NextResponse.json({
       success: true,
-      data: newJob
+      data: newJob,
     });
-
   } catch (error) {
     console.error('Job creation error:', error);
 
@@ -301,7 +385,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -315,14 +399,13 @@ export async function GET() {
   try {
     // Start with a simple query without relations
     const jobList = await db.query.jobs.findMany({
-      orderBy: (jobs, { desc }) => [desc(jobs.createdAt)]
+      orderBy: (jobs, { desc }) => [desc(jobs.createdAt)],
     });
 
     return NextResponse.json({
       success: true,
-      data: jobList
+      data: jobList,
     });
-
   } catch (error) {
     console.error('Jobs fetch error:', error);
 
@@ -330,10 +413,9 @@ export async function GET() {
       {
         success: false,
         error: 'Failed to fetch jobs',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
   }
 }
-

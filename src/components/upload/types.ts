@@ -115,15 +115,15 @@ export const UPLOAD_CONFIGS: Record<UploadType, UploadConfig> = {
     maxSize: 50 * 1024 * 1024, // 50MB
     allowedExtensions: ['.pcap', '.cap', '.pcapng'],
     accept: '.pcap,.cap,.pcapng',
-    multiple: true
+    multiple: true,
   },
   dictionary: {
     type: 'dictionary',
     maxSize: 5 * 1024 * 1024 * 1024, // 5GB
     allowedExtensions: ['.txt', '.lst', '.dic', '.gz', '.bz2', '.zip'],
     accept: '.txt,.lst,.dic,.gz,.bz2,.zip',
-    multiple: true
-  }
+    multiple: true,
+  },
 };
 
 // Helper functions
@@ -155,25 +155,29 @@ export function formatDuration(seconds: number): string {
   }
 }
 
-export function validateFile(file: File, config: UploadConfig): { valid: boolean; error?: string } {
+export function validateFile(
+  file: File,
+  config: UploadConfig
+): { valid: boolean; error?: string } {
   // Check file extension
   const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
   if (!config.allowedExtensions.includes(fileExtension)) {
     return {
       valid: false,
-      error: `Invalid file type. Allowed extensions: ${config.allowedExtensions.join(', ')}`
+      error: `Invalid file type. Allowed extensions: ${config.allowedExtensions.join(', ')}`,
     };
   }
 
   // Check file size
   if (file.size > config.maxSize) {
-    const maxSizeMB = config.maxSize < 1024 * 1024 * 1024
-      ? `${(config.maxSize / 1024 / 1024).toFixed(1)}MB`
-      : `${(config.maxSize / 1024 / 1024 / 1024).toFixed(1)}GB`;
+    const maxSizeMB =
+      config.maxSize < 1024 * 1024 * 1024
+        ? `${(config.maxSize / 1024 / 1024).toFixed(1)}MB`
+        : `${(config.maxSize / 1024 / 1024 / 1024).toFixed(1)}GB`;
 
     return {
       valid: false,
-      error: `File too large. Maximum size: ${maxSizeMB}`
+      error: `File too large. Maximum size: ${maxSizeMB}`,
     };
   }
 

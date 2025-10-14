@@ -19,7 +19,10 @@ export interface UploadConfig {
     backgroundProcessing: boolean;
     progressTracking: boolean;
   };
-  customProcessing?: (filePath: string, config: UploadConfig) => Promise<ProcessingResult>;
+  customProcessing?: (
+    filePath: string,
+    config: UploadConfig
+  ) => Promise<ProcessingResult>;
 }
 
 export interface UploadProgress {
@@ -70,7 +73,11 @@ export class UploadService {
     try {
       // Determine upload strategy based on file type and size
       const isLargeFile = this.isLargeFile(file, config);
-      const uploadPath = this.getUploadPath(fileId, file instanceof File ? file.name : 'unknown', config);
+      const uploadPath = this.getUploadPath(
+        fileId,
+        file instanceof File ? file.name : 'unknown',
+        config
+      );
 
       // Initialize progress tracking
       const progress: UploadProgress = {
@@ -79,7 +86,7 @@ export class UploadService {
         percentage: 0,
         speed: 0,
         eta: 0,
-        stage: 'uploading'
+        stage: 'uploading',
       };
 
       this.activeUploads.set(fileId, progress);
@@ -90,7 +97,12 @@ export class UploadService {
       if (isLargeFile || config.validation.streamingRequired) {
         savedPath = await this.streamUpload(file, uploadPath);
       } else {
-        savedPath = await this.simpleUpload(file, uploadPath, fileId, onProgress);
+        savedPath = await this.simpleUpload(
+          file,
+          uploadPath,
+          fileId,
+          onProgress
+        );
       }
 
       // Update progress to validation stage
@@ -100,7 +112,10 @@ export class UploadService {
       onProgress?.(progress);
 
       // Stage 2: Validate file
-      const validationResult = await this.validateUploadedFile(savedPath, config);
+      const validationResult = await this.validateUploadedFile(
+        savedPath,
+        config
+      );
       if (!validationResult.valid) {
         await this.cleanupUpload(savedPath);
         return {
@@ -108,7 +123,7 @@ export class UploadService {
           stdout: '',
           stderr: validationResult.error || 'Validation failed',
           exitCode: 1,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
@@ -146,17 +161,17 @@ export class UploadService {
           checksum: validationResult.checksum,
           metadata: this.extractBasicMetadata(savedPath, config),
           processingResult,
-          uploadTime
+          uploadTime,
         },
-        executionTime: uploadTime
+        executionTime: uploadTime,
       };
-
     } catch (error) {
       // Update progress to error state
       const progress = this.activeUploads.get(fileId);
       if (progress) {
         progress.stage = 'error';
-        progress.message = error instanceof Error ? error.message : 'Upload failed';
+        progress.message =
+          error instanceof Error ? error.message : 'Upload failed';
         this.activeUploads.set(fileId, progress);
         onProgress?.(progress);
       }
@@ -166,7 +181,7 @@ export class UploadService {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Upload failed',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } finally {
       // Clean up progress tracking after a delay
@@ -241,7 +256,7 @@ export class UploadService {
       maxSize: config.maxSize,
       allowedExtensions: config.allowedExtensions,
       generateChecksum: config.validation.generateChecksum,
-      validateContent: config.validation.validateContent
+      validateContent: config.validation.validateContent,
     });
 
     return validationResult;
@@ -250,7 +265,10 @@ export class UploadService {
   /**
    * Process uploaded file based on type and configuration
    */
-  private async processUploadedFile(filePath: string, config: UploadConfig): Promise<ProcessingResult> {
+  private async processUploadedFile(
+    filePath: string,
+    config: UploadConfig
+  ): Promise<ProcessingResult> {
     if (config.customProcessing) {
       return await config.customProcessing(filePath, config);
     }
@@ -284,18 +302,18 @@ export class UploadService {
         analysis: {
           networks: [],
           isValid: false,
-          errorMessage: result.stderr || 'Failed to process PCAP file'
+          errorMessage: result.stderr || 'Failed to process PCAP file',
         },
         summary: {
           networksFound: 0,
           networksWithHandshakes: 0,
-          totalHandshakes: 0
+          totalHandshakes: 0,
         },
         handshakes: {
           hashFile: '',
           format: 'hc22000',
-          count: 0
-        }
+          count: 0,
+        },
       };
     }
 
@@ -311,29 +329,31 @@ export class UploadService {
           encryption: n.encryption,
           hasHandshake: n.hasHandshake,
           firstSeen: n.firstSeen,
-          lastSeen: n.lastSeen
+          lastSeen: n.lastSeen,
         })),
         isValid: networks.length > 0,
-        essidList: result.data.essidList
+        essidList: result.data.essidList,
       },
       summary: {
         networksFound: networks.length,
         networksWithHandshakes,
         totalHandshakes: networksWithHandshakes,
-        pcapInfo: result.data.pcapInfo
+        pcapInfo: result.data.pcapInfo,
       },
       handshakes: {
         hashFile: result.data.hashFile,
         format: 'hc22000',
-        count: networksWithHandshakes
-      }
+        count: networksWithHandshakes,
+      },
     };
   }
 
   /**
    * Process dictionary files with line counting
    */
-  private async processDictionaryFile(filePath: string): Promise<ProcessingResult> {
+  private async processDictionaryFile(
+    filePath: string
+  ): Promise<ProcessingResult> {
     const stats = await fs.stat(filePath);
     const isCompressed = /\.(gz|bz2|zip)$/i.test(filePath);
 
@@ -342,7 +362,8 @@ export class UploadService {
 
     // For now, simple line counting for uncompressed files
     // TODO: Implement streaming line counting for large files
-    if (!isCompressed && stats.size < 100 * 1024 * 1024) { // < 100MB
+    if (!isCompressed && stats.size < 100 * 1024 * 1024) {
+      // < 100MB
       const content = await fs.readFile(filePath, encoding);
       lineCount = content.split('\n').length;
     }
@@ -351,14 +372,17 @@ export class UploadService {
       lineCount,
       encoding,
       isCompressed,
-      estimatedSize: stats.size
+      estimatedSize: stats.size,
     };
   }
 
   /**
    * Extract basic metadata from uploaded file
    */
-  private extractBasicMetadata(filePath: string, config: UploadConfig): ProcessingResult {
+  private extractBasicMetadata(
+    filePath: string,
+    config: UploadConfig
+  ): ProcessingResult {
     const ext = extname(filePath).toLowerCase();
     const filename = basename(filePath);
 
@@ -366,7 +390,7 @@ export class UploadService {
       originalName: filename,
       extension: ext,
       uploadType: config.type,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
     };
   }
 
@@ -397,7 +421,11 @@ export class UploadService {
     return file instanceof File ? file.size : file.length;
   }
 
-  private getUploadPath(fileId: string, originalName: string, config: UploadConfig): string {
+  private getUploadPath(
+    fileId: string,
+    originalName: string,
+    config: UploadConfig
+  ): string {
     const extension = extname(originalName);
     const baseName = basename(originalName, extension);
 

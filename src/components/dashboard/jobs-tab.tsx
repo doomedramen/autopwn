@@ -1,7 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +17,7 @@ import {
   ItemContent,
   ItemActions,
   ItemTitle,
-  ItemDescription
+  ItemDescription,
 } from '@/components/ui/item';
 import {
   Activity,
@@ -20,17 +26,20 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Terminal
+  Terminal,
 } from 'lucide-react';
-import {
-  EmptyState,
-  JobSkeleton
-} from '@/components/loading';
+import { EmptyState, JobSkeleton } from '@/components/loading';
 
 interface JobInfo {
   id: string;
   name: string;
-  status: 'pending' | 'processing' | 'paused' | 'completed' | 'failed' | 'stopped';
+  status:
+    | 'pending'
+    | 'processing'
+    | 'paused'
+    | 'completed'
+    | 'failed'
+    | 'stopped';
   progress: number;
   speed?: string;
   eta?: string;
@@ -57,7 +66,7 @@ export function JobsTab({
   networksWithHandshakesCount,
   dictionariesCount,
   onViewLogs,
-  onCreateJobClick
+  onCreateJobClick,
 }: JobsTabProps) {
   const getJobStatusIcon = (status: string) => {
     switch (status) {
@@ -112,21 +121,29 @@ export function JobsTab({
           </div>
         ) : jobs.length > 0 ? (
           <ItemGroup className="gap-3">
-            {jobs.map((job) => (
+            {jobs.map(job => (
               <Item key={job.id} variant="outline">
-                <ItemMedia variant="icon" className="!self-center !translate-y-0">
-                  {React.cloneElement(getJobStatusIcon(job.status), { className: 'size-4' })}
+                <ItemMedia
+                  variant="icon"
+                  className="!self-center !translate-y-0"
+                >
+                  {React.cloneElement(getJobStatusIcon(job.status), {
+                    className: 'size-4',
+                  })}
                 </ItemMedia>
                 <ItemContent>
                   <ItemTitle>{job.name}</ItemTitle>
                   <ItemDescription>
                     Created {new Date(job.createdAt).toLocaleDateString()}
-                    {job.currentDictionary && ` • Using: ${job.currentDictionary}`}
+                    {job.currentDictionary &&
+                      ` • Using: ${job.currentDictionary}`}
                     {job.progress > 0 && ` • ${job.progress}% complete`}
                   </ItemDescription>
                   {job.progress > 0 && (
                     <div className="mt-2 text-sm text-muted-foreground">
-                      <div>{job.cracked}/{job.total} passwords cracked</div>
+                      <div>
+                        {job.cracked}/{job.total} passwords cracked
+                      </div>
                       {job.speed && <div>{job.speed}</div>}
                       {job.eta && <div>ETA: {job.eta}</div>}
                     </div>
@@ -156,7 +173,9 @@ export function JobsTab({
             action={
               <Button
                 onClick={onCreateJobClick}
-                disabled={networksWithHandshakesCount === 0 || dictionariesCount === 0}
+                disabled={
+                  networksWithHandshakesCount === 0 || dictionariesCount === 0
+                }
               >
                 <Play className="h-4 w-4 mr-2" />
                 Create First Job

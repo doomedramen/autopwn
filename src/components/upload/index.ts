@@ -18,7 +18,7 @@ export {
   formatSpeed,
   formatDuration,
   validateFile,
-  getUploadEndpoint
+  getUploadEndpoint,
 } from './types';
 
 // Re-export UploadProgress type from types to avoid conflicts

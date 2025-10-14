@@ -1,24 +1,19 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  CheckCircle,
-  AlertTriangle,
-  Loader2,
-  Key,
-} from "lucide-react";
-import { toast } from "sonner";
-import { Logo } from "@/components/ui/Logo";
+} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle, AlertTriangle, Loader2, Key } from 'lucide-react';
+import { toast } from 'sonner';
+import { Logo } from '@/components/ui/Logo';
 
 interface SuperUserData {
   userId: string;
@@ -41,7 +36,7 @@ export default function SetupPage() {
 
   const checkInitializationStatus = async () => {
     try {
-      const response = await fetch("/api/init");
+      const response = await fetch('/api/init');
       const data = await response.json();
 
       if (data.initialized && data.hasSuperUser) {
@@ -50,8 +45,8 @@ export default function SetupPage() {
         setIsInitialized(false);
       }
     } catch {
-      console.error("Failed to check initialization status");
-      setError("Failed to check system status");
+      console.error('Failed to check initialization status');
+      setError('Failed to check system status');
     }
   };
 
@@ -60,10 +55,10 @@ export default function SetupPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/init", {
-        method: "POST",
+      const response = await fetch('/api/init', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       });
 
@@ -72,22 +67,22 @@ export default function SetupPage() {
       if (response.ok && data.success) {
         setSuperUser(data.data);
         setIsInitialized(true);
-        toast.success("System initialized successfully!");
+        toast.success('System initialized successfully!');
 
         // Show credentials in console as well
-        console.log("🔐 Initial Superuser Credentials:");
+        console.log('🔐 Initial Superuser Credentials:');
         console.log(`   Email: ${data.data.email}`);
         console.log(`   Password: ${data.data.password}`);
         console.log(`   Username: ${data.data.username}`);
         console.log(
-          "⚠️  Please save these credentials and change them after first login!"
+          '⚠️  Please save these credentials and change them after first login!'
         );
       } else {
-        setError(data.error || "Initialization failed");
-        toast.error(data.error || "Initialization failed");
+        setError(data.error || 'Initialization failed');
+        toast.error(data.error || 'Initialization failed');
       }
     } catch (_error) {
-      const errorMessage = "Failed to initialize system";
+      const errorMessage = 'Failed to initialize system';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -116,7 +111,12 @@ export default function SetupPage() {
             <div className="inline-flex items-center justify-center mb-4">
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
-            <h1 className="text-3xl font-bold mb-2" data-testid="system-ready-title">System Ready</h1>
+            <h1
+              className="text-3xl font-bold mb-2"
+              data-testid="system-ready-title"
+            >
+              System Ready
+            </h1>
             <p className="text-muted-foreground">
               Your AutoPWN instance is already configured
             </p>
@@ -128,7 +128,8 @@ export default function SetupPage() {
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    System Already Initialized. The system has already been set up.
+                    System Already Initialized. The system has already been set
+                    up.
                   </AlertDescription>
                 </Alert>
 
@@ -186,7 +187,7 @@ export default function SetupPage() {
                       <strong>Email:</strong> {superUser.email}
                     </div>
                     <div data-testid="superuser-password">
-                      <strong>Password:</strong>{" "}
+                      <strong>Password:</strong>{' '}
                       <span className="text-red-600 font-bold">
                         {superUser.password}
                       </span>
@@ -215,7 +216,7 @@ export default function SetupPage() {
                     navigator.clipboard.writeText(
                       `Email: ${superUser.email}\nPassword: ${superUser.password}\nUsername: ${superUser.username}`
                     );
-                    toast.success("Credentials copied to clipboard");
+                    toast.success('Credentials copied to clipboard');
                   }}
                 >
                   Copy Credentials
@@ -277,7 +278,7 @@ export default function SetupPage() {
                   Initializing...
                 </>
               ) : (
-                "Initialize System"
+                'Initialize System'
               )}
             </Button>
 

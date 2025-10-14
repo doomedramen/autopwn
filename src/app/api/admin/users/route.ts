@@ -1,19 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { users, userProfiles } from "@/lib/db/schema";
-import { eq, and, or, ilike } from "drizzle-orm";
-import { createUserBySuperUser, getAllUsers } from "@/lib/auth";
-import { z } from "zod";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { users, userProfiles } from '@/lib/db/schema';
+import { eq, and, or, ilike } from 'drizzle-orm';
+import { createUserBySuperUser, getAllUsers } from '@/lib/auth';
+import { z } from 'zod';
 
-export const runtime = "nodejs";
+// Feature flag to disable authentication for testing
+const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
+
+export const runtime = 'nodejs';
 
 // Schema for user creation
 const createUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   username: z.string().min(3),
-  role: z.enum(["admin", "user"]),
+  role: z.enum(['admin', 'user']),
 });
 
 // Schema for user update
@@ -33,34 +36,77 @@ export async function GET(request: NextRequest) {
       headers: request.headers,
     });
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    let currentUser;
+
+    if (DISABLE_AUTH) {
+      // In auth-disabled mode, use or create a default superuser for testing
+      currentUser = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.role, 'superuser'),
+        with: {
+          user: true,
+        },
+      });
+
+      if (!currentUser) {
+        // Create a default superuser for testing
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            name: 'superuser',
+            email: 'superuser@autopwn.local',
+          })
+          .returning();
+
+        [currentUser] = await db
+          .insert(userProfiles)
+          .values({
+            userId: newUser.id,
+            username: 'superuser',
+            role: 'superuser',
+            isActive: true,
+            isEmailVerified: true,
+            requirePasswordChange: false,
+          })
+          .returning();
+
+        // Refresh the query to get the complete record with user relation
+        currentUser = await db.query.userProfiles.findFirst({
+          where: eq(userProfiles.id, currentUser.id),
+          with: {
+            user: true,
+          },
+        });
+      }
+    } else {
+      // Normal auth flow
+      if (!session?.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      currentUser = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.userId, session.user.id),
+        with: {
+          user: true,
+        },
+      });
     }
 
-    // Check if user is admin or superuser
-    const currentUser = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.userId, session.user.id),
-      with: {
-        user: true,
-      },
-    });
-
-    if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "superuser")) {
+    if (
+      !currentUser ||
+      (currentUser.role !== 'admin' && currentUser.role !== 'superuser')
+    ) {
       return NextResponse.json(
-        { error: "Insufficient permissions" },
+        { error: 'Insufficient permissions' },
         { status: 403 }
       );
     }
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search");
-    const role = searchParams.get("role");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get('search');
+    const role = searchParams.get('role');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
     let allUsers;
 
@@ -78,13 +124,15 @@ export async function GET(request: NextRequest) {
       }
 
       if (role) {
-        conditions.push(eq(userProfiles.role, role as "admin" | "user" | "superuser"));
+        conditions.push(
+          eq(userProfiles.role, role as 'admin' | 'user' | 'superuser')
+        );
       }
 
       // Add join condition to userProfiles and users
       const searchConditions = [
         eq(userProfiles.userId, users.id),
-        ...conditions
+        ...conditions,
       ];
 
       allUsers = await db.query.userProfiles.findMany({
@@ -114,11 +162,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Users fetch error:", error);
+    console.error('Users fetch error:', error);
     return NextResponse.json(
       {
-        error: "Failed to fetch users",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to fetch users',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -134,24 +182,67 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    let currentUser;
+
+    if (DISABLE_AUTH) {
+      // In auth-disabled mode, use or create a default superuser for testing
+      currentUser = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.role, 'superuser'),
+        with: {
+          user: true,
+        },
+      });
+
+      if (!currentUser) {
+        // Create a default superuser for testing
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            name: 'superuser',
+            email: 'superuser@autopwn.local',
+          })
+          .returning();
+
+        [currentUser] = await db
+          .insert(userProfiles)
+          .values({
+            userId: newUser.id,
+            username: 'superuser',
+            role: 'superuser',
+            isActive: true,
+            isEmailVerified: true,
+            requirePasswordChange: false,
+          })
+          .returning();
+
+        // Refresh the query to get the complete record with user relation
+        currentUser = await db.query.userProfiles.findFirst({
+          where: eq(userProfiles.id, currentUser.id),
+          with: {
+            user: true,
+          },
+        });
+      }
+    } else {
+      // Normal auth flow
+      if (!session?.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      currentUser = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.userId, session.user.id),
+        with: {
+          user: true,
+        },
+      });
     }
 
-    // Check if user is admin or superuser
-    const currentUser = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.userId, session.user.id),
-      with: {
-        user: true,
-      },
-    });
-
-    if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "superuser")) {
+    if (
+      !currentUser ||
+      (currentUser.role !== 'admin' && currentUser.role !== 'superuser')
+    ) {
       return NextResponse.json(
-        { error: "Insufficient permissions" },
+        { error: 'Insufficient permissions' },
         { status: 403 }
       );
     }
@@ -170,19 +261,20 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json(
         {
-          error: "User already exists",
-          message: existingUser.email === validatedData.email
-            ? "Email already registered"
-            : "Username already taken",
+          error: 'User already exists',
+          message:
+            existingUser.email === validatedData.email
+              ? 'Email already registered'
+              : 'Username already taken',
         },
         { status: 400 }
       );
     }
 
     // Only superuser can create admin users
-    if (validatedData.role === "admin" && currentUser.role !== "superuser") {
+    if (validatedData.role === 'admin' && currentUser.role !== 'superuser') {
       return NextResponse.json(
-        { error: "Only superuser can create admin users" },
+        { error: 'Only superuser can create admin users' },
         { status: 403 }
       );
     }
@@ -197,18 +289,18 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: 'Validation failed',
           details: error.issues,
         },
         { status: 400 }
       );
     }
 
-    console.error("User creation error:", error);
+    console.error('User creation error:', error);
     return NextResponse.json(
       {
-        error: "Failed to create user",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to create user',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -224,24 +316,67 @@ export async function PATCH(request: NextRequest) {
       headers: request.headers,
     });
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    let currentUser;
+
+    if (DISABLE_AUTH) {
+      // In auth-disabled mode, use or create a default superuser for testing
+      currentUser = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.role, 'superuser'),
+        with: {
+          user: true,
+        },
+      });
+
+      if (!currentUser) {
+        // Create a default superuser for testing
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            name: 'superuser',
+            email: 'superuser@autopwn.local',
+          })
+          .returning();
+
+        [currentUser] = await db
+          .insert(userProfiles)
+          .values({
+            userId: newUser.id,
+            username: 'superuser',
+            role: 'superuser',
+            isActive: true,
+            isEmailVerified: true,
+            requirePasswordChange: false,
+          })
+          .returning();
+
+        // Refresh the query to get the complete record with user relation
+        currentUser = await db.query.userProfiles.findFirst({
+          where: eq(userProfiles.id, currentUser.id),
+          with: {
+            user: true,
+          },
+        });
+      }
+    } else {
+      // Normal auth flow
+      if (!session?.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      currentUser = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.userId, session.user.id),
+        with: {
+          user: true,
+        },
+      });
     }
 
-    // Check if user is admin or superuser
-    const currentUser = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.userId, session.user.id),
-      with: {
-        user: true,
-      },
-    });
-
-    if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "superuser")) {
+    if (
+      !currentUser ||
+      (currentUser.role !== 'admin' && currentUser.role !== 'superuser')
+    ) {
       return NextResponse.json(
-        { error: "Insufficient permissions" },
+        { error: 'Insufficient permissions' },
         { status: 403 }
       );
     }
@@ -258,24 +393,27 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!targetUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Cannot modify superuser unless you are the superuser
-    if (targetUser.role === "superuser" && currentUser.userId !== targetUser.userId) {
+    if (
+      targetUser.role === 'superuser' &&
+      currentUser.userId !== targetUser.userId
+    ) {
       return NextResponse.json(
-        { error: "Cannot modify superuser account" },
+        { error: 'Cannot modify superuser account' },
         { status: 403 }
       );
     }
 
     // Cannot deactivate yourself
-    if (validatedData.userId === currentUser.userId && validatedData.isActive === false) {
+    if (
+      validatedData.userId === currentUser.userId &&
+      validatedData.isActive === false
+    ) {
       return NextResponse.json(
-        { error: "Cannot deactivate your own account" },
+        { error: 'Cannot deactivate your own account' },
         { status: 400 }
       );
     }
@@ -286,7 +424,9 @@ export async function PATCH(request: NextRequest) {
       .set({
         ...(validatedData.email && { email: validatedData.email }),
         ...(validatedData.username && { username: validatedData.username }),
-        ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive }),
+        ...(validatedData.isActive !== undefined && {
+          isActive: validatedData.isActive,
+        }),
         updatedAt: new Date(),
       })
       .where(eq(users.id, validatedData.userId))
@@ -300,18 +440,18 @@ export async function PATCH(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Validation failed",
+          error: 'Validation failed',
           details: error.issues,
         },
         { status: 400 }
       );
     }
 
-    console.error("User update error:", error);
+    console.error('User update error:', error);
     return NextResponse.json(
       {
-        error: "Failed to update user",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to update user',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

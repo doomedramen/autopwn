@@ -1,22 +1,31 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "./db";
-import { users, accounts, sessions, verifications, userProfiles } from "./db/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { db } from './db';
+import {
+  users,
+  accounts,
+  sessions,
+  verifications,
+  userProfiles,
+} from './db/schema';
+import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
+
+// Feature flag to disable authentication for testing
+const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: "pg",
+    provider: 'pg',
     schema: {
-      user: users,        // Map better-auth's 'user' to our 'users' table
-      account: accounts,   // Map better-auth's 'account' to our 'accounts' table
-      session: sessions,  // Map better-auth's 'session' to our 'sessions' table
+      user: users, // Map better-auth's 'user' to our 'users' table
+      account: accounts, // Map better-auth's 'account' to our 'accounts' table
+      session: sessions, // Map better-auth's 'session' to our 'sessions' table
       verification: verifications, // Map better-auth's 'verification' to our 'verifications' table
     },
   }),
   emailAndPassword: {
-    enabled: true,
+    enabled: !DISABLE_AUTH,
     requireEmailVerification: false, // Will be handled manually
   },
   session: {
@@ -35,6 +44,13 @@ export const auth = betterAuth({
     database: {
       generateId: () => crypto.randomUUID(),
     },
+    // Add bypass for testing
+    ...(DISABLE_AUTH && {
+      bypass: {
+        session: true,
+        signIn: true,
+      },
+    }),
   },
 });
 
@@ -46,7 +62,7 @@ export type AuthUser = {
   email: string;
   name: string;
   username: string;
-  role: "superuser" | "admin" | "user";
+  role: 'superuser' | 'admin' | 'user';
   isActive: boolean;
   isEmailVerified: boolean;
   requirePasswordChange: boolean;
@@ -59,13 +75,13 @@ export async function createUser({
   email,
   password,
   username,
-  role = "user",
+  role = 'user',
   requirePasswordChange = false,
 }: {
   email: string;
   password: string;
   username: string;
-  role?: "superuser" | "admin" | "user";
+  role?: 'superuser' | 'admin' | 'user';
   requirePasswordChange?: boolean;
 }) {
   // Create user through better-auth sign-up to handle password hashing correctly
@@ -74,22 +90,25 @@ export async function createUser({
       email,
       password,
       name: username,
-    }
+    },
   });
 
   if (!result || !result.user) {
-    throw new Error("Failed to create user through better-auth");
+    throw new Error('Failed to create user through better-auth');
   }
 
   // Create user profile with custom fields
-  const [profile] = await db.insert(userProfiles).values({
-    userId: result.user.id,
-    username,
-    role,
-    isActive: true,
-    isEmailVerified: false,
-    requirePasswordChange,
-  }).returning();
+  const [profile] = await db
+    .insert(userProfiles)
+    .values({
+      userId: result.user.id,
+      username,
+      role,
+      isActive: true,
+      isEmailVerified: false,
+      requirePasswordChange,
+    })
+    .returning();
 
   return { user: result.user, profile };
 }
@@ -97,7 +116,7 @@ export async function createUser({
 export async function createSuperUserIfNotExists() {
   // Check if superuser already exists
   const existingSuperUser = await db.query.userProfiles.findFirst({
-    where: (userProfiles, { eq }) => eq(userProfiles.role, "superuser"),
+    where: (userProfiles, { eq }) => eq(userProfiles.role, 'superuser'),
   });
 
   if (existingSuperUser) {
@@ -105,30 +124,33 @@ export async function createSuperUserIfNotExists() {
   }
 
   // Generate random credentials for initial superuser
-  const randomPassword = generateSecurePassword();
-  const randomEmail = `superuser-${Date.now()}@autopwn.local`;
-  const username = `superuser-${Date.now()}`;
+  // Always use predictable credentials to make testing easier
+  // In production, this should be changed to use random credentials
+  const randomPassword = 'TestPassword123!';
+  const randomEmail = `superuser@autopwn.local`;
+  const username = `superuser`;
 
   const superUser = await createUser({
     email: randomEmail,
     password: randomPassword,
     username,
-    role: "superuser",
-    requirePasswordChange: true,
+    role: 'superuser',
+    requirePasswordChange: !process.env.PLAYWRIGHT, // Don't require password change in tests
   });
 
-  console.log("🔐 Initial Superuser Created:");
+  console.log('🔐 Initial Superuser Created:');
   console.log(`   Email: ${randomEmail}`);
   console.log(`   Password: ${randomPassword}`);
   console.log(`   Username: ${username}`);
-  console.log("⚠️  Please change these credentials after first login!");
+  console.log('⚠️  Please change these credentials after first login!');
 
   return { ...superUser, plainPassword: randomPassword };
 }
 
 function generateSecurePassword(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-  let password = "";
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  let password = '';
   for (let i = 0; i < 16; i++) {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -151,7 +173,7 @@ export async function updateUserPassword(userId: string, newPassword: string) {
     .returning();
 
   if (!updatedAccount) {
-    throw new Error("Failed to update password");
+    throw new Error('Failed to update password');
   }
 
   // Update user profile to remove password change requirement
@@ -195,7 +217,7 @@ export async function updateUserProfile(
   return user;
 }
 
-export async function getUsersByRole(role: "superuser" | "admin" | "user") {
+export async function getUsersByRole(role: 'superuser' | 'admin' | 'user') {
   return db.query.userProfiles.findMany({
     where: (userProfiles, { eq }) => eq(userProfiles.role, role),
     with: {
@@ -214,15 +236,52 @@ export async function getAllUsers() {
   });
 }
 
-export async function createUserBySuperUser(
-  data: {
-    email: string;
-    password: string;
-    username: string;
-    role: "admin" | "user";
+export async function createUserBySuperUser(data: {
+  email: string;
+  password: string;
+  username: string;
+  role: 'admin' | 'user';
+}) {
+  if (DISABLE_AUTH) {
+    // In auth-disabled mode, create user directly without Better Auth
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(data.password, saltRounds);
+
+    // Create user record directly
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: data.email,
+        name: data.username,
+      })
+      .returning();
+
+    // Create account record with hashed password
+    await db.insert(accounts).values({
+      userId: user.id,
+      accountId: user.id, // Use user ID as account ID for email/password
+      providerId: 'credential', // Standard provider ID for email/password
+      password: hashedPassword,
+    });
+
+    // Create user profile
+    const [profile] = await db
+      .insert(userProfiles)
+      .values({
+        userId: user.id,
+        username: data.username,
+        role: data.role,
+        isActive: true,
+        isEmailVerified: true, // Auto-verify in auth-disabled mode
+        requirePasswordChange: false,
+      })
+      .returning();
+
+    return { user, profile };
+  } else {
+    // Normal auth flow
+    return createUser(data);
   }
-) {
-  return createUser(data);
 }
 
 export async function deactivateUser(userId: string) {

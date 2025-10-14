@@ -40,7 +40,11 @@ async function globalTeardown() {
   }
 
   // Clear hashcat potfile
-  const potfilePath = path.join(process.env.HOME || '', '.hashcat', 'hashcat.potfile');
+  const potfilePath = path.join(
+    process.env.HOME || '',
+    '.hashcat',
+    'hashcat.potfile'
+  );
   try {
     await fs.rm(potfilePath, { force: true });
     console.log('✓ Cleared hashcat potfile');
@@ -48,33 +52,10 @@ async function globalTeardown() {
     console.log('⚠ Could not clear hashcat potfile:', error);
   }
 
-  // Clear database
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.log('⚠ DATABASE_URL not set, skipping database cleanup');
-    return;
-  }
-
-  const client = postgres(databaseUrl);
-
-  try {
-    // Delete all data from tables in the correct order (respecting foreign keys)
-    await client`DELETE FROM cracked_passwords`;
-    await client`DELETE FROM job_dictionaries`;
-    await client`DELETE FROM job_networks`;
-    await client`DELETE FROM job_pcaps`;
-    await client`DELETE FROM jobs`;
-    await client`DELETE FROM networks`;
-    await client`DELETE FROM uploads`;
-    await client`DELETE FROM users`;
-
-    console.log('✓ Cleared database tables');
-  } catch (error) {
-    console.error('❌ Failed to clear database:', error);
-    // Don't throw in teardown, just log the error
-  } finally {
-    await client.end();
-  }
+  // NOTE: With true test isolation, individual tests handle their own cleanup
+  console.log(
+    '📝 Database cleanup handled by individual tests for true isolation'
+  );
 
   console.log('✅ Global teardown complete\n');
 }

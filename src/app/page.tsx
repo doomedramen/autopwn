@@ -40,7 +40,13 @@ interface DictionaryInfo {
 interface JobInfo {
   id: string;
   name: string;
-  status: 'pending' | 'processing' | 'paused' | 'completed' | 'failed' | 'stopped';
+  status:
+    | 'pending'
+    | 'processing'
+    | 'paused'
+    | 'completed'
+    | 'failed'
+    | 'stopped';
   progress: number;
   speed?: string;
   eta?: string;
@@ -66,11 +72,13 @@ export default function Home() {
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [activeTab, setActiveTab] = useState('jobs');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [isSystemInitialized, setIsSystemInitialized] = useState<boolean | null>(null);
+  const [isSystemInitialized, setIsSystemInitialized] = useState<
+    boolean | null
+  >(null);
 
   const { isLoading, startLoading, stopLoading } = useLoading({
     minLoadingTime: 300,
-    maxLoadingTime: 10000
+    maxLoadingTime: 10000,
   });
 
   const checkSystemInitialization = async () => {
@@ -105,7 +113,7 @@ export default function Home() {
       const interval = setInterval(() => loadDashboardData(false), 5000); // Refresh every 5 seconds
       return () => clearInterval(interval);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSystemInitialized]);
 
   const loadDashboardData = async (showLoading = false) => {
@@ -126,22 +134,29 @@ export default function Home() {
       if (dictionariesResponse.ok) {
         const dictionariesData = await dictionariesResponse.json();
         // Map API response to expected interface with better error handling
-        const mappedDictionaries = (dictionariesData.data || []).map((dict: Record<string, unknown>) => {
-          const fileSize = typeof dict.fileSize === 'number' ? dict.fileSize : 0;
-          const lineCount = typeof dict.lineCount === 'number' ? dict.lineCount : 0;
-          const createdAt = dict.createdAt ? new Date(dict.createdAt as string) : new Date();
+        const mappedDictionaries = (dictionariesData.data || []).map(
+          (dict: Record<string, unknown>) => {
+            const fileSize =
+              typeof dict.fileSize === 'number' ? dict.fileSize : 0;
+            const lineCount =
+              typeof dict.lineCount === 'number' ? dict.lineCount : 0;
+            const createdAt = dict.createdAt
+              ? new Date(dict.createdAt as string)
+              : new Date();
 
-          return {
-            id: dict.id,
-            name: dict.filename || dict.originalName || 'Unknown Dictionary',
-            originalName: dict.originalName || dict.filename || 'Unknown Dictionary',
-            lineCount: lineCount,
-            size: fileSize,
-            checksum: dict.fileChecksum || '',
-            uploadDate: createdAt.toISOString(),
-            isCompressed: dict.isCompressed || false
-          };
-        });
+            return {
+              id: dict.id,
+              name: dict.filename || dict.originalName || 'Unknown Dictionary',
+              originalName:
+                dict.originalName || dict.filename || 'Unknown Dictionary',
+              lineCount: lineCount,
+              size: fileSize,
+              checksum: dict.fileChecksum || '',
+              uploadDate: createdAt.toISOString(),
+              isCompressed: dict.isCompressed || false,
+            };
+          }
+        );
         setDictionaries(mappedDictionaries);
       }
 
@@ -187,19 +202,19 @@ export default function Home() {
     fetch('/api/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(jobConfig)
+      body: JSON.stringify(jobConfig),
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        loadDashboardData();
-      } else {
-        console.error('Failed to create job:', data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error creating job:', error);
-    });
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          loadDashboardData();
+        } else {
+          console.error('Failed to create job:', data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error creating job:', error);
+      });
   };
 
   const handleViewJobLogs = (jobId: string, jobName: string) => {
@@ -210,9 +225,14 @@ export default function Home() {
 
   // Calculate derived stats
   const networksWithHandshakes = networks.filter(n => n.hasHandshake);
-  const activeJobs = jobs.filter(j => j.status === 'processing' || j.status === 'paused');
+  const activeJobs = jobs.filter(
+    j => j.status === 'processing' || j.status === 'paused'
+  );
   const completedJobs = jobs.filter(j => j.status === 'completed');
-  const totalWords = dictionaries.reduce((sum, dict) => sum + dict.lineCount, 0);
+  const totalWords = dictionaries.reduce(
+    (sum, dict) => sum + dict.lineCount,
+    0
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -221,7 +241,9 @@ export default function Home() {
         showActions={true}
         onUploadClick={() => setIsUploadModalOpen(true)}
         onCreateJobClick={() => setIsJobModalOpen(true)}
-        disabledJobButton={networksWithHandshakes.length === 0 || dictionaries.length === 0}
+        disabledJobButton={
+          networksWithHandshakes.length === 0 || dictionaries.length === 0
+        }
       />
 
       {/* Main Content */}
@@ -240,8 +262,14 @@ export default function Home() {
 
         {/* Detailed Tabs */}
         <div className="mt-6 sm:mt-8 animate-fade-in">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className={`grid w-full h-12 sm:h-12 p-1 bg-muted/50 backdrop-blur supports-[backdrop-filter]:bg-muted/30 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-xl border`}>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-6"
+          >
+            <TabsList
+              className={`grid w-full h-12 sm:h-12 p-1 bg-muted/50 backdrop-blur supports-[backdrop-filter]:bg-muted/30 ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'} rounded-xl border`}
+            >
               <TabsTrigger
                 value="jobs"
                 className="flex items-center justify-center space-x-1 sm:space-x-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 rounded-lg hover-lift text-xs sm:text-sm"
@@ -303,7 +331,10 @@ export default function Home() {
                 />
               </TabsContent>
 
-              <TabsContent value="dictionaries" className="mt-0 animate-slide-up">
+              <TabsContent
+                value="dictionaries"
+                className="mt-0 animate-slide-up"
+              >
                 <DictionariesTab
                   dictionaries={dictionaries}
                   isInitialLoad={isInitialLoad}

@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 interface LogoProps {
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
   simple?: boolean;
 }
 
-export function Logo({ size = "md", className = "", simple }: LogoProps) {
+export function Logo({ size = 'md', className = '', simple }: LogoProps) {
   const sizeClasses = {
-    sm: "text-lg p-1.5",
-    md: "text-2xl p-2",
-    lg: "text-4xl p-2",
+    sm: 'text-lg p-1.5',
+    md: 'text-2xl p-2',
+    lg: 'text-4xl p-2',
   };
 
   if (simple) {

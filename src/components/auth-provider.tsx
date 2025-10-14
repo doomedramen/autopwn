@@ -1,8 +1,12 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useSession } from "@/lib/auth-client";
-import type { AuthUser } from "@/lib/auth";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useSession } from '@/lib/auth-client';
+import type { AuthUser } from '@/lib/auth';
+
+// Feature flag to disable authentication for testing
+// Note: This is server-side only. Client-side will check via API
+const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -19,34 +23,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthDisabled, setIsAuthDisabled] = useState(false);
 
   const refreshUser = async () => {
     try {
-      const response = await fetch("/api/auth/me");
+      const response = await fetch('/api/auth/me');
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
       }
     } catch (error) {
-      console.error("Failed to refresh user:", error);
+      console.error('Failed to refresh user:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    // Always fetch complete user data via /api/auth/me to get profile fields like username
+  const createMockSuperUser = async () => {
+    // In auth-disabled mode, create a mock superuser for UI components
+    const mockUser: AuthUser = {
+      id: 'mock-superuser-id',
+      email: 'superuser@autopwn.local',
+      name: 'superuser',
+      username: 'superuser',
+      role: 'superuser',
+      isActive: true,
+      isEmailVerified: true,
+      requirePasswordChange: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setUser(mockUser);
+    setIsLoading(false);
+  };
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch('/api/auth/status');
+      if (response.ok) {
+        const data = await response.json();
+        setIsAuthDisabled(data.disabled);
+
+        if (data.disabled) {
+          // Auth disabled - create mock superuser
+          createMockSuperUser();
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+    }
+
+    // If auth is not disabled or API check failed, use normal flow
     if (session?.user) {
       refreshUser();
     } else {
       setUser(null);
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    checkAuthStatus();
   }, [session]);
 
   const isAuthenticated = !!user;
-  const isSuperUser = user?.role === "superuser";
-  const isAdmin = user?.role === "admin" || user?.role === "superuser";
+  const isSuperUser = user?.role === 'superuser';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superuser';
 
   return (
     <AuthContext.Provider
@@ -67,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { createSuperUserIfNotExists } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { NextResponse } from 'next/server';
+import { createSuperUserIfNotExists } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { userProfiles } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 /**
  * Initialize the application by creating a superuser if none exists
@@ -17,8 +17,8 @@ export async function POST() {
     if (existingUsers.length > 0) {
       return NextResponse.json(
         {
-          error: "Application already initialized",
-          message: "Users already exist in the system",
+          error: 'Application already initialized',
+          message: 'Users already exist in the system',
         },
         { status: 400 }
       );
@@ -30,8 +30,8 @@ export async function POST() {
     if (!superUser) {
       return NextResponse.json(
         {
-          error: "Failed to create superuser",
-          message: "Unable to create initial superuser account",
+          error: 'Failed to create superuser',
+          message: 'Unable to create initial superuser account',
         },
         { status: 500 }
       );
@@ -39,15 +39,25 @@ export async function POST() {
 
     // Handle both cases: newly created user (with user and profile) or existing superuser (just profile)
     const userId = 'user' in superUser ? superUser.user.id : superUser.userId;
-    const username = 'user' in superUser ? superUser.profile.username : superUser.username;
-    const email = 'user' in superUser ? superUser.user.email : 'Email not available for existing user';
-    const password = 'plainPassword' in superUser ? superUser.plainPassword : 'Password not available for existing user';
+    const username =
+      'user' in superUser ? superUser.profile.username : superUser.username;
+    const email =
+      'user' in superUser
+        ? superUser.user.email
+        : 'Email not available for existing user';
+    const password =
+      'plainPassword' in superUser
+        ? superUser.plainPassword
+        : 'Password not available for existing user';
     const role = 'user' in superUser ? superUser.profile.role : superUser.role;
-    const requirePasswordChange = 'user' in superUser ? superUser.profile.requirePasswordChange : superUser.requirePasswordChange;
+    const requirePasswordChange =
+      'user' in superUser
+        ? superUser.profile.requirePasswordChange
+        : superUser.requirePasswordChange;
 
     return NextResponse.json({
       success: true,
-      message: "Application initialized successfully",
+      message: 'Application initialized successfully',
       data: {
         userId,
         username,
@@ -58,11 +68,11 @@ export async function POST() {
       },
     });
   } catch (error) {
-    console.error("Initialization error:", error);
+    console.error('Initialization error:', error);
     return NextResponse.json(
       {
-        error: "Initialization failed",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Initialization failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -75,7 +85,7 @@ export async function POST() {
 export async function GET() {
   try {
     const superUserProfile = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.role, "superuser"),
+      where: eq(userProfiles.role, 'superuser'),
     });
 
     const isInitialized = !!superUserProfile;
@@ -85,11 +95,11 @@ export async function GET() {
       hasSuperUser: isInitialized,
     });
   } catch (error) {
-    console.error("Init check error:", error);
+    console.error('Init check error:', error);
     return NextResponse.json(
       {
-        error: "Failed to check initialization status",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to check initialization status',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

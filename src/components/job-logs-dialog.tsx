@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Terminal, RefreshCw } from 'lucide-react';
-
 
 interface JobLogsDialogProps {
   isOpen: boolean;
@@ -14,7 +19,12 @@ interface JobLogsDialogProps {
   jobName: string;
 }
 
-export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialogProps) {
+export function JobLogsDialog({
+  isOpen,
+  onClose,
+  jobId,
+  jobName,
+}: JobLogsDialogProps) {
   const [logs, setLogs] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +72,28 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
     return () => clearInterval(interval);
   }, [isOpen, jobId, loadLogs]);
 
-  const getLogType = (message: string): 'info' | 'error' | 'success' | 'warning' => {
+  const getLogType = (
+    message: string
+  ): 'info' | 'error' | 'success' | 'warning' => {
     const lowerMessage = message.toLowerCase();
-    if (lowerMessage.includes('error') || lowerMessage.includes('failed') || lowerMessage.includes('exception')) {
+    if (
+      lowerMessage.includes('error') ||
+      lowerMessage.includes('failed') ||
+      lowerMessage.includes('exception')
+    ) {
       return 'error';
     }
-    if (lowerMessage.includes('completed') || lowerMessage.includes('success') || lowerMessage.includes('cracked')) {
+    if (
+      lowerMessage.includes('completed') ||
+      lowerMessage.includes('success') ||
+      lowerMessage.includes('cracked')
+    ) {
       return 'success';
     }
-    if (lowerMessage.includes('warning') || lowerMessage.includes('deprecated')) {
+    if (
+      lowerMessage.includes('warning') ||
+      lowerMessage.includes('deprecated')
+    ) {
       return 'warning';
     }
     return 'info';
@@ -119,7 +142,9 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
             </div>
           ) : logs.length === 0 ? (
             <div className="flex items-center justify-center h-48">
-              <p className="text-muted-foreground">No logs available for this job</p>
+              <p className="text-muted-foreground">
+                No logs available for this job
+              </p>
             </div>
           ) : (
             <div className="h-[400px] w-full border rounded-lg p-4 overflow-y-auto overflow-x-hidden">
@@ -131,7 +156,9 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
                       <span className={`text-xs ${getLogColor(logType)} mt-1`}>
                         {'>'}
                       </span>
-                      <pre className={`flex-1 whitespace-pre-wrap break-words ${getLogColor(logType)}`}>
+                      <pre
+                        className={`flex-1 whitespace-pre-wrap break-words ${getLogColor(logType)}`}
+                      >
                         {log}
                       </pre>
                     </div>
@@ -155,7 +182,9 @@ export function JobLogsDialog({ isOpen, onClose, jobId, jobName }: JobLogsDialog
               onClick={loadLogs}
               disabled={isLoading}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+              />
               Refresh
             </Button>
           </div>

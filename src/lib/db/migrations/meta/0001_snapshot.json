@@ -111,12 +111,8 @@
           "name": "cracked_passwords_job_id_jobs_id_fk",
           "tableFrom": "cracked_passwords",
           "tableTo": "jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -124,12 +120,8 @@
           "name": "cracked_passwords_network_id_networks_id_fk",
           "tableFrom": "cracked_passwords",
           "tableTo": "networks",
-          "columnsFrom": [
-            "network_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["network_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -201,12 +193,8 @@
           "name": "job_dictionaries_job_id_jobs_id_fk",
           "tableFrom": "job_dictionaries",
           "tableTo": "jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -214,12 +202,8 @@
           "name": "job_dictionaries_upload_id_uploads_id_fk",
           "tableFrom": "job_dictionaries",
           "tableTo": "uploads",
-          "columnsFrom": [
-            "upload_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["upload_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -227,10 +211,7 @@
       "compositePrimaryKeys": {
         "job_dictionaries_job_id_upload_id_pk": {
           "name": "job_dictionaries_job_id_upload_id_pk",
-          "columns": [
-            "job_id",
-            "upload_id"
-          ]
+          "columns": ["job_id", "upload_id"]
         }
       },
       "uniqueConstraints": {},
@@ -299,12 +280,8 @@
           "name": "job_networks_job_id_jobs_id_fk",
           "tableFrom": "job_networks",
           "tableTo": "jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -312,12 +289,8 @@
           "name": "job_networks_network_id_networks_id_fk",
           "tableFrom": "job_networks",
           "tableTo": "networks",
-          "columnsFrom": [
-            "network_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["network_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -325,10 +298,7 @@
       "compositePrimaryKeys": {
         "job_networks_job_id_network_id_pk": {
           "name": "job_networks_job_id_network_id_pk",
-          "columns": [
-            "job_id",
-            "network_id"
-          ]
+          "columns": ["job_id", "network_id"]
         }
       },
       "uniqueConstraints": {},
@@ -397,12 +367,8 @@
           "name": "job_pcaps_job_id_jobs_id_fk",
           "tableFrom": "job_pcaps",
           "tableTo": "jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -410,12 +376,8 @@
           "name": "job_pcaps_upload_id_uploads_id_fk",
           "tableFrom": "job_pcaps",
           "tableTo": "uploads",
-          "columnsFrom": [
-            "upload_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["upload_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -423,10 +385,7 @@
       "compositePrimaryKeys": {
         "job_pcaps_job_id_upload_id_pk": {
           "name": "job_pcaps_job_id_upload_id_pk",
-          "columns": [
-            "job_id",
-            "upload_id"
-          ]
+          "columns": ["job_id", "upload_id"]
         }
       },
       "uniqueConstraints": {},
@@ -634,12 +593,8 @@
           "name": "jobs_user_id_users_id_fk",
           "tableFrom": "jobs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -770,12 +725,8 @@
           "name": "networks_upload_id_uploads_id_fk",
           "tableFrom": "networks",
           "tableTo": "uploads",
-          "columnsFrom": [
-            "upload_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["upload_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -785,10 +736,7 @@
         "networks_upload_bssid_unique": {
           "name": "networks_upload_bssid_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "upload_id",
-            "bssid"
-          ]
+          "columns": ["upload_id", "bssid"]
         }
       },
       "policies": {},
@@ -926,12 +874,8 @@
           "name": "uploads_user_id_users_id_fk",
           "tableFrom": "uploads",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1024,16 +968,12 @@
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},

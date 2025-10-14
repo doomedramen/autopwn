@@ -13,7 +13,7 @@ export function FileUpload({
   disabled = false,
   onUploadComplete,
   onUploadError,
-  children
+  children,
 }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const config = UPLOAD_CONFIGS[type];
@@ -25,7 +25,7 @@ export function FileUpload({
     handleFileInput,
     isDragOver,
     isUploading,
-    overallProgress
+    overallProgress,
   } = useFileUpload({
     type,
     multiple,
@@ -38,10 +38,9 @@ export function FileUpload({
     },
     onError: (_fileId, error) => {
       onUploadError?.(error);
-    }
+    },
   });
 
-  
   const handleClick = () => {
     if (!disabled && !isUploading) {
       fileInputRef.current?.click();
@@ -109,7 +108,7 @@ function DefaultUploadContent({
   isDragOver,
   isUploading,
   overallProgress,
-  disabled
+  disabled,
 }: {
   type: string;
   config: {
@@ -152,13 +151,14 @@ function DefaultUploadContent({
       {/* Upload text */}
       <div>
         <h3 className="text-lg font-semibold">
-          {isUploading ? 'Uploading...' : `Upload ${type === 'pcap' ? 'PCAP' : type === 'dictionary' ? 'Dictionary' : 'Files'}`}
+          {isUploading
+            ? 'Uploading...'
+            : `Upload ${type === 'pcap' ? 'PCAP' : type === 'dictionary' ? 'Dictionary' : 'Files'}`}
         </h3>
         <p className="text-sm text-muted-foreground mt-1">
           {isDragOver
             ? 'Drop files here'
-            : `Drag and drop files here, or click to select`
-          }
+            : `Drag and drop files here, or click to select`}
         </p>
       </div>
 
@@ -172,12 +172,14 @@ function DefaultUploadContent({
         </p>
         {type === 'pcap' && (
           <p className="text-amber-600">
-            <strong>Note:</strong> PCAP files should contain WiFi handshakes for analysis
+            <strong>Note:</strong> PCAP files should contain WiFi handshakes for
+            analysis
           </p>
         )}
         {type === 'dictionary' && (
           <p className="text-blue-600">
-            <strong>Note:</strong> Large dictionary files will be processed in the background
+            <strong>Note:</strong> Large dictionary files will be processed in
+            the background
           </p>
         )}
       </div>
@@ -199,9 +201,7 @@ function DefaultUploadContent({
 
       {/* Disabled state */}
       {disabled && (
-        <p className="text-xs text-red-500">
-          Upload is currently disabled
-        </p>
+        <p className="text-xs text-red-500">Upload is currently disabled</p>
       )}
     </div>
   );

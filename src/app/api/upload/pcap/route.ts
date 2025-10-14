@@ -4,9 +4,10 @@ import { uploadService } from '@/lib/upload';
 import { getUploadConfig } from '@/lib/upload/configs';
 import { progressTracker } from '@/lib/upload/progress';
 import { db } from '@/lib/db';
-import { uploads, networks, users } from '@/lib/db/schema';
+import { uploads, networks, users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import type { UploadProgress } from '@/lib/upload';
+import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes
@@ -22,10 +23,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Validate file type
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Invalid file type',
           message: `PCAP files must have one of these extensions: ${config.allowedExtensions.join(', ')}`,
-          received: fileExtension
+          received: fileExtension,
         },
         { status: 400 }
       );
@@ -49,7 +47,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'File too large',
           message: `PCAP files must be smaller than ${(config.maxSize / 1024 / 1024).toFixed(1)}MB`,
-          received: `${(file.size / 1024 / 1024).toFixed(1)}MB`
+          received: `${(file.size / 1024 / 1024).toFixed(1)}MB`,
         },
         { status: 413 }
       );
@@ -65,39 +63,109 @@ export async function POST(request: NextRequest) {
     };
 
     // Handle upload with PCAP-specific processing
-    const result = await uploadService.handleUpload(file, config, onProgress, fileId);
+    const result = await uploadService.handleUpload(
+      file,
+      config,
+      onProgress,
+      fileId
+    );
 
     if (result.success) {
       // Mark progress as completed
-      progressTracker.completeTracking(fileId, result.data as unknown as Record<string, unknown>);
+      progressTracker.completeTracking(
+        fileId,
+        result.data as unknown as Record<string, unknown>
+      );
 
-      const processingResult = result.data?.processingResult as Record<string, unknown> || {};
-      const analysis = processingResult.analysis as Record<string, unknown> || {};
+      const processingResult =
+        (result.data?.processingResult as Record<string, unknown>) || {};
+      const analysis =
+        (processingResult.analysis as Record<string, unknown>) || {};
 
-      // Get or create default user
-      let defaultUser = await db.query.users.findFirst({
-        where: eq(users.name, 'default_user')
+      // Check for authenticated user first
+      const session = await auth.api.getSession({
+        headers: request.headers,
       });
 
-      if (!defaultUser) {
-        [defaultUser] = await db.insert(users).values({
-          name: 'default_user',
-          email: 'default@autopwn.local'
-        }).returning();
+      let userRecord;
+      if (session?.user?.id) {
+        // Use authenticated user
+        userRecord = await db.query.users.findFirst({
+          where: eq(users.id, session.user.id),
+        });
+
+        // Check if user profile exists, create if missing (for test environments)
+        if (userRecord) {
+          const userProfile = await db.query.userProfiles.findFirst({
+            where: eq(userProfiles.userId, userRecord.id),
+          });
+
+          if (!userProfile) {
+            await db.insert(userProfiles).values({
+              userId: userRecord.id,
+              username:
+                userRecord.name || userRecord.email?.split('@')[0] || 'unknown',
+              role: 'user',
+              isActive: true,
+              isEmailVerified: true,
+              requirePasswordChange: false,
+            });
+          }
+        }
+      }
+
+      if (!userRecord) {
+        // Fallback to default user for test environments or unauthenticated requests
+        userRecord = await db.query.users.findFirst({
+          where: eq(users.name, 'default_user'),
+        });
+
+        if (!userRecord) {
+          [userRecord] = await db
+            .insert(users)
+            .values({
+              name: 'default_user',
+              email: 'default@autopwn.local',
+            })
+            .returning();
+
+          // Create corresponding user profile for the default user
+          await db.insert(userProfiles).values({
+            userId: userRecord.id,
+            username: 'default_user',
+            role: 'user',
+            isActive: true,
+            isEmailVerified: true,
+            requirePasswordChange: false,
+          });
+        }
       }
 
       // Save upload record to database
-      const [uploadRecord] = await db.insert(uploads).values({
-        userId: defaultUser.id,
-        filename: result.data?.originalName || file.name,
-        originalName: file.name,
-        filePath: result.data?.savedPath || '',
-        fileSize: file.size,
-        fileChecksum: result.data?.checksum || '',
-        mimeType: file.type,
-        uploadType: 'pcap',
-        metadata: processingResult
-      }).returning();
+      // Get the user profile ID (uploads table references userProfiles.id, not users.id)
+      const userProfile = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.userId, userRecord.id),
+      });
+
+      if (!userProfile) {
+        console.error('❌ User profile not found for user:', userRecord.id);
+        throw new Error(`User profile not found for user: ${userRecord.id}`);
+      }
+
+      const [uploadRecord] = await db
+        .insert(uploads)
+        .values({
+          userId: userProfile.id,
+          filename: result.data?.originalName || file.name,
+          originalName: file.name,
+          filePath: result.data?.savedPath || '',
+          fileSize: file.size,
+          fileChecksum: result.data?.checksum || '',
+          mimeType: file.type,
+          uploadType: 'pcap',
+          metadata: processingResult,
+        })
+        .returning();
 
       // Save discovered networks to database
       const networksList = (analysis.networks as any[]) || [];
@@ -111,7 +179,7 @@ export async function POST(request: NextRequest) {
             encryption: network.encryption,
             hasHandshake: network.hasHandshake || false,
             firstSeen: network.firstSeen || new Date(),
-            lastSeen: network.lastSeen || new Date()
+            lastSeen: network.lastSeen || new Date(),
           }))
         );
       }
@@ -122,14 +190,14 @@ export async function POST(request: NextRequest) {
           upload: {
             ...result.data,
             id: uploadRecord.id,
-            fileId: fileId // Use the consistent fileId
+            fileId: fileId, // Use the consistent fileId
           },
           networks: networksList,
           handshakes: processingResult?.handshakes || null,
           summary: processingResult?.summary || {},
           fileId: fileId, // Use the consistent fileId for progress tracking
-          progressUrl: `/api/upload/progress/${fileId}`
-        }
+          progressUrl: `/api/upload/progress/${fileId}`,
+        },
       });
     } else {
       // Mark progress as failed
@@ -140,12 +208,11 @@ export async function POST(request: NextRequest) {
           success: false,
           error: 'Upload failed',
           message: result.stderr,
-          fileId
+          fileId,
         },
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('PCAP upload error:', error);
 
@@ -153,7 +220,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -186,9 +253,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: progress
+      data: progress,
     });
-
   } catch (error) {
     console.error('PCAP progress error:', error);
 
@@ -196,7 +262,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Failed to get progress',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

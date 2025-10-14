@@ -11,10 +11,27 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { FileUpload, UploadProgressList } from '@/components/upload';
-import { UploadType, UploadResponse, FileUploadState } from '@/components/upload/types';
-import { Upload as UploadIcon, Wifi, FileText, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import {
+  UploadType,
+  UploadResponse,
+  FileUploadState,
+} from '@/components/upload/types';
+import {
+  Upload as UploadIcon,
+  Wifi,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Info,
+} from 'lucide-react';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -29,7 +46,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
     uploads: [],
     isDragOver: false,
     isUploading: false,
-    overallProgress: 0
+    overallProgress: 0,
   });
   const [showProgress, setShowProgress] = useState(false);
 
@@ -51,11 +68,11 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
           return {
             ...upload,
             result,
-            status: result.success ? 'completed' : 'error'
+            status: result.success ? 'completed' : 'error',
           };
         }
         return upload;
-      })
+      }),
     }));
     onComplete?.(activeTab, results);
   };
@@ -71,7 +88,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
       uploads: [],
       isDragOver: false,
       isUploading: false,
-      overallProgress: 0
+      overallProgress: 0,
     });
     onClose();
   };
@@ -82,7 +99,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
       uploads: [],
       isDragOver: false,
       isUploading: false,
-      overallProgress: 0
+      overallProgress: 0,
     });
     setShowProgress(false);
   };
@@ -98,11 +115,16 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
             <span>Upload Files</span>
           </DialogTitle>
           <DialogDescription className="text-base">
-            Upload PCAP files for network analysis or dictionary files for password cracking.
+            Upload PCAP files for network analysis or dictionary files for
+            password cracking.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UploadType)} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={value => setActiveTab(value as UploadType)}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full h-12 p-1 bg-muted/50 rounded-xl">
             <TabsTrigger
               value="pcap"
@@ -132,8 +154,9 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                   <span>Network Capture Files</span>
                 </CardTitle>
                 <CardDescription className="text-base max-w-md mx-auto">
-                  Upload PCAP files containing WiFi network captures for analysis. Files will be automatically
-                  processed to extract networks and handshakes.
+                  Upload PCAP files containing WiFi network captures for
+                  analysis. Files will be automatically processed to extract
+                  networks and handshakes.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -163,15 +186,21 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                       <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
                         <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">.pcap, .cap, .pcapng</span>
+                        <span className="text-sm font-medium">
+                          .pcap, .cap, .pcapng
+                        </span>
                       </div>
                       <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">Max 50MB per file</span>
+                        <span className="text-sm font-medium">
+                          Max 50MB per file
+                        </span>
                       </div>
                       <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                         <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">WiFi handshakes required</span>
+                        <span className="text-sm font-medium">
+                          WiFi handshakes required
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -180,7 +209,10 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="dictionary" className="space-y-6 animate-slide-up">
+          <TabsContent
+            value="dictionary"
+            className="space-y-6 animate-slide-up"
+          >
             <Card className="border-dashed border-emerald-200 hover:border-emerald-300 transition-colors group">
               <CardHeader className="text-center pb-4">
                 <div className="flex justify-center mb-4">
@@ -192,8 +224,9 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                   <span>Password Dictionaries</span>
                 </CardTitle>
                 <CardDescription className="text-base max-w-md mx-auto">
-                  Upload password dictionaries for cracking WiFi passwords. Large files will be processed
-                  in the background and compressed files are supported.
+                  Upload password dictionaries for cracking WiFi passwords.
+                  Large files will be processed in the background and compressed
+                  files are supported.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -223,15 +256,21 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                       <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
                         <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">.txt, .lst, .dic, .gz, .bz2, .zip</span>
+                        <span className="text-sm font-medium">
+                          .txt, .lst, .dic, .gz, .bz2, .zip
+                        </span>
                       </div>
                       <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">Max 5GB per file</span>
+                        <span className="text-sm font-medium">
+                          Max 5GB per file
+                        </span>
                       </div>
                       <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                         <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">Compression supported</span>
+                        <span className="text-sm font-medium">
+                          Compression supported
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -250,7 +289,9 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                   <div className="p-1.5 rounded bg-blue-500/10">
                     <UploadIcon className="h-4 w-4 text-blue-600" />
                   </div>
-                  <span className="text-base font-semibold">Upload Progress</span>
+                  <span className="text-base font-semibold">
+                    Upload Progress
+                  </span>
                 </CardTitle>
                 <Button
                   variant="outline"
@@ -263,7 +304,10 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <UploadProgressList uploads={uploadState.uploads} showDetails={true} />
+              <UploadProgressList
+                uploads={uploadState.uploads}
+                showDetails={true}
+              />
             </CardContent>
           </Card>
         )}

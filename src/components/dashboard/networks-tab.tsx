@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +17,7 @@ import {
   ItemContent,
   ItemActions,
   ItemTitle,
-  ItemDescription
+  ItemDescription,
 } from '@/components/ui/item';
 import {
   Wifi,
@@ -20,12 +26,9 @@ import {
   Key,
   ChevronDown,
   ChevronUp,
-  Clock
+  Clock,
 } from 'lucide-react';
-import {
-  EmptyState,
-  CardGridSkeleton
-} from '@/components/loading';
+import { EmptyState, CardGridSkeleton } from '@/components/loading';
 import { useNetworkPasswords } from '@/hooks/useNetworkPasswords';
 import type { NetworkInfo } from '@/types';
 
@@ -67,12 +70,15 @@ function NetworkPasswords({ networkId }: { networkId: string }) {
   return (
     <div className="mt-2 pt-2 border-t">
       <div className="space-y-1">
-        {passwords.map((password) => (
+        {passwords.map(password => (
           <div key={password.id} className="flex items-center gap-2 text-sm">
             <Key className="size-3 text-green-600" />
-            <span className="font-mono text-green-600 font-medium">{password.plainPassword}</span>
+            <span className="font-mono text-green-600 font-medium">
+              {password.plainPassword}
+            </span>
             <span className="text-muted-foreground">
-              cracked by <span className="font-medium">{password.job.name}</span>
+              cracked by{' '}
+              <span className="font-medium">{password.job.name}</span>
             </span>
             <span className="text-muted-foreground">
               {new Date(password.crackedAt).toLocaleDateString()}
@@ -126,7 +132,11 @@ function NetworkItem({ network }: { network: NetworkInfo }) {
   );
 }
 
-export function NetworksTab({ networks, isInitialLoad, onUploadClick }: NetworksTabProps) {
+export function NetworksTab({
+  networks,
+  isInitialLoad,
+  onUploadClick,
+}: NetworksTabProps) {
   return (
     <Card>
       <CardHeader>
@@ -140,7 +150,7 @@ export function NetworksTab({ networks, isInitialLoad, onUploadClick }: Networks
           <CardGridSkeleton count={6} />
         ) : networks.length > 0 ? (
           <ItemGroup className="gap-3">
-            {networks.map((network) => (
+            {networks.map(network => (
               <NetworkItem key={network.id} network={network} />
             ))}
           </ItemGroup>

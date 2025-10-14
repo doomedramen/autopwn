@@ -24,7 +24,9 @@ interface UseNetworkPasswordsResult {
   fetchPasswords: () => Promise<void>;
 }
 
-export function useNetworkPasswords(networkId?: string): UseNetworkPasswordsResult {
+export function useNetworkPasswords(
+  networkId?: string
+): UseNetworkPasswordsResult {
   const [passwords, setPasswords] = useState<CrackedPassword[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,6 @@ export function useNetworkPasswords(networkId?: string): UseNetworkPasswordsResu
     passwords,
     isLoading,
     error,
-    fetchPasswords
+    fetchPasswords,
   };
 }

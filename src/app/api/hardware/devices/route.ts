@@ -13,7 +13,7 @@ export async function GET() {
         {
           success: false,
           error: 'Failed to detect devices',
-          message: result.stderr || 'Unknown error'
+          message: result.stderr || 'Unknown error',
         },
         { status: 500 }
       );
@@ -21,9 +21,8 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: result.data || []
+      data: result.data || [],
     });
-
   } catch (error) {
     console.error('Device detection error:', error);
 
@@ -31,7 +30,7 @@ export async function GET() {
       {
         success: false,
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

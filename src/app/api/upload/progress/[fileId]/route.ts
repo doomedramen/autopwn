@@ -30,9 +30,8 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: progress
+      data: progress,
     });
-
   } catch (error) {
     console.error('Progress tracking error:', error);
 
@@ -40,7 +39,7 @@ export async function GET(
       {
         success: false,
         error: 'Failed to get progress',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -93,10 +92,9 @@ export async function DELETE(
         message: 'Upload cancelled successfully',
         previousStage: currentProgress.stage,
         bytesUploaded: currentProgress.bytesUploaded,
-        totalBytes: currentProgress.totalBytes
-      }
+        totalBytes: currentProgress.totalBytes,
+      },
     });
-
   } catch (error) {
     console.error('Upload cancellation error:', error);
 
@@ -104,7 +102,7 @@ export async function DELETE(
       {
         success: false,
         error: 'Failed to cancel upload',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

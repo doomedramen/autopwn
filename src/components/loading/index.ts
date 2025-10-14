@@ -8,7 +8,7 @@ export {
   DictionarySkeleton,
   TableSkeleton,
   CardGridSkeleton,
-  DashboardStatsSkeleton
+  DashboardStatsSkeleton,
 } from './skeletons';
 
 // Overlay components
@@ -16,7 +16,7 @@ export {
   LoadingOverlay,
   PageLoading,
   CenteredLoading,
-  EmptyState
+  EmptyState,
 } from './overlays';
 
 // Job progress component

@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import React, { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { Logo } from "@/components/ui/Logo";
+import React, { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { signIn } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Logo } from '@/components/ui/Logo';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/";
+  const redirect = searchParams.get('redirect') || '/';
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,10 +35,11 @@ function LoginForm() {
         callbackURL: redirect,
       });
 
-      toast.success("Login successful!");
+      toast.success('Login successful!');
       router.push(redirect);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Login failed";
+      const errorMessage =
+        error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -54,10 +55,14 @@ function LoginForm() {
             <Logo size="lg" className="text-primary" />
           </div>
           <div className="hidden" data-testid="login-page-title">
-            <h1 className="text-3xl font-bold" data-testid="autopwn-title">AutoPWN</h1>
+            <h1 className="text-3xl font-bold" data-testid="autopwn-title">
+              AutoPWN
+            </h1>
           </div>
           <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to access your dashboard</p>
+          <p className="text-muted-foreground">
+            Sign in to access your dashboard
+          </p>
         </div>
 
         <Card className="animate-slide-up">
@@ -76,7 +81,7 @@ function LoginForm() {
                   type="email"
                   placeholder="admin@autopwn.local"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
                   data-testid="email-input"
@@ -90,7 +95,7 @@ function LoginForm() {
                   type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
                   data-testid="password-input"
@@ -109,7 +114,7 @@ function LoginForm() {
                     Signing in...
                   </>
                 ) : (
-                  "Sign In"
+                  'Sign In'
                 )}
               </Button>
             </form>
@@ -131,26 +136,28 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center mb-4 animate-scale-in">
-              <Logo size="lg" className="text-primary" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-          <Card className="animate-slide-up">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin" />
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center mb-4 animate-scale-in">
+                <Logo size="lg" className="text-primary" />
               </div>
-            </CardContent>
-          </Card>
+              <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+            <Card className="animate-slide-up">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

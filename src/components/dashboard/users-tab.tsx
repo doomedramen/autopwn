@@ -1,25 +1,53 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, UserPlus, Search, Shield, ShieldCheck, Loader2, Edit } from "lucide-react";
-import { useAuth } from "@/components/auth-provider";
-import { toast } from "sonner";
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Users,
+  UserPlus,
+  Search,
+  Shield,
+  ShieldCheck,
+  Loader2,
+  Edit,
+} from 'lucide-react';
+import { useAuth } from '@/components/auth-provider';
+import { toast } from 'sonner';
 
 interface UserInfo {
   id: string;
   email: string;
   username: string;
-  role: "superuser" | "admin" | "user";
+  role: 'superuser' | 'admin' | 'user';
   isActive: boolean;
   isEmailVerified: boolean;
   requirePasswordChange: boolean;
@@ -37,8 +65,8 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
 
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [currentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -49,16 +77,16 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
 
   // Form states
   const [newUserForm, setNewUserForm] = useState({
-    email: "",
-    username: "",
-    password: "",
-    confirmPassword: "",
-    role: "user" as "admin" | "user",
+    email: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
+    role: 'user' as 'admin' | 'user',
   });
 
   const [editUserForm, setEditUserForm] = useState({
-    email: "",
-    username: "",
+    email: '',
+    username: '',
     isActive: true,
   });
 
@@ -69,11 +97,11 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        limit: "10",
+        limit: '10',
       });
 
-      if (searchTerm) params.append("search", searchTerm);
-      if (roleFilter !== "all") params.append("role", roleFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      if (roleFilter !== 'all') params.append('role', roleFilter);
 
       const response = await fetch(`/api/admin/users?${params}`);
       const data = await response.json();
@@ -82,10 +110,10 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
         setUsers(data.data);
         setTotalPages(data.pagination.pages);
       } else {
-        toast.error(data.error || "Failed to fetch users");
+        toast.error(data.error || 'Failed to fetch users');
       }
     } catch (_error) {
-      toast.error("Failed to fetch users");
+      toast.error('Failed to fetch users');
     } finally {
       setIsLoading(false);
     }
@@ -104,14 +132,14 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
     }
 
     if (newUserForm.password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+      toast.error('Password must be at least 8 characters long');
       return;
     }
 
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: newUserForm.email,
           username: newUserForm.username,
@@ -123,21 +151,21 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("User created successfully");
+        toast.success('User created successfully');
         setIsCreateDialogOpen(false);
         setNewUserForm({
-          email: "",
-          username: "",
-          password: "",
-          confirmPassword: "",
-          role: "user",
+          email: '',
+          username: '',
+          password: '',
+          confirmPassword: '',
+          role: 'user',
         });
         fetchUsers();
       } else {
-        toast.error(data.error || "Failed to create user");
+        toast.error(data.error || 'Failed to create user');
       }
     } catch (_error) {
-      toast.error("Failed to create user");
+      toast.error('Failed to create user');
     }
   };
 
@@ -147,9 +175,9 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: selectedUser.id,
           email: editUserForm.email,
@@ -161,23 +189,26 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("User updated successfully");
+        toast.success('User updated successfully');
         setIsEditDialogOpen(false);
         setSelectedUser(null);
         fetchUsers();
       } else {
-        toast.error(data.error || "Failed to update user");
+        toast.error(data.error || 'Failed to update user');
       }
     } catch (_error) {
-      toast.error("Failed to update user");
+      toast.error('Failed to update user');
     }
   };
 
-  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
+  const handleToggleUserStatus = async (
+    userId: string,
+    currentStatus: boolean
+  ) => {
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
           isActive: !currentStatus,
@@ -187,13 +218,15 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success(`User ${!currentStatus ? "activated" : "deactivated"} successfully`);
+        toast.success(
+          `User ${!currentStatus ? 'activated' : 'deactivated'} successfully`
+        );
         fetchUsers();
       } else {
-        toast.error(data.error || "Failed to update user status");
+        toast.error(data.error || 'Failed to update user status');
       }
     } catch (_error) {
-      toast.error("Failed to update user status");
+      toast.error('Failed to update user status');
     }
   };
 
@@ -209,9 +242,9 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "superuser":
+      case 'superuser':
         return <Shield className="h-4 w-4 text-red-600" />;
-      case "admin":
+      case 'admin':
         return <ShieldCheck className="h-4 w-4 text-blue-600" />;
       default:
         return <Users className="h-4 w-4 text-gray-600" />;
@@ -220,12 +253,12 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case "superuser":
-        return "destructive";
-      case "admin":
-        return "default";
+      case 'superuser':
+        return 'destructive';
+      case 'admin':
+        return 'default';
       default:
-        return "secondary";
+        return 'secondary';
     }
   };
 
@@ -254,7 +287,10 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
         </div>
 
         {isSuperUser && (
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -265,7 +301,8 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
-                  Add a new user to the system. Only superusers can create admin accounts.
+                  Add a new user to the system. Only superusers can create admin
+                  accounts.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateUser} className="space-y-4">
@@ -276,8 +313,11 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                       id="username"
                       placeholder="username"
                       value={newUserForm.username}
-                      onChange={(e) =>
-                        setNewUserForm({ ...newUserForm, username: e.target.value })
+                      onChange={e =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          username: e.target.value,
+                        })
                       }
                       required
                       minLength={3}
@@ -290,8 +330,11 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                       type="email"
                       placeholder="user@example.com"
                       value={newUserForm.email}
-                      onChange={(e) =>
-                        setNewUserForm({ ...newUserForm, email: e.target.value })
+                      onChange={e =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          email: e.target.value,
+                        })
                       }
                       required
                     />
@@ -302,7 +345,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                   <Label htmlFor="role">Role</Label>
                   <Select
                     value={newUserForm.role}
-                    onValueChange={(value: "admin" | "user") =>
+                    onValueChange={(value: 'admin' | 'user') =>
                       setNewUserForm({ ...newUserForm, role: value })
                     }
                   >
@@ -311,7 +354,9 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">User</SelectItem>
-                      {isSuperUser && <SelectItem value="admin">Admin</SelectItem>}
+                      {isSuperUser && (
+                        <SelectItem value="admin">Admin</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -324,8 +369,11 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                       type="password"
                       placeholder="Min 8 characters"
                       value={newUserForm.password}
-                      onChange={(e) =>
-                        setNewUserForm({ ...newUserForm, password: e.target.value })
+                      onChange={e =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          password: e.target.value,
+                        })
                       }
                       required
                       minLength={8}
@@ -338,8 +386,11 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                       type="password"
                       placeholder="Confirm password"
                       value={newUserForm.confirmPassword}
-                      onChange={(e) =>
-                        setNewUserForm({ ...newUserForm, confirmPassword: e.target.value })
+                      onChange={e =>
+                        setNewUserForm({
+                          ...newUserForm,
+                          confirmPassword: e.target.value,
+                        })
                       }
                       required
                     />
@@ -371,7 +422,7 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
               <Input
                 placeholder="Search users..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -402,9 +453,9 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold">No users found</h3>
               <p className="text-muted-foreground">
-                {searchTerm || roleFilter !== "all"
-                  ? "Try adjusting your search filters."
-                  : "Get started by creating your first user."}
+                {searchTerm || roleFilter !== 'all'
+                  ? 'Try adjusting your search filters.'
+                  : 'Get started by creating your first user.'}
               </p>
             </div>
           ) : (
@@ -421,12 +472,14 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users.map(user => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div>
                           <div className="font-medium">{user.username}</div>
-                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {user.email}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -445,18 +498,19 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                               handleToggleUserStatus(user.id, user.isActive)
                             }
                             disabled={
-                              user.id === currentUser?.id || user.role === "superuser"
+                              user.id === currentUser?.id ||
+                              user.role === 'superuser'
                             }
                           />
                           <span className="text-sm">
-                            {user.isActive ? "Active" : "Inactive"}
+                            {user.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         {user.lastLoginAt
                           ? new Date(user.lastLoginAt).toLocaleDateString()
-                          : "Never"}
+                          : 'Never'}
                       </TableCell>
                       <TableCell>
                         {new Date(user.createdAt).toLocaleDateString()}
@@ -498,8 +552,11 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                   <Input
                     id="edit-username"
                     value={editUserForm.username}
-                    onChange={(e) =>
-                      setEditUserForm({ ...editUserForm, username: e.target.value })
+                    onChange={e =>
+                      setEditUserForm({
+                        ...editUserForm,
+                        username: e.target.value,
+                      })
                     }
                     required
                     minLength={3}
@@ -511,26 +568,30 @@ export function UsersTab({ isInitialLoad }: UsersTabProps) {
                     id="edit-email"
                     type="email"
                     value={editUserForm.email}
-                    onChange={(e) =>
-                      setEditUserForm({ ...editUserForm, email: e.target.value })
+                    onChange={e =>
+                      setEditUserForm({
+                        ...editUserForm,
+                        email: e.target.value,
+                      })
                     }
                     required
                   />
                 </div>
               </div>
 
-              {selectedUser.id !== currentUser?.id && selectedUser.role !== "superuser" && (
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="edit-active"
-                    checked={editUserForm.isActive}
-                    onCheckedChange={(checked) =>
-                      setEditUserForm({ ...editUserForm, isActive: checked })
-                    }
-                  />
-                  <Label htmlFor="edit-active">Active</Label>
-                </div>
-              )}
+              {selectedUser.id !== currentUser?.id &&
+                selectedUser.role !== 'superuser' && (
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="edit-active"
+                      checked={editUserForm.isActive}
+                      onCheckedChange={checked =>
+                        setEditUserForm({ ...editUserForm, isActive: checked })
+                      }
+                    />
+                    <Label htmlFor="edit-active">Active</Label>
+                  </div>
+                )}
 
               <div className="flex justify-end space-x-2">
                 <Button

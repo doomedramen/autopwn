@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Key, Lock, Loader2, CheckCircle } from "lucide-react";
-import { useAuth } from "@/components/auth-provider";
-import { toast } from "sonner";
-import { UniversalHeader } from "@/components/universal-header";
+} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, Key, Lock, Loader2, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/components/auth-provider';
+import { toast } from 'sonner';
+import { UniversalHeader } from '@/components/universal-header';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -27,13 +27,13 @@ export default function ChangePasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Password change form
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Profile update form
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -45,7 +45,7 @@ export default function ChangePasswordPage() {
   // Redirect if user doesn't need to change password
   useEffect(() => {
     if (user && !user.requirePasswordChange) {
-      router.push("/");
+      router.push('/');
     }
   }, [user, router]);
 
@@ -59,20 +59,20 @@ export default function ChangePasswordPage() {
     }
 
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long");
+      setError('Password must be at least 8 characters long');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/user/change-password", {
-        method: "POST",
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: "password",
+          type: 'password',
           currentPassword,
           newPassword,
           confirmPassword,
@@ -83,19 +83,19 @@ export default function ChangePasswordPage() {
 
       if (response.ok && data.success) {
         setIsSuccess(true);
-        toast.success("Password updated successfully!");
+        toast.success('Password updated successfully!');
         await refreshUser();
 
         // Redirect after a short delay
         setTimeout(() => {
-          router.push("/");
+          router.push('/');
         }, 2000);
       } else {
-        setError(data.error || "Failed to update password");
-        toast.error(data.error || "Failed to update password");
+        setError(data.error || 'Failed to update password');
+        toast.error(data.error || 'Failed to update password');
       }
     } catch {
-      const errorMessage = "Failed to update password";
+      const errorMessage = 'Failed to update password';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -109,13 +109,13 @@ export default function ChangePasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/user/change-password", {
-        method: "POST",
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: "profile",
+          type: 'profile',
           email,
           username,
         }),
@@ -124,14 +124,14 @@ export default function ChangePasswordPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success("Profile updated successfully!");
+        toast.success('Profile updated successfully!');
         await refreshUser();
       } else {
-        setError(data.error || "Failed to update profile");
-        toast.error(data.error || "Failed to update profile");
+        setError(data.error || 'Failed to update profile');
+        toast.error(data.error || 'Failed to update profile');
       }
     } catch {
-      const errorMessage = "Failed to update profile";
+      const errorMessage = 'Failed to update profile';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -172,7 +172,9 @@ export default function ChangePasswordPage() {
                 <CheckCircle className="h-10 w-10 text-green-600" />
               </div>
               <h1 className="text-2xl font-bold">Password Updated!</h1>
-              <p className="text-muted-foreground">Your account is now secured</p>
+              <p className="text-muted-foreground">
+                Your account is now secured
+              </p>
             </div>
 
             <Card>
@@ -242,20 +244,27 @@ export default function ChangePasswordPage() {
               <CardContent>
                 {error && (
                   <Alert variant="destructive" className="mb-4">
-                    <AlertDescription className="font-medium">{error}</AlertDescription>
+                    <AlertDescription className="font-medium">
+                      {error}
+                    </AlertDescription>
                   </Alert>
                 )}
 
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="currentPassword" className="text-base font-medium">Current Password</Label>
+                    <Label
+                      htmlFor="currentPassword"
+                      className="text-base font-medium"
+                    >
+                      Current Password
+                    </Label>
                     <Input
                       id="currentPassword"
                       name="currentPassword"
                       type="password"
                       placeholder="Enter current password"
                       value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      onChange={e => setCurrentPassword(e.target.value)}
                       required
                       disabled={isLoading}
                       className="h-11 focus-ring"
@@ -263,14 +272,19 @@ export default function ChangePasswordPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword" className="text-base font-medium">New Password</Label>
+                    <Label
+                      htmlFor="newPassword"
+                      className="text-base font-medium"
+                    >
+                      New Password
+                    </Label>
                     <Input
                       id="newPassword"
                       name="newPassword"
                       type="password"
                       placeholder="Enter new password (min 8 characters)"
                       value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                      onChange={e => setNewPassword(e.target.value)}
                       required
                       disabled={isLoading}
                       minLength={8}
@@ -279,28 +293,37 @@ export default function ChangePasswordPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-base font-medium">Confirm New Password</Label>
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-base font-medium"
+                    >
+                      Confirm New Password
+                    </Label>
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type="password"
                       placeholder="Confirm new password"
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={e => setConfirmPassword(e.target.value)}
                       required
                       disabled={isLoading}
                       className="h-11 focus-ring"
                     />
                   </div>
 
-                  <Button type="submit" className="w-full hover-lift glow-primary" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    className="w-full hover-lift glow-primary"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Updating Password...
                       </>
                     ) : (
-                      "Change Password"
+                      'Change Password'
                     )}
                   </Button>
                 </form>
@@ -316,19 +339,23 @@ export default function ChangePasswordPage() {
                   </div>
                   <span>Update Profile</span>
                 </CardTitle>
-                <CardDescription className="text-base">Update your email and username</CardDescription>
+                <CardDescription className="text-base">
+                  Update your email and username
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-base font-medium">Email Address</Label>
+                    <Label htmlFor="email" className="text-base font-medium">
+                      Email Address
+                    </Label>
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       placeholder="your@email.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={e => setEmail(e.target.value)}
                       required
                       disabled={isLoading}
                       className="h-11 focus-ring"
@@ -336,14 +363,16 @@ export default function ChangePasswordPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-base font-medium">Username</Label>
+                    <Label htmlFor="username" className="text-base font-medium">
+                      Username
+                    </Label>
                     <Input
                       id="username"
                       name="username"
                       type="text"
                       placeholder="username"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={e => setUsername(e.target.value)}
                       required
                       disabled={isLoading}
                       minLength={3}
@@ -363,7 +392,7 @@ export default function ChangePasswordPage() {
                         Updating Profile...
                       </>
                     ) : (
-                      "Update Profile"
+                      'Update Profile'
                     )}
                   </Button>
                 </form>

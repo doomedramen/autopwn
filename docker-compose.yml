@@ -9,14 +9,14 @@ services:
       POSTGRES_DB: autopwn
       POSTGRES_USER: autopwn
       POSTGRES_PASSWORD: autopwn_password
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autopwn"]
+      test: ['CMD-SHELL', 'pg_isready -U autopwn']
       interval: 30s
       timeout: 10s
       retries: 3

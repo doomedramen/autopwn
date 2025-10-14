@@ -3,8 +3,9 @@ import { uploadService } from '@/lib/upload';
 import { getUploadConfig } from '@/lib/upload/configs';
 import { progressTracker } from '@/lib/upload/progress';
 import { db } from '@/lib/db';
-import { uploads, users } from '@/lib/db/schema';
+import { uploads, users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { auth } from '@/lib/auth';
 import type { UploadProgress } from '@/lib/upload';
 
 export const runtime = 'nodejs';
@@ -22,10 +23,7 @@ export async function POST(request: NextRequest) {
     const name = formData.get('name') as string; // Optional custom name for the dictionary
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Validate file type
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Invalid file type',
           message: `Dictionary files must have one of these extensions: ${config.allowedExtensions.join(', ')}`,
-          received: fileExtension
+          received: fileExtension,
         },
         { status: 400 }
       );
@@ -49,13 +47,13 @@ export async function POST(request: NextRequest) {
         {
           error: 'File too large',
           message: `Dictionary files must be smaller than ${(config.maxSize / 1024 / 1024 / 1024).toFixed(1)}GB`,
-          received: `${(file.size / 1024 / 1024 / 1024).toFixed(3)}GB`
+          received: `${(file.size / 1024 / 1024 / 1024).toFixed(3)}GB`,
         },
         { status: 413 }
       );
     }
 
-      // Start progress tracking with the same fileId that will be used by upload service
+    // Start progress tracking with the same fileId that will be used by upload service
     // We'll get the fileId first, then pass it to both upload service and progress tracker
     const fileId = uploadService.generateFileId();
     progressTracker.startTracking(fileId, file.size);
@@ -66,39 +64,121 @@ export async function POST(request: NextRequest) {
     };
 
     // Handle upload with dictionary-specific processing
-    const result = await uploadService.handleUpload(file, config, onProgress, fileId);
+    const result = await uploadService.handleUpload(
+      file,
+      config,
+      onProgress,
+      fileId
+    );
 
     if (result.success) {
       // Mark progress as completed
-      progressTracker.completeTracking(fileId, result.data as unknown as Record<string, unknown>);
+      progressTracker.completeTracking(
+        fileId,
+        result.data as unknown as Record<string, unknown>
+      );
 
       // Extract dictionary metadata
-      const metadata = result.data?.processingResult as Record<string, unknown> || {};
+      const metadata =
+        (result.data?.processingResult as Record<string, unknown>) || {};
 
-      // Get or create default user
-      let defaultUser = await db.query.users.findFirst({
-        where: eq(users.name, 'default_user')
+      // Check for authenticated user first
+      const session = await auth.api.getSession({
+        headers: request.headers,
       });
 
-      if (!defaultUser) {
-        [defaultUser] = await db.insert(users).values({
-          name: 'default_user',
-          email: 'default@autopwn.local'
-        }).returning();
+      let userRecord;
+      if (session?.user?.id) {
+        // Use authenticated user
+        userRecord = await db.query.users.findFirst({
+          where: eq(users.id, session.user.id),
+        });
+
+        // Check if user profile exists, create if missing (for test environments)
+        if (userRecord) {
+          console.log('🔍 Found authenticated user:', userRecord.id);
+          const userProfile = await db.query.userProfiles.findFirst({
+            where: eq(userProfiles.userId, userRecord.id),
+          });
+
+          console.log('👤 User profile exists:', !!userProfile);
+          if (userProfile) {
+            console.log('✅ User profile ID:', userProfile.id);
+            console.log('🔗 User profile userId:', userProfile.userId);
+          }
+          if (!userProfile) {
+            console.log('🔧 Creating missing user profile for:', userRecord.id);
+            await db.insert(userProfiles).values({
+              userId: userRecord.id,
+              username:
+                userRecord.name || userRecord.email?.split('@')[0] || 'unknown',
+              role: 'user',
+              isActive: true,
+              isEmailVerified: true,
+              requirePasswordChange: false,
+            });
+            console.log('✅ User profile created successfully');
+          }
+        }
+      }
+
+      if (!userRecord) {
+        // Fallback to default user for test environments or unauthenticated requests
+        userRecord = await db.query.users.findFirst({
+          where: eq(users.name, 'default_user'),
+        });
+
+        if (!userRecord) {
+          [userRecord] = await db
+            .insert(users)
+            .values({
+              name: 'default_user',
+              email: 'default@autopwn.local',
+            })
+            .returning();
+
+          // Create corresponding user profile for the default user
+          await db.insert(userProfiles).values({
+            userId: userRecord.id,
+            username: 'default_user',
+            role: 'user',
+            isActive: true,
+            isEmailVerified: true,
+            requirePasswordChange: false,
+          });
+        }
       }
 
       // Save upload record to database
-      const [uploadRecord] = await db.insert(uploads).values({
-        userId: defaultUser.id,
-        filename: result.data?.originalName || file.name,
-        originalName: file.name,
-        filePath: result.data?.savedPath || '',
-        fileSize: file.size,
-        fileChecksum: result.data?.checksum || '',
-        mimeType: file.type,
-        uploadType: 'dictionary',
-        metadata: metadata.metadata || {}
-      }).returning();
+      // Get the user profile ID (uploads table references userProfiles.id, not users.id)
+      const userProfile = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.userId, userRecord.id),
+      });
+
+      if (!userProfile) {
+        console.error('❌ User profile not found for user:', userRecord.id);
+        throw new Error(`User profile not found for user: ${userRecord.id}`);
+      }
+
+      console.log(
+        '💾 Creating upload record with userProfileId:',
+        userProfile.id
+      );
+      console.log('🔑 User profile ID type:', typeof userProfile.id);
+      const [uploadRecord] = await db
+        .insert(uploads)
+        .values({
+          userId: userProfile.id,
+          filename: result.data?.originalName || file.name,
+          originalName: file.name,
+          filePath: result.data?.savedPath || '',
+          fileSize: file.size,
+          fileChecksum: result.data?.checksum || '',
+          mimeType: file.type,
+          uploadType: 'dictionary',
+          metadata: metadata.metadata || {},
+        })
+        .returning();
 
       const dictionaryInfo = {
         id: uploadRecord.id,
@@ -109,7 +189,7 @@ export async function POST(request: NextRequest) {
         checksum: result.data?.checksum,
         metadata: metadata.metadata || {},
         createdAt: uploadRecord.createdAt,
-        fileId: fileId // Use the consistent fileId
+        fileId: fileId, // Use the consistent fileId
       };
 
       return NextResponse.json({
@@ -121,8 +201,8 @@ export async function POST(request: NextRequest) {
           fileId: fileId, // Use the consistent fileId for progress tracking
           progressUrl: `/api/upload/progress/${fileId}`,
           isLargeFile: file.size > 100 * 1024 * 1024, // > 100MB
-          processingTime: result.data?.uploadTime
-        }
+          processingTime: result.data?.uploadTime,
+        },
       });
     } else {
       // Mark progress as failed
@@ -133,22 +213,24 @@ export async function POST(request: NextRequest) {
           success: false,
           error: 'Dictionary upload failed',
           message: result.stderr,
-          fileId
+          fileId,
         },
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error('Dictionary upload error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error(
+      'Error stack:',
+      error instanceof Error ? error.stack : 'No stack trace'
+    );
 
     return NextResponse.json(
       {
         success: false,
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack'
+        stack: error instanceof Error ? error.stack : 'No stack',
       },
       { status: 500 }
     );
@@ -181,9 +263,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: progress
+      data: progress,
     });
-
   } catch (error) {
     console.error('Dictionary progress error:', error);
 
@@ -191,7 +272,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Failed to get progress',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -221,10 +302,11 @@ export async function DELETE(request: NextRequest) {
       data: {
         cancelled,
         fileId,
-        message: cancelled ? 'Upload cancelled successfully' : 'Upload was not found or already completed'
-      }
+        message: cancelled
+          ? 'Upload cancelled successfully'
+          : 'Upload was not found or already completed',
+      },
     });
-
   } catch (error) {
     console.error('Dictionary cancel error:', error);
 
@@ -232,7 +314,7 @@ export async function DELETE(request: NextRequest) {
       {
         success: false,
         error: 'Failed to cancel upload',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

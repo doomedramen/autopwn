@@ -1,155 +1,54 @@
 import { test, expect } from '@playwright/test';
+import { TestUtils } from './test-utils';
 
 test.describe('User Management', () => {
-  let superUserCredentials: { email: string; password: string };
-  let adminCredentials: { email: string; password: string };
-
-  test.beforeAll(async ({ browser }) => {
-    // Setup: Create superuser and admin user
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
-    // Initialize system and get superuser credentials
-    await page.goto('/setup');
-
-    // Wait for the initialize button to be visible and clickable
-    await page.waitForSelector('[data-testid="initialize-system-button"]', {
-      state: 'visible',
-      timeout: 10000
-    });
-    await page.click('[data-testid="initialize-system-button"]');
-
-    const emailElement = await page.locator('[data-testid="superuser-email"]');
-    const passwordElement = await page.locator('[data-testid="superuser-password"]');
-    const emailText = await emailElement.textContent();
-    const passwordText = await passwordElement.textContent();
-
-    superUserCredentials = {
-      email: emailText!.replace('Email:', '').trim(),
-      password: passwordText!.replace('Password:', '').trim()
-    };
-
-    // Login and change password
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', superUserCredentials.password);
-    await page.click('button:has-text("Sign In")');
-
-    // Change password
-    await page.fill('input[name="currentPassword"]', superUserCredentials.password);
-    await page.fill('input[name="newPassword"]', 'SuperSecurePassword123!');
-    await page.fill('input[name="confirmPassword"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Change Password")');
-
-    // Wait for success message and redirect to dashboard
-    await page.waitForSelector('text=Password Updated!', { timeout: 10000 });
-    await page.waitForTimeout(3000); // Wait for redirect
-    await expect(page).toHaveURL(/.*\/$/, { timeout: 10000 });
-
-    // Wait for dashboard to fully load
-    await page.waitForSelector('[data-radix-tabs-trigger]', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-
-    // Look for any tab with "Users" text
-    const usersTab = page.locator('text=Users');
-    const isUsersTabVisible = await usersTab.isVisible();
-    console.log('Users tab visible:', isUsersTabVisible);
-
-    // Check all visible tabs
-    const allTabs = page.locator('[data-radix-tabs-trigger]');
-    const tabCount = await allTabs.count();
-    console.log('Number of tabs found:', tabCount);
-
-    for (let i = 0; i < tabCount; i++) {
-      const tab = allTabs.nth(i);
-      const tabText = await tab.textContent();
-      console.log(`Tab ${i}: "${tabText}"`);
-    }
-
-    // Try to click on Users tab if visible
-    if (isUsersTabVisible) {
-      await page.click('text=Users');
-    } else {
-      // Users tab might not be visible - let's check user role
-      console.log('Users tab not visible, checking user role...');
-      // Skip the test if users tab is not visible
-      console.log('Skipping user management tests - Users tab not available');
-    }
-
-    // Only wait for User Management if users tab was clicked
-    if (isUsersTabVisible) {
-      await page.waitForSelector('text=User Management');
-    }
-
-    // Create admin user
-    await page.click('button:has-text("Add User")');
-    await page.fill('input[name="username"]', 'testadmin');
-    await page.fill('input[name="email"]', 'admin@test.com');
-    await page.fill('input[name="password"]', 'AdminPassword123!');
-    await page.fill('input[name="confirmPassword"]', 'AdminPassword123!');
-    await page.selectOption('select[name="role"]', 'admin');
-    await page.click('button:has-text("Create User")');
-
-    // Wait for success message and close dialog
-    await page.waitForTimeout(1000);
-
-    adminCredentials = {
-      email: 'admin@test.com',
-      password: 'AdminPassword123!'
-    };
-
-    await context.close();
-  });
-
   test('should show users tab only for admin users', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
+    // Create a fresh system and superuser for this test
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
-    await page.waitForTimeout(2000);
+    // Create an admin user
+    const adminData = TestUtils.generateTestData();
+    await TestUtils.createUser(
+      page,
+      adminData.username,
+      adminData.email,
+      adminData.password,
+      'admin'
+    );
 
-    // Should see users tab as superuser
-    await expect(page.locator('[data-value="users"]')).toBeVisible();
-    await expect(page.locator('text=Users')).toBeVisible();
-
-    // Logout
+    // Logout and login as admin
     await page.context().clearCookies();
-    await page.goto('/login');
-
-    // Login as admin
-    await page.fill('input[type="email"]', adminCredentials.email);
-    await page.fill('input[type="password"]', adminCredentials.password);
-    await page.click('button:has-text("Sign In")');
-
-    await page.waitForTimeout(2000);
+    await TestUtils.login(page, adminData.email, adminData.password);
 
     // Should see users tab as admin
-    await expect(page.locator('[data-value="users"]')).toBeVisible();
     await expect(page.locator('text=Users')).toBeVisible();
+    const usersTab = page.locator('[role="tab"]:has-text("Users")');
+    await expect(usersTab).toBeVisible();
   });
 
   test('should display user management interface', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
-
-    await page.waitForTimeout(2000);
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
     // Check page elements
     await expect(page.locator('h2')).toContainText('User Management');
-    await expect(page.locator('text=Manage user accounts and permissions')).toBeVisible();
+    await expect(
+      page.locator('text=Manage user accounts and permissions')
+    ).toBeVisible();
     await expect(page.locator('button:has-text("Add User")')).toBeVisible();
 
     // Check search and filter
-    await expect(page.locator('input[placeholder*="Search users"]')).toBeVisible();
-    await expect(page.locator('button:has-text("Filter by role")')).toBeVisible();
+    await expect(
+      page.locator('input[placeholder*="Search users"]')
+    ).toBeVisible();
+    await expect(
+      page.locator('button:has-text("Filter by role")')
+    ).toBeVisible();
 
     // Check users table
     await expect(page.locator('table')).toBeVisible();
@@ -159,29 +58,29 @@ test.describe('User Management', () => {
   });
 
   test('should create new user successfully', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
-
-    await page.waitForTimeout(2000);
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
+
+    // Create test user data
+    const userData = TestUtils.generateTestData();
 
     // Open create user dialog
     await page.click('button:has-text("Add User")');
     await expect(page.locator('text=Create New User')).toBeVisible();
 
     // Fill user form
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="email"]', 'user@test.com');
-    await page.fill('input[name="password"]', 'UserPassword123!');
-    await page.fill('input[name="confirmPassword"]', 'UserPassword123!');
+    await page.fill('input[placeholder="username"]', userData.username);
+    await page.fill('input[placeholder="user@example.com"]', userData.email);
+    await page.fill('input[placeholder="Min 8 characters"]', userData.password);
+    await page.fill('input[placeholder="Confirm password"]', userData.password);
 
     // Default role should be "user"
-    await expect(page.locator('select[name="role"]')).toHaveValue('user');
+    const roleSelect = page.locator('select').first();
+    await expect(roleSelect).toHaveValue('user');
 
     // Create user
     await page.click('button:has-text("Create User")');
@@ -193,22 +92,28 @@ test.describe('User Management', () => {
     await expect(page.locator('text=Create New User')).not.toBeVisible();
 
     // New user should appear in table
-    await expect(page.locator('text=testuser')).toBeVisible();
-    await expect(page.locator('text=user@test.com')).toBeVisible();
+    await expect(page.locator('text=' + userData.username)).toBeVisible();
+    await expect(page.locator('text=' + userData.email)).toBeVisible();
     await expect(page.locator('text=user')).toBeVisible();
   });
 
   test('should validate user creation form', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
-    await page.waitForTimeout(2000);
+    // Create an admin user first for the duplicate email test
+    const adminData = TestUtils.generateTestData();
+    await TestUtils.createUser(
+      page,
+      adminData.username,
+      adminData.email,
+      adminData.password,
+      'admin'
+    );
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
     // Open create user dialog
     await page.click('button:has-text("Add User")');
@@ -217,27 +122,39 @@ test.describe('User Management', () => {
     await page.click('button:has-text("Create User")');
 
     // Should have HTML5 validation
-    await expect(page.locator('input[name="username"]')).toHaveAttribute('required');
-    await expect(page.locator('input[name="email"]')).toHaveAttribute('required');
-    await expect(page.locator('input[name="password"]')).toHaveAttribute('required');
-    await expect(page.locator('input[name="confirmPassword"]')).toHaveAttribute('required');
-    await expect(page.locator('input[name="password"]')).toHaveAttribute('minlength', '8');
+    const usernameInput = page.locator('input[placeholder="username"]');
+    const emailInput = page.locator('input[placeholder="user@example.com"]');
+    const passwordInput = page.locator('input[placeholder="Min 8 characters"]');
+    const confirmPasswordInput = page.locator(
+      'input[placeholder="Confirm password"]'
+    );
+
+    await expect(usernameInput).toHaveAttribute('required');
+    await expect(emailInput).toHaveAttribute('required');
+    await expect(passwordInput).toHaveAttribute('required');
+    await expect(confirmPasswordInput).toHaveAttribute('required');
+    await expect(passwordInput).toHaveAttribute('minlength', '8');
 
     // Test password mismatch
-    await page.fill('input[name="username"]', 'testuser2');
-    await page.fill('input[name="email"]', 'user2@test.com');
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'DifferentPassword!');
+    const testUser1 = TestUtils.generateTestData();
+    await page.fill('input[placeholder="username"]', testUser1.username);
+    await page.fill('input[placeholder="user@example.com"]', testUser1.email);
+    await page.fill('input[placeholder="Min 8 characters"]', 'Password123!');
+    await page.fill(
+      'input[placeholder="Confirm password"]',
+      'DifferentPassword!'
+    );
     await page.click('button:has-text("Create User")');
 
     // Should show error
-    await expect(page.locator('text=Passwords don\'t match')).toBeVisible();
+    await expect(page.locator("text=Passwords don't match")).toBeVisible();
 
     // Test duplicate email
-    await page.fill('input[name="username"]', 'testuser3');
-    await page.fill('input[name="email"]', adminCredentials.email); // Use existing admin email
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
+    const testUser2 = TestUtils.generateTestData();
+    await page.fill('input[placeholder="username"]', testUser2.username);
+    await page.fill('input[placeholder="user@example.com"]', adminData.email); // Use existing admin email
+    await page.fill('input[placeholder="Min 8 characters"]', 'Password123!');
+    await page.fill('input[placeholder="Confirm password"]', 'Password123!');
     await page.click('button:has-text("Create User")');
 
     // Should show error
@@ -245,19 +162,25 @@ test.describe('User Management', () => {
   });
 
   test('should edit user information', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
-    await page.waitForTimeout(2000);
+    // Create a test user first
+    const userData = TestUtils.generateTestData();
+    await TestUtils.createUser(
+      page,
+      userData.username,
+      userData.email,
+      userData.password,
+      'user'
+    );
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
-    // Find and edit testuser
-    const userRow = page.locator('text=testuser').first();
+    // Find and edit test user
+    const userRow = page.locator('text=' + userData.username).first();
     await expect(userRow).toBeVisible();
 
     // Click edit button
@@ -267,8 +190,9 @@ test.describe('User Management', () => {
     await expect(page.locator('text=Edit User')).toBeVisible();
 
     // Update user information
-    await page.fill('input[name="email"]', 'updateduser@test.com');
-    await page.fill('input[name="username"]', 'updateduser');
+    const updatedData = TestUtils.generateTestData();
+    await page.fill('input[placeholder="user@example.com"]', updatedData.email);
+    await page.fill('input[placeholder="username"]', updatedData.username);
 
     // Save changes
     await page.click('button:has-text("Update User")');
@@ -277,24 +201,30 @@ test.describe('User Management', () => {
     await expect(page.locator('text=User updated successfully')).toBeVisible();
 
     // Updated information should appear in table
-    await expect(page.locator('text=updateduser')).toBeVisible();
-    await expect(page.locator('text=updateduser@test.com')).toBeVisible();
+    await expect(page.locator('text=' + updatedData.username)).toBeVisible();
+    await expect(page.locator('text=' + updatedData.email)).toBeVisible();
   });
 
   test('should toggle user active status', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
-    await page.waitForTimeout(2000);
+    // Create a test user first
+    const userData = TestUtils.generateTestData();
+    await TestUtils.createUser(
+      page,
+      userData.username,
+      userData.email,
+      userData.password,
+      'user'
+    );
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
-    // Find a regular user (not superuser)
-    const userRow = page.locator('text=updateduser').first();
+    // Find the test user
+    const userRow = page.locator('text=' + userData.username).first();
     await expect(userRow).toBeVisible();
 
     // Find and click the status toggle
@@ -305,31 +235,31 @@ test.describe('User Management', () => {
     await statusToggle.click();
 
     // Should show success message
-    await expect(page.locator('text=User deactivated successfully')).toBeVisible();
+    await expect(
+      page.locator('text=User deactivated successfully')
+    ).toBeVisible();
 
     // Toggle should be unchecked
     await expect(statusToggle).not.toBeChecked();
 
     // Reactivate user
     await statusToggle.click();
-    await expect(page.locator('text=User activated successfully')).toBeVisible();
+    await expect(
+      page.locator('text=User activated successfully')
+    ).toBeVisible();
     await expect(statusToggle).toBeChecked();
   });
 
   test('should prevent editing superuser account', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
-
-    await page.waitForTimeout(2000);
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
     // Find superuser row
-    const superUserRow = page.locator('text=superuser').first();
+    const superUserRow = page.locator('text=' + superUser.username).first();
     await expect(superUserRow).toBeVisible();
 
     // Should not have edit button for superuser when editing self
@@ -342,73 +272,113 @@ test.describe('User Management', () => {
   });
 
   test('should filter users by role', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
-    await page.waitForTimeout(2000);
+    // Create admin and regular users
+    const adminData = TestUtils.generateTestData();
+    const regularUserData = TestUtils.generateTestData();
+
+    await TestUtils.createUser(
+      page,
+      adminData.username,
+      adminData.email,
+      adminData.password,
+      'admin'
+    );
+    await TestUtils.createUser(
+      page,
+      regularUserData.username,
+      regularUserData.email,
+      regularUserData.password,
+      'user'
+    );
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
     // Filter by admin role
     await page.click('button:has-text("Filter by role")');
     await page.click('text=Admin');
 
     // Should only show admin users
-    await expect(page.locator('text=admin@test.com')).toBeVisible();
-    await expect(page.locator('text=updateduser@test.com')).not.toBeVisible();
+    await expect(page.locator('text=' + adminData.email)).toBeVisible();
+    await expect(
+      page.locator('text=' + regularUserData.email)
+    ).not.toBeVisible();
 
     // Filter by user role
     await page.click('button:has-text("Filter by role")');
     await page.click('text=User');
 
     // Should only show regular users
-    await expect(page.locator('text=updateduser@test.com')).toBeVisible();
-    await expect(page.locator('text=admin@test.com')).not.toBeVisible();
+    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
+    await expect(page.locator('text=' + adminData.email)).not.toBeVisible();
 
     // Show all roles
     await page.click('button:has-text("Filter by role")');
     await page.click('text=All Roles');
 
     // Should show all users
-    await expect(page.locator('text=updateduser@test.com')).toBeVisible();
-    await expect(page.locator('text=admin@test.com')).toBeVisible();
+    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
+    await expect(page.locator('text=' + adminData.email)).toBeVisible();
   });
 
   test('should search users', async ({ page }) => {
-    // Login as superuser
-    await page.goto('/login');
-    await page.fill('input[type="email"]', superUserCredentials.email);
-    await page.fill('input[type="password"]', 'SuperSecurePassword123!');
-    await page.click('button:has-text("Sign In")');
+    // Create a fresh system and superuser
+    const superUser = await TestUtils.initializeSystem(page);
+    await TestUtils.login(page, superUser.email, superUser.password);
 
-    await page.waitForTimeout(2000);
+    // Create admin and regular users
+    const adminData = TestUtils.generateTestData();
+    const regularUserData = TestUtils.generateTestData();
+
+    await TestUtils.createUser(
+      page,
+      adminData.username,
+      adminData.email,
+      adminData.password,
+      'admin'
+    );
+    await TestUtils.createUser(
+      page,
+      regularUserData.username,
+      regularUserData.email,
+      regularUserData.password,
+      'user'
+    );
 
     // Navigate to users tab
-    await page.click('[data-value="users"]');
+    await TestUtils.navigateToTab(page, 'Users');
 
     // Search by username
-    await page.fill('input[placeholder*="Search users"]', 'admin');
+    await page.fill(
+      'input[placeholder*="Search users"]',
+      adminData.username.substring(0, 5)
+    );
 
     // Should show admin user
-    await expect(page.locator('text=admin@test.com')).toBeVisible();
-    await expect(page.locator('text=updateduser@test.com')).not.toBeVisible();
+    await expect(page.locator('text=' + adminData.email)).toBeVisible();
+    await expect(
+      page.locator('text=' + regularUserData.email)
+    ).not.toBeVisible();
 
     // Search by email
-    await page.fill('input[placeholder*="Search users"]', 'updateduser@test.com');
+    await page.fill(
+      'input[placeholder*="Search users"]',
+      regularUserData.email
+    );
 
-    // Should show updated user
-    await expect(page.locator('text=updateduser@test.com')).toBeVisible();
-    await expect(page.locator('text=admin@test.com')).not.toBeVisible();
+    // Should show regular user
+    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
+    await expect(page.locator('text=' + adminData.email)).not.toBeVisible();
 
     // Clear search
     await page.fill('input[placeholder*="Search users"]', '');
 
     // Should show all users again
-    await expect(page.locator('text=updateduser@test.com')).toBeVisible();
-    await expect(page.locator('text=admin@test.com')).toBeVisible();
+    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
+    await expect(page.locator('text=' + adminData.email)).toBeVisible();
   });
 });

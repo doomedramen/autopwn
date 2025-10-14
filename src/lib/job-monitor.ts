@@ -58,17 +58,21 @@ export class JobMonitor {
     try {
       // Get all jobs that are currently processing and have a hashcat session
       const activeJobs = await db.query.jobs.findMany({
-        where: eq(jobs.status, 'processing')
+        where: eq(jobs.status, 'processing'),
       });
 
       // Filter to only include jobs with a hashcat session
-      const jobsWithSession = activeJobs.filter(job => job.hashcatSession != null);
+      const jobsWithSession = activeJobs.filter(
+        job => job.hashcatSession != null
+      );
 
       if (jobsWithSession.length === 0) {
         return;
       }
 
-      console.log(`Checking ${jobsWithSession.length} active jobs with sessions...`);
+      console.log(
+        `Checking ${jobsWithSession.length} active jobs with sessions...`
+      );
 
       // Check each job's status
       for (const job of jobsWithSession) {
@@ -77,7 +81,6 @@ export class JobMonitor {
 
       // Clean up stale sessions
       this.cleanupStaleSessions();
-
     } catch (error) {
       console.error('Error checking active jobs:', error);
     }
@@ -86,7 +89,10 @@ export class JobMonitor {
   /**
    * Update the status of a specific job
    */
-  private async updateJobStatus(jobId: string, sessionName: string): Promise<void> {
+  private async updateJobStatus(
+    jobId: string,
+    sessionName: string
+  ): Promise<void> {
     try {
       console.log(`Checking status for job ${jobId} (session: ${sessionName})`);
 
@@ -94,10 +100,16 @@ export class JobMonitor {
       const statusResult = await hashcat.getJobStatus(sessionName);
 
       if (!statusResult.success) {
-        console.error(`Failed to get status for session ${sessionName}:`, statusResult.stderr);
+        console.error(
+          `Failed to get status for session ${sessionName}:`,
+          statusResult.stderr
+        );
 
         // If we can't get status, the session might have failed
-        await this.handleJobFailure(jobId, 'Failed to get job status from hashcat');
+        await this.handleJobFailure(
+          jobId,
+          'Failed to get job status from hashcat'
+        );
         return;
       }
 
@@ -119,22 +131,26 @@ export class JobMonitor {
         speedAverage: session.speed.average || 0,
         speedUnit: session.speed.unit || 'H/s',
         eta: session.eta || '',
-        status: this.mapHashcatStatusToJobStatus(session.status)
+        status: this.mapHashcatStatusToJobStatus(session.status),
       };
 
       // Check if job is completed or failed
       if (session.status === 'completed') {
         updateData.completedAt = new Date();
-        console.log(`Job ${jobId} completed with ${session.cracked} passwords cracked`);
+        console.log(
+          `Job ${jobId} completed with ${session.cracked} passwords cracked`
+        );
       } else if (session.status === 'failed' || session.status === 'stopped') {
         updateData.status = 'failed';
         updateData.completedAt = new Date();
-        updateData.errorMessage = session.error || 'Hashcat session was aborted';
+        updateData.errorMessage =
+          session.error || 'Hashcat session was aborted';
         console.log(`Job ${jobId} failed: ${updateData.errorMessage}`);
       }
 
       // Update the database
-      await db.update(jobs)
+      await db
+        .update(jobs)
         .set({
           progress: updateData.progress,
           cracked: updateData.cracked,
@@ -144,25 +160,32 @@ export class JobMonitor {
           eta: updateData.eta,
           status: updateData.status,
           completedAt: updateData.completedAt,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(jobs.id, jobId));
 
-      console.log(`Updated job ${jobId}: ${updateData.cracked}/${updateData.progress}% complete at ${updateData.speedCurrent} ${updateData.speedUnit}`);
+      console.log(
+        `Updated job ${jobId}: ${updateData.cracked}/${updateData.progress}% complete at ${updateData.speedCurrent} ${updateData.speedUnit}`
+      );
 
       // Extract and save cracked passwords
       await this.saveCrackedPasswords(jobId, sessionName);
-
     } catch (error) {
       console.error(`Error updating job status for ${jobId}:`, error);
-      await this.handleJobFailure(jobId, error instanceof Error ? error.message : 'Unknown error');
+      await this.handleJobFailure(
+        jobId,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   }
 
   /**
    * Extract and save cracked passwords from hashcat output
    */
-  private async saveCrackedPasswords(jobId: string, sessionName: string): Promise<void> {
+  private async saveCrackedPasswords(
+    jobId: string,
+    sessionName: string
+  ): Promise<void> {
     try {
       // Get cracked passwords from hashcat buffer
       const crackedPasswordsData = hashcat.getCrackedPasswords(sessionName);
@@ -171,16 +194,19 @@ export class JobMonitor {
         return;
       }
 
-      console.log(`Found ${crackedPasswordsData.length} cracked passwords for job ${jobId}`);
+      console.log(
+        `Found ${crackedPasswordsData.length} cracked passwords for job ${jobId}`
+      );
 
       // Process each cracked password
       for (const crackedPwd of crackedPasswordsData) {
         // Format BSSID to match database format (with colons: 50:0f:80:70:18:d0)
-        const formattedBssid = crackedPwd.bssid.match(/.{1,2}/g)?.join(':') || crackedPwd.bssid;
+        const formattedBssid =
+          crackedPwd.bssid.match(/.{1,2}/g)?.join(':') || crackedPwd.bssid;
 
         // Find the network by BSSID
         const network = await db.query.networks.findFirst({
-          where: eq(networks.bssid, formattedBssid)
+          where: eq(networks.bssid, formattedBssid),
         });
 
         if (!network) {
@@ -193,7 +219,7 @@ export class JobMonitor {
           where: and(
             eq(crackedPasswords.jobId, jobId),
             eq(crackedPasswords.hash, crackedPwd.hash)
-          )
+          ),
         });
 
         if (existing) {
@@ -206,10 +232,12 @@ export class JobMonitor {
           networkId: network.id,
           hash: crackedPwd.hash,
           plainPassword: crackedPwd.password,
-          crackedAt: new Date()
+          crackedAt: new Date(),
         });
 
-        console.log(`Saved cracked password for network ${network.essid} (${formattedBssid}): ${crackedPwd.password}`);
+        console.log(
+          `Saved cracked password for network ${network.essid} (${formattedBssid}): ${crackedPwd.password}`
+        );
       }
     } catch (error) {
       console.error(`Error saving cracked passwords for job ${jobId}:`, error);
@@ -220,14 +248,18 @@ export class JobMonitor {
   /**
    * Handle job failure by updating status and cleaning up
    */
-  private async handleJobFailure(jobId: string, errorMessage: string): Promise<void> {
+  private async handleJobFailure(
+    jobId: string,
+    errorMessage: string
+  ): Promise<void> {
     try {
-      await db.update(jobs)
+      await db
+        .update(jobs)
         .set({
           status: 'failed',
           errorMessage: errorMessage,
           completedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(jobs.id, jobId));
 
@@ -240,7 +272,9 @@ export class JobMonitor {
   /**
    * Map hashcat session status to job status
    */
-  private mapHashcatStatusToJobStatus(sessionStatus: string): JobStatusUpdate['status'] {
+  private mapHashcatStatusToJobStatus(
+    sessionStatus: string
+  ): JobStatusUpdate['status'] {
     switch (sessionStatus) {
       case 'pending':
       case 'queued':
@@ -256,7 +290,9 @@ export class JobMonitor {
       case 'cancelled':
         return 'cancelled';
       default:
-        console.warn(`Unknown session status: ${sessionStatus}, mapping to processing`);
+        console.warn(
+          `Unknown session status: ${sessionStatus}, mapping to processing`
+        );
         return 'processing';
     }
   }
@@ -276,17 +312,22 @@ export class JobMonitor {
     }
 
     if (staleSessions.length > 0) {
-      console.log(`Found ${staleSessions.length} stale sessions: ${staleSessions.join(', ')}`);
+      console.log(
+        `Found ${staleSessions.length} stale sessions: ${staleSessions.join(', ')}`
+      );
 
       // Mark jobs with stale sessions as failed
-      staleSessions.forEach(async (sessionName) => {
+      staleSessions.forEach(async sessionName => {
         try {
           const job = await db.query.jobs.findFirst({
-            where: eq(jobs.hashcatSession, sessionName)
+            where: eq(jobs.hashcatSession, sessionName),
           });
 
           if (job && job.status === 'processing') {
-            await this.handleJobFailure(job.id, 'Session timed out - no updates received for 30 seconds');
+            await this.handleJobFailure(
+              job.id,
+              'Session timed out - no updates received for 30 seconds'
+            );
           }
         } catch (error) {
           console.error(`Error handling stale session ${sessionName}:`, error);

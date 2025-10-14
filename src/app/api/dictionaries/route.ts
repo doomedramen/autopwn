@@ -18,14 +18,14 @@ export async function GET() {
         fileChecksum: true,
         mimeType: true,
         metadata: true,
-        createdAt: true
+        createdAt: true,
       },
-      orderBy: (uploads, { desc }) => [desc(uploads.createdAt)]
+      orderBy: (uploads, { desc }) => [desc(uploads.createdAt)],
     });
 
     // Transform metadata to include lineCount and other info if available
     const enrichedDictionaries = dictionaryList.map(dict => {
-      const metadata = dict.metadata as Record<string, unknown> || {};
+      const metadata = (dict.metadata as Record<string, unknown>) || {};
       return {
         ...dict,
         lineCount: (metadata.lineCount as number) || 0,
@@ -38,15 +38,14 @@ export async function GET() {
         minWordLength: (metadata.minWordLength as number) || 0,
         maxWordLength: (metadata.maxWordLength as number) || 0,
         quality: metadata.quality || {},
-        sample: metadata.sample || { words: [], count: 0 }
+        sample: metadata.sample || { words: [], count: 0 },
       };
     });
 
     return NextResponse.json({
       success: true,
-      data: enrichedDictionaries
+      data: enrichedDictionaries,
     });
-
   } catch (error) {
     console.error('Dictionaries fetch error:', error);
 
@@ -54,7 +53,7 @@ export async function GET() {
       {
         success: false,
         error: 'Failed to fetch dictionaries',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

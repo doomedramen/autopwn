@@ -25,7 +25,8 @@ export async function cleanUploadsDirectory() {
         const files = await fs.readdir(dirPath);
 
         for (const file of files) {
-          if (file !== '.gitkeep') { // Preserve .gitkeep files
+          if (file !== '.gitkeep') {
+            // Preserve .gitkeep files
             await fs.rm(join(dirPath, file), { recursive: true, force: true });
           }
         }
@@ -80,17 +81,21 @@ export async function cleanDatabase() {
       'uploads_id_seq',
       'networks_id_seq',
       'jobs_id_seq',
-      'cracked_passwords_id_seq'
+      'cracked_passwords_id_seq',
     ];
 
     for (const seq of sequences) {
       try {
-        await db.execute(sql`ALTER SEQUENCE ${sql.identifier(seq)} RESTART WITH 1`);
+        await db.execute(
+          sql`ALTER SEQUENCE ${sql.identifier(seq)} RESTART WITH 1`
+        );
       } catch (error: unknown) {
         // Sequence doesn't exist, which is fine
-        if (error instanceof Error &&
-            (error.message.includes('does not exist') ||
-             error.message.includes('relation'))) {
+        if (
+          error instanceof Error &&
+          (error.message.includes('does not exist') ||
+            error.message.includes('relation'))
+        ) {
           console.log(`Sequence ${seq} does not exist, skipping...`);
         } else {
           console.error(`Unexpected error resetting sequence ${seq}:`, error);

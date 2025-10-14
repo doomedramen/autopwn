@@ -7,7 +7,7 @@ import {
   HashcatSession,
   ToolResult,
   ToolExecutionOptions,
-  JobStatus
+  JobStatus,
 } from '@/types';
 
 export interface HashcatJob {
@@ -86,7 +86,9 @@ export class HashcatWrapper {
   constructor(executablePath: string = 'hashcat') {
     this.executablePath = executablePath;
     this.instanceId = ++HashcatWrapper.instanceCount;
-    console.log(`[hashcat] NEW INSTANCE CREATED! Instance #${this.instanceId}, Total instances: ${HashcatWrapper.instanceCount}`);
+    console.log(
+      `[hashcat] NEW INSTANCE CREATED! Instance #${this.instanceId}, Total instances: ${HashcatWrapper.instanceCount}`
+    );
   }
 
   /**
@@ -132,7 +134,7 @@ export class HashcatWrapper {
           stdout: result.stdout,
           stderr: result.stderr,
           exitCode: result.exitCode,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
@@ -144,7 +146,7 @@ export class HashcatWrapper {
         stderr: result.stderr,
         exitCode: result.exitCode,
         data: devices,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -152,7 +154,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -160,7 +162,9 @@ export class HashcatWrapper {
   /**
    * Get supported hash types
    */
-  async getHashTypes(): Promise<ToolResult<{ id: number; name: string; category: string }[]>> {
+  async getHashTypes(): Promise<
+    ToolResult<{ id: number; name: string; category: string }[]>
+  > {
     const startTime = Date.now();
 
     try {
@@ -172,7 +176,7 @@ export class HashcatWrapper {
           stdout: result.stdout,
           stderr: result.stderr,
           exitCode: result.exitCode,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
@@ -184,7 +188,7 @@ export class HashcatWrapper {
         stderr: result.stderr,
         exitCode: result.exitCode,
         data: hashTypes,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -192,7 +196,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -211,20 +215,27 @@ export class HashcatWrapper {
       }
 
       // Generate session name if not provided
-      const sessionName = job.session || `${job.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+      const sessionName =
+        job.session ||
+        `${job.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
 
       // Build command arguments
       const args = this.buildCommandArgs(job, sessionName);
 
       // Start hashcat process
-      console.log(`[hashcat #${this.instanceId}] Starting session ${sessionName} with args:`, args);
+      console.log(
+        `[hashcat #${this.instanceId}] Starting session ${sessionName} with args:`,
+        args
+      );
       const child = spawn(this.executablePath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        detached: false
+        detached: false,
       });
 
       // Log process PID
-      console.log(`[hashcat #${this.instanceId}] Spawned process with PID: ${child.pid}`);
+      console.log(
+        `[hashcat #${this.instanceId}] Spawned process with PID: ${child.pid}`
+      );
 
       // Store active session
       this.activeSessions.set(sessionName, child);
@@ -239,14 +250,19 @@ export class HashcatWrapper {
         eta: '',
         cracked: 0,
         total: job.total || 0,
-        currentDictionary: ''
+        currentDictionary: '',
       });
-      console.log(`[hashcat] Initialized cache for session: ${sessionName}, total cached sessions: ${this.sessionStatus.size}`);
+      console.log(
+        `[hashcat] Initialized cache for session: ${sessionName}, total cached sessions: ${this.sessionStatus.size}`
+      );
 
       // Attach stdout listener to parse status updates in real-time
       child.stdout?.on('data', (data: Buffer) => {
         const output = data.toString();
-        console.log(`[hashcat] ${sessionName} stdout:`, output.substring(0, 200));
+        console.log(
+          `[hashcat] ${sessionName} stdout:`,
+          output.substring(0, 200)
+        );
         this.appendToBuffer(sessionName, output);
         this.parseAndUpdateStatus(sessionName);
       });
@@ -254,14 +270,19 @@ export class HashcatWrapper {
       // Attach stderr listener (hashcat outputs status to stderr)
       child.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
-        console.log(`[hashcat] ${sessionName} stderr:`, output.substring(0, 200));
+        console.log(
+          `[hashcat] ${sessionName} stderr:`,
+          output.substring(0, 200)
+        );
         this.appendToBuffer(sessionName, output);
         this.parseAndUpdateStatus(sessionName);
       });
 
       // Handle process completion
       child.on('exit', (code, signal) => {
-        console.log(`[hashcat] Session ${sessionName} exited with code ${code}, signal ${signal}`);
+        console.log(
+          `[hashcat] Session ${sessionName} exited with code ${code}, signal ${signal}`
+        );
 
         const currentStatus = this.sessionStatus.get(sessionName);
         if (currentStatus) {
@@ -275,7 +296,7 @@ export class HashcatWrapper {
       });
 
       // Handle process errors
-      child.on('error', (error) => {
+      child.on('error', error => {
         console.error(`[hashcat] Session ${sessionName} error:`, error);
         const currentStatus = this.sessionStatus.get(sessionName);
         if (currentStatus) {
@@ -286,7 +307,9 @@ export class HashcatWrapper {
       });
 
       // Log when process is spawned successfully
-      console.log(`[hashcat] Session ${sessionName} process started successfully`);
+      console.log(
+        `[hashcat] Session ${sessionName} process started successfully`
+      );
 
       // Update job status
       job.status = 'processing';
@@ -299,7 +322,7 @@ export class HashcatWrapper {
         stderr: '',
         exitCode: 0,
         data: { sessionId: sessionName },
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       job.status = 'failed';
@@ -310,7 +333,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -324,20 +347,27 @@ export class HashcatWrapper {
     try {
       // Get cached status instead of querying hashcat externally
       const allSessions = Array.from(this.sessionStatus.keys());
-      console.log(`[hashcat #${this.instanceId}] getJobStatus called for: ${sessionName}`);
-      console.log(`[hashcat #${this.instanceId}] Cached sessions (${this.sessionStatus.size}):`, allSessions);
+      console.log(
+        `[hashcat #${this.instanceId}] getJobStatus called for: ${sessionName}`
+      );
+      console.log(
+        `[hashcat #${this.instanceId}] Cached sessions (${this.sessionStatus.size}):`,
+        allSessions
+      );
 
       const cachedStatus = this.sessionStatus.get(sessionName);
 
       if (!cachedStatus) {
-        console.error(`[hashcat] ERROR: No cache found for session: ${sessionName}`);
+        console.error(
+          `[hashcat] ERROR: No cache found for session: ${sessionName}`
+        );
         console.error(`[hashcat] Available sessions:`, allSessions);
         return {
           success: false,
           stdout: '',
           stderr: `No cached status found for session: ${sessionName}`,
           exitCode: 1,
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
 
@@ -347,7 +377,7 @@ export class HashcatWrapper {
         stderr: '',
         exitCode: 0,
         data: cachedStatus,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -355,7 +385,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -367,14 +397,16 @@ export class HashcatWrapper {
     const startTime = Date.now();
 
     try {
-      const result = await this.execute(`--session ${sessionName} --pause`, { timeout: 5000 });
+      const result = await this.execute(`--session ${sessionName} --pause`, {
+        timeout: 5000,
+      });
 
       return {
         success: result.success,
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -382,7 +414,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -394,14 +426,16 @@ export class HashcatWrapper {
     const startTime = Date.now();
 
     try {
-      const result = await this.execute(`--session ${sessionName} --resume`, { timeout: 5000 });
+      const result = await this.execute(`--session ${sessionName} --resume`, {
+        timeout: 5000,
+      });
 
       return {
         success: result.success,
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -409,7 +443,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -438,14 +472,16 @@ export class HashcatWrapper {
       this.sessionOutputBuffer.delete(sessionName);
 
       // Also send quit command to hashcat
-      const result = await this.execute(`--session ${sessionName} --quit`, { timeout: 5000 });
+      const result = await this.execute(`--session ${sessionName} --quit`, {
+        timeout: 5000,
+      });
 
       return {
         success: true,
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -453,7 +489,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -461,11 +497,16 @@ export class HashcatWrapper {
   /**
    * Get cracked passwords from potfile
    */
-  async getResults(hashFile: string, potfilePath?: string): Promise<ToolResult<HashcatResult[]>> {
+  async getResults(
+    hashFile: string,
+    potfilePath?: string
+  ): Promise<ToolResult<HashcatResult[]>> {
     const startTime = Date.now();
 
     try {
-      const defaultPotfile = potfilePath || join(process.env.HOME || '', '.hashcat', 'hashcat.potfile');
+      const defaultPotfile =
+        potfilePath ||
+        join(process.env.HOME || '', '.hashcat', 'hashcat.potfile');
 
       // Check if potfile exists
       await fs.access(defaultPotfile);
@@ -479,7 +520,7 @@ export class HashcatWrapper {
         stderr: '',
         exitCode: 0,
         data: results,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     } catch (error) {
       return {
@@ -487,7 +528,7 @@ export class HashcatWrapper {
         stdout: '',
         stderr: error instanceof Error ? error.message : 'Unknown error',
         exitCode: -1,
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   }
@@ -562,22 +603,27 @@ export class HashcatWrapper {
   private async execute(
     command: string,
     options: ToolExecutionOptions = {}
-  ): Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }> {
-    return new Promise((resolve) => {
+  ): Promise<{
+    success: boolean;
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+  }> {
+    return new Promise(resolve => {
       const args = command.split(' ');
       const child = spawn(this.executablePath, args, {
         cwd: options.cwd,
-        env: { ...process.env, ...options.env }
+        env: { ...process.env, ...options.env },
       });
 
       let stdout = '';
       let stderr = '';
 
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on('data', data => {
         stdout += data.toString();
       });
 
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on('data', data => {
         stderr += data.toString();
       });
 
@@ -588,27 +634,27 @@ export class HashcatWrapper {
           success: false,
           stdout,
           stderr: `Command timed out after ${timeout}ms`,
-          exitCode: -1
+          exitCode: -1,
         });
       }, timeout);
 
-      child.on('close', (code) => {
+      child.on('close', code => {
         clearTimeout(timeoutId);
         resolve({
           success: code === 0,
           stdout,
           stderr,
-          exitCode: code || 0
+          exitCode: code || 0,
         });
       });
 
-      child.on('error', (error) => {
+      child.on('error', error => {
         clearTimeout(timeoutId);
         resolve({
           success: false,
           stdout,
           stderr: error.message,
-          exitCode: -1
+          exitCode: -1,
         });
       });
     });
@@ -628,14 +674,18 @@ export class HashcatWrapper {
       if (deviceIdMatch) {
         // Look for device info in subsequent lines
         const deviceInfo: Partial<HashcatDeviceInfo> = {
-          deviceId: parseInt(deviceIdMatch[1])
+          deviceId: parseInt(deviceIdMatch[1]),
         };
 
         // Parse next few lines for device details
         const linesArray = output.split('\n');
         const currentIndex = linesArray.indexOf(line);
 
-        for (let i = currentIndex; i < Math.min(currentIndex + 10, linesArray.length); i++) {
+        for (
+          let i = currentIndex;
+          i < Math.min(currentIndex + 10, linesArray.length);
+          i++
+        ) {
           const infoLine = linesArray[i];
 
           // Type information
@@ -697,7 +747,9 @@ export class HashcatWrapper {
   /**
    * Parse hash types from hashcat help output
    */
-  private parseHashTypes(output: string): { id: number; name: string; category: string }[] {
+  private parseHashTypes(
+    output: string
+  ): { id: number; name: string; category: string }[] {
     const hashTypes: { id: number; name: string; category: string }[] = [];
     const lines = output.split('\n');
 
@@ -709,7 +761,7 @@ export class HashcatWrapper {
         hashTypes.push({
           id: parseInt(id),
           name: name.trim(),
-          category: category.trim()
+          category: category.trim(),
         });
       }
     }
@@ -756,7 +808,10 @@ export class HashcatWrapper {
   /**
    * Parse session status from hashcat output
    */
-  private parseSessionStatus(output: string, sessionName: string): HashcatSession {
+  private parseSessionStatus(
+    output: string,
+    sessionName: string
+  ): HashcatSession {
     const session: HashcatSession = {
       name: sessionName,
       status: 'processing',
@@ -765,7 +820,7 @@ export class HashcatWrapper {
       eta: '',
       cracked: 0,
       total: 0,
-      currentDictionary: ''
+      currentDictionary: '',
     };
 
     const lines = output.split('\n');
@@ -784,7 +839,9 @@ export class HashcatWrapper {
 
     for (const line of lines) {
       // Parse progress - handle both "Progress.:" and "Progress.........:" formats
-      const progressMatch = line.match(/Progress\.+:?\s*(\d+)\/(\d+)\s*\(([\d.]+)%\)/);
+      const progressMatch = line.match(
+        /Progress\.+:?\s*(\d+)\/(\d+)\s*\(([\d.]+)%\)/
+      );
       if (progressMatch) {
         session.cracked = parseInt(progressMatch[1]);
         session.total = parseInt(progressMatch[2]);
@@ -823,13 +880,28 @@ export class HashcatWrapper {
       // Parse status - check more comprehensive patterns with case-insensitive matching
       if (line.includes('Status')) {
         const statusLine = line.toLowerCase();
-        if (statusLine.includes('stopped') || statusLine.includes('aborted') || statusLine.includes('killed')) {
+        if (
+          statusLine.includes('stopped') ||
+          statusLine.includes('aborted') ||
+          statusLine.includes('killed')
+        ) {
           session.status = 'stopped';
-        } else if (statusLine.includes('paused') || statusLine.includes('suspended')) {
+        } else if (
+          statusLine.includes('paused') ||
+          statusLine.includes('suspended')
+        ) {
           session.status = 'paused';
-        } else if (statusLine.includes('completed') || statusLine.includes('finished') || statusLine.includes('cracked') || statusLine.includes('exhausted')) {
+        } else if (
+          statusLine.includes('completed') ||
+          statusLine.includes('finished') ||
+          statusLine.includes('cracked') ||
+          statusLine.includes('exhausted')
+        ) {
           session.status = 'completed';
-        } else if (statusLine.includes('running') || statusLine.includes('processing')) {
+        } else if (
+          statusLine.includes('running') ||
+          statusLine.includes('processing')
+        ) {
           session.status = 'processing';
         }
       }
@@ -837,11 +909,23 @@ export class HashcatWrapper {
       // Also check for session status patterns
       if (line.includes('Session')) {
         const sessionLine = line.toLowerCase();
-        if (sessionLine.includes('stopped') || sessionLine.includes('aborted') || sessionLine.includes('killed')) {
+        if (
+          sessionLine.includes('stopped') ||
+          sessionLine.includes('aborted') ||
+          sessionLine.includes('killed')
+        ) {
           session.status = 'stopped';
-        } else if (sessionLine.includes('paused') || sessionLine.includes('suspended')) {
+        } else if (
+          sessionLine.includes('paused') ||
+          sessionLine.includes('suspended')
+        ) {
           session.status = 'paused';
-        } else if (sessionLine.includes('completed') || sessionLine.includes('finished') || sessionLine.includes('cracked') || sessionLine.includes('exhausted')) {
+        } else if (
+          sessionLine.includes('completed') ||
+          sessionLine.includes('finished') ||
+          sessionLine.includes('cracked') ||
+          sessionLine.includes('exhausted')
+        ) {
           session.status = 'completed';
         }
       }
@@ -877,7 +961,7 @@ export class HashcatWrapper {
         const result: HashcatResult = {
           hash: parts[0],
           plain: parts[1],
-          timeCracked: new Date() // Would need to be extracted from log files
+          timeCracked: new Date(), // Would need to be extracted from log files
         };
 
         // Extract salt if available (parts[2] and not empty)
@@ -993,7 +1077,7 @@ export class HashcatWrapper {
             bssid,
             apMac,
             essid,
-            password
+            password,
           });
         }
       }

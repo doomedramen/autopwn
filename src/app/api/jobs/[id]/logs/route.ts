@@ -26,14 +26,11 @@ export async function GET(
 
     // Get job from database
     const job = await db.query.jobs.findFirst({
-      where: eq(jobs.id, jobId)
+      where: eq(jobs.id, jobId),
     });
 
     if (!job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
     // Get logs from hashcat session file if available
@@ -61,9 +58,13 @@ export async function GET(
       `Cracked: ${job.cracked || 0} / ${job.totalHashes || 0}`,
       `Speed: ${Number(job.speedCurrent || 0).toLocaleString()} ${job.speedUnit || 'H/s'}`,
       job.eta ? `ETA: ${job.eta}` : '',
-      job.startedAt ? `Started: ${new Date(job.startedAt).toLocaleString()}` : '',
-      job.updatedAt && (job.status === 'completed' || job.status === 'failed') ? `Finished: ${new Date(job.updatedAt).toLocaleString()}` : '',
-      job.errorMessage ? `Error: ${job.errorMessage}` : ''
+      job.startedAt
+        ? `Started: ${new Date(job.startedAt).toLocaleString()}`
+        : '',
+      job.updatedAt && (job.status === 'completed' || job.status === 'failed')
+        ? `Finished: ${new Date(job.updatedAt).toLocaleString()}`
+        : '',
+      job.errorMessage ? `Error: ${job.errorMessage}` : '',
     ].filter(line => line.trim());
 
     // Combine hashcat logs with status logs
@@ -80,10 +81,9 @@ export async function GET(
         status: job.status,
         logs: allLogs,
         hashcatSession: job.hashcatSession,
-        lastUpdated: job.updatedAt
-      }
+        lastUpdated: job.updatedAt,
+      },
     });
-
   } catch (error) {
     console.error('Job logs fetch error:', error);
 
@@ -91,7 +91,7 @@ export async function GET(
       {
         success: false,
         error: 'Failed to fetch job logs',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

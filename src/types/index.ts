@@ -87,13 +87,13 @@ export type AttackMode =
   | 1 // Combination
   | 3 // Brute-force
   | 6 // Hybrid Wordlist + Mask
-  | 7 // Hybrid Mask + Wordlist;
+  | 7; // Hybrid Mask + Wordlist;
 
 export type WorkloadProfile =
   | 1 // Desktop
   | 2 // Laptop
   | 3 // High Performance Desktop
-  | 4 // Fanless/Embedded;
+  | 4; // Fanless/Embedded;
 
 // Hashcat result types
 export interface HashcatResult {

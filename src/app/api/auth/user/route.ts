@@ -1,8 +1,8 @@
-import { auth } from "@/lib/auth";
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { userProfiles } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile data including custom fields
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const userData = {
       ...session.user,
       requirePasswordChange: profile?.requirePasswordChange || false,
-      role: profile?.role || "user",
+      role: profile?.role || 'user',
       isActive: profile?.isActive || true,
       isEmailVerified: profile?.isEmailVerified || false,
       username: profile?.username || session.user.name,
@@ -31,10 +31,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       user: userData,
-      session: session
+      session: session,
     });
   } catch (error) {
-    console.error("Error getting user session:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error('Error getting user session:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
