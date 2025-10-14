@@ -1,4 +1,4 @@
-name: Build and Deploy to DockerHub
+name: Build, Test and Deploy to DockerHub
 
 on:
   push:
@@ -17,12 +17,15 @@ permissions:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: autopwn
-  NODE_VERSION: '20' # Updated to latest LTS
+  NODE_VERSION: '20'
 
 jobs:
-  test:
-    name: Run Tests
+  build:
+    name: Build Application
     runs-on: ubuntu-latest
+
+    outputs:
+      build-success: ${{ steps.build.outcome }}
 
     steps:
       - name: Checkout code
@@ -56,35 +59,161 @@ jobs:
         run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
       - name: Run type check
+        id: typecheck
         run: pnpm tsc --noEmit
 
       - name: Run linting
+        id: lint
         run: pnpm lint:fix
 
       - name: Check formatting
+        id: format
         run: pnpm format:check
 
       - name: Run build
+        id: build
         run: pnpm build
         env:
           NODE_ENV: production
-          DATABASE_URL: postgresql://test:test@localhost:5432/test?connect_timeout=10&statement_timeout=10
+          DATABASE_URL: "postgresql://test:test@localhost:5432/test?connect_timeout=10&statement_timeout=10"
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           BETTER_AUTH_SECRET: github-action-build-secret-32-chars-long
           BETTER_AUTH_URL: http://localhost:3000
 
+  test:
+    name: Run All Tests
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.outputs.build-success == 'success'
+
+    outputs:
+      tests-success: ${{ steps.tests.outcome }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Run unit tests
+        id: unit-tests
+        run: pnpm test:run || pnpm test
+        continue-on-error: false
+
       - name: Run integration tests
+        id: integration-tests
         run: pnpm test:integration
-        continue-on-error: true # Tests may not exist, don't fail the build
+        continue-on-error: false
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Set up E2E test environment
+        run: |
+          # Create test directories
+          mkdir -p uploads/pcap uploads/dictionary jobs test-results
+
+          # Create test environment file
+          cat > .env.test << EOF
+          NODE_ENV=test
+          DISABLE_AUTH=true
+          BASE_URL=http://localhost:3000
+          DATABASE_URL=postgresql://test:test@localhost:5432/autopwn_test
+          EOF
+
+      - name: Start PostgreSQL for tests
+        run: |
+          docker run -d \
+            --name postgres-test \
+            -e POSTGRES_USER=test \
+            -e POSTGRES_PASSWORD=test \
+            -e POSTGRES_DB=autopwn_test \
+            -p 5432:5432 \
+            postgres:15
+
+      - name: Wait for PostgreSQL
+        run: |
+          timeout 60 bash -c 'until pg_isready -h localhost -p 5432; do sleep 1; done'
+
+      - name: Run E2E tests
+        id: e2e-tests
+        env:
+          BASE_URL: http://localhost:3000
+          DISABLE_AUTH: true
+        run: |
+          # Start development server for E2E tests
+          pnpm dev &
+          DEV_PID=$!
+
+          # Wait for server to be ready
+          timeout 120 bash -c 'until curl -f http://localhost:3000/api/auth/status; do sleep 2; done'
+
+          # Run E2E tests
+          pnpm test:e2e
+          E2E_EXIT_CODE=$?
+
+          # Cleanup
+          kill $DEV_PID || true
+          exit $E2E_EXIT_CODE
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+      - name: Cleanup test environment
+        if: always()
+        run: |
+          docker stop postgres-test || true
+          docker rm postgres-test || true
 
       - name: Run security audit
+        id: security-audit
         run: pnpm audit --audit-level moderate || echo "⚠️ Security audit completed with issues"
 
-  build-and-deploy:
+      - name: Mark tests as successful
+        id: tests
+        run: echo "All tests completed successfully"
+
+  deploy:
     name: Build and Deploy Docker Image
     runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    needs: [build, test]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) &&
+      needs.build.outputs.build-success == 'success' &&
+      needs.test.outputs.tests-success == 'success'
 
     outputs:
       image-tag: ${{ steps.meta.outputs.version }}
@@ -146,125 +275,14 @@ jobs:
           path: sbom.spdx.json
           retention-days: 30
 
-  e2e-test:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: build-and-deploy
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps
-
-      - name: Set up test environment
-        run: |
-          # Create test directories
-          mkdir -p uploads/pcap uploads/dictionary jobs test-results
-
-          # Create test environment file
-          cat > .env.test << EOF
-          NODE_ENV=test
-          DISABLE_AUTH=true
-          BASE_URL=http://localhost:3000
-          DATABASE_URL=postgresql://test:test@localhost:5432/autopwn_test
-          EOF
-
-      - name: Start PostgreSQL
-        run: |
-          docker run -d \
-            --name postgres-test \
-            -e POSTGRES_USER=test \
-            -e POSTGRES_PASSWORD=test \
-            -e POSTGRES_DB=autopwn_test \
-            -p 5432:5432 \
-            postgres:15
-
-      - name: Wait for PostgreSQL
-        run: |
-          timeout 60 bash -c 'until pg_isready -h localhost -p 5432; do sleep 1; done'
-
-      - name: Pull and run Docker image
-        env:
-          IMAGE_TAG: ${{ needs.build-and-deploy.outputs.image-tag }}
-        run: |
-          # Pull the built Docker image
-          docker pull ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-
-          # Run the container in the background
-          docker run -d \
-            --name autopwn-test \
-            --publish 3000:3000 \
-            --env-file .env.test \
-            --volume $(pwd)/uploads:/app/uploads \
-            --volume $(pwd)/jobs:/app/jobs \
-            ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Wait for application to be ready
-        run: |
-          timeout 120 bash -c 'until curl -f http://localhost:3000/api/auth/status; do sleep 2; done'
-          echo "✅ Application is ready for E2E testing"
-
-      - name: Run E2E tests
-        env:
-          BASE_URL: http://localhost:3000
-          DISABLE_AUTH: true
-        run: pnpm test:e2e
-        continue-on-error: true # Don't fail the deployment if E2E tests fail
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-test-results-${{ github.sha }}
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
-
-      - name: Cleanup Docker container
-        if: always()
-        run: |
-          docker logs autopwn-test || true
-          docker stop autopwn-test || true
-          docker rm autopwn-test || true
-          docker stop postgres-test || true
-          docker rm postgres-test || true
-
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [build-and-deploy, e2e-test]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    needs: deploy
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) &&
+      needs.deploy.result == 'success'
 
     steps:
       - name: Run Trivy vulnerability scanner
