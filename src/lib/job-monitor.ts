@@ -152,7 +152,7 @@ export class JobMonitor {
       await db
         .update(jobs)
         .set({
-          progress: updateData.progress,
+          progress: Math.round(updateData.progress), // Convert to integer
           cracked: updateData.cracked,
           speedCurrent: updateData.speedCurrent.toString(),
           speedAverage: updateData.speedAverage.toString(),

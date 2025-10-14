@@ -1,6 +1,9 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { FullConfig } from '@playwright/test';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { DatabaseCleanup } from '../setup/database-cleanup';
+import { SessionManager } from '../setup/session-manager';
 
 /**
  * Global teardown for e2e tests
@@ -8,9 +11,44 @@ import { FullConfig } from '@playwright/test';
  * - Cleans up test artifacts
  * - Generates test reports
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function globalTeardown(_config: FullConfig) {
-  console.log('🧹 Running global teardown for organized tests...');
+async function globalTeardown() {
+  console.log('🧹 Running global teardown for comprehensive tests...');
+
+  // Kill any running processes first to ensure clean shutdown
+  try {
+    const execAsync = promisify(exec);
+
+    // Kill hashcat and job processes
+    await execAsync('pkill -f "hashcat" || true');
+    await execAsync('pkill -f "hashcat.bin" || true');
+    await execAsync('pkill -f "job-monitor" || true');
+    await execAsync('pkill -f "job-processor" || true');
+
+    // Kill any remaining node processes related to jobs
+    await execAsync('pkill -f "node.*job" || true');
+
+    console.log('✓ Killed running processes for clean shutdown');
+  } catch {
+    console.log('⚠ Could not kill processes during teardown');
+  }
+
+  // Clean database after tests
+  try {
+    const dbCleanup = new DatabaseCleanup();
+    const connected = await dbCleanup.testConnection();
+
+    if (connected) {
+      await dbCleanup.cleanAllTables();
+      console.log('✓ Database cleaned after tests');
+    } else {
+      console.log('⚠ Could not connect to database for cleanup');
+    }
+  } catch {
+    console.log('⚠ Database cleanup failed');
+  }
+
+  // Clear session data
+  await SessionManager.clearSession();
 
   // Generate test summary
   const testResultsDir = path.join(process.cwd(), 'test-results');
@@ -20,8 +58,8 @@ async function globalTeardown(_config: FullConfig) {
     const summary = generateTestSummary(testResultsDir);
     await fs.writeFile(summaryFile, summary, 'utf-8');
     console.log('✓ Generated test summary');
-  } catch (error) {
-    console.log('⚠ Could not generate test summary:', error);
+  } catch {
+    console.log('⚠ Could not generate test summary');
   }
 
   // Clean up temporary test files older than 1 day
@@ -40,8 +78,8 @@ async function globalTeardown(_config: FullConfig) {
         console.log(`✓ Cleaned up old temp file: ${file}`);
       }
     }
-  } catch (error) {
-    console.log('⚠ Could not clean temp files:', error);
+  } catch {
+    console.log('⚠ Could not clean temp files');
   }
 
   // Keep uploads directory but clean old files (keep recent test artifacts)
@@ -77,8 +115,8 @@ async function globalTeardown(_config: FullConfig) {
     ) {
       await cleanOldFiles(jobsDir, oneHour);
     }
-  } catch (error) {
-    console.log('⚠ Could not clean uploads directory:', error);
+  } catch {
+    console.log('⚠ Could not clean uploads directory');
   }
 
   // Generate test coverage report if coverage is enabled
@@ -87,8 +125,8 @@ async function globalTeardown(_config: FullConfig) {
       console.log('📊 Generating test coverage report...');
       // Coverage report generation would go here
       console.log('✓ Coverage report generated');
-    } catch (error) {
-      console.log('⚠ Could not generate coverage report:', error);
+    } catch {
+      console.log('⚠ Could not generate coverage report');
     }
   }
 

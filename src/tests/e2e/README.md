@@ -1,78 +1,80 @@
-# E2E Test Suite
+# E2E Test Suite - Restructured
 
-This directory contains the end-to-end test suite for the AutoPwn application. The tests are organized by feature and use Playwright for browser automation and API testing.
+This directory contains the restructured end-to-end test suite for the AutoPwn application. The tests are organized by feature with proper session management and database cleanup.
 
 ## 📁 Directory Structure
 
 ```
 e2e/
+├── setup/
+│   ├── database-cleanup.ts          # Database cleanup utilities
+│   ├── system-initialization.spec.ts # System initialization test
+│   └── session-manager.ts           # Session storage and sharing
 ├── auth/
-│   └── auth.spec.ts                 # Authentication and authorization tests
+│   ├── login.spec.ts                # Authentication and login tests
+│   ├── password-change.spec.ts      # Password change functionality tests
+│   └── auth-guards.spec.ts         # Authentication guards and route protection
+├── jobs/
+│   ├── job-creation.spec.ts         # Job creation and configuration tests
+│   ├── job-monitoring.spec.ts       # Job monitoring and progress tracking tests
+│   ├── job-control.spec.ts          # Job control (pause/stop/restart) tests
+│   └── job-results.spec.ts          # Job results viewing and export tests
+├── upload/
+│   ├── dictionary-upload.spec.ts    # Dictionary file upload tests
+│   ├── pcap-upload.spec.ts          # PCAP file upload and network extraction tests
+│   └── file-management.spec.ts      # File management and deletion tests
+├── user-management/
+│   ├── user-creation.spec.ts        # User creation and validation tests
+│   ├── user-editing.spec.ts         # User editing and password management tests
+│   └── user-permissions.spec.ts     # User roles and permission tests
+├── workflows/
+│   ├── basic-workflow.spec.ts       # Simple end-to-end workflow tests
+│   └── advanced-workflow.spec.ts    # Complex workflow and multi-job scenario tests
 ├── helpers/
 │   ├── test-helpers.ts              # Common test utilities and API helpers
-│   ├── global-setup.ts              # Global test setup configuration
-│   ├── global-teardown.ts           # Global test cleanup
-│   └── global-setup.ts              # Legacy setup file (to be removed)
-├── jobs/
-│   └── jobs.spec.ts                 # Job management and execution tests
-├── upload/
-│   └── upload.spec.ts               # File upload functionality tests
-├── user-management/
-│   └── user-management.spec.ts      # User management interface tests
-├── workflows/
-│   └── complete-workflow.spec.ts    # End-to-end workflow tests
-├── fixtures/                        # Test data files (see fixtures/README.md)
-├── global-setup.ts                  # Legacy global setup (to be removed)
-├── global-teardown.ts               # Legacy global teardown (to be removed)
-├── test-utils.ts                    # Legacy test utilities (to be removed)
-├── auth-disabled.spec.ts            # Legacy auth tests (to be removed)
-├── auth-flow.spec.ts                # Legacy auth tests (to be removed)
-├── complete-workflow.spec.ts        # Legacy workflow tests (to be removed)
-├── comprehensive-workflow.spec.ts   # Legacy workflow tests (to be removed)
-└── user-management.spec.ts          # Legacy user tests (to be removed)
+│   ├── global-setup.ts              # Global test setup with database cleanup
+│   └── global-teardown.ts           # Global test cleanup and session clearing
+└── fixtures/                        # Test data files (see fixtures/README.md)
 ```
 
 ## 🧪 Test Categories
 
 ### 🔐 Authentication Tests (`auth/`)
 
-**File**: `auth/auth.spec.ts`
+**Files**: `login.spec.ts`, `password-change.spec.ts`, `auth-guards.spec.ts`
 
 Tests the complete authentication flow including:
 
-- System initialization and superuser creation
-- Login/logout functionality
-- Password change requirements
+- Login functionality and validation
+- Password change requirements and validation
 - Authentication guards and route protection
-- Auth-disabled mode behavior
+- Session persistence and management
 
 ### 👥 User Management Tests (`user-management/`)
 
-**File**: `user-management/user-management.spec.ts`
+**Files**: `user-creation.spec.ts`, `user-editing.spec.ts`, `user-permissions.spec.ts`
 
 Tests user administration features:
 
-- Creating and managing users
-- Role-based access control
-- User status management (active/inactive)
+- Creating and managing users with different roles
+- User editing and password management
+- Role-based access control and permissions
 - User search and filtering
-- User editing and validation
 
 ### 📤 File Upload Tests (`upload/`)
 
-**File**: `upload/upload.spec.ts`
+**Files**: `dictionary-upload.spec.ts`, `pcap-upload.spec.ts`, `file-management.spec.ts`
 
 Tests file upload functionality:
 
 - Dictionary file uploads and validation
 - PCAP file uploads and network extraction
-- Upload progress tracking
+- Upload progress tracking and error handling
 - File management and deletion
-- Error handling for invalid files
 
 ### 🚀 Job Management Tests (`jobs/`)
 
-**File**: `jobs/jobs.spec.ts`
+**Files**: `job-creation.spec.ts`, `job-monitoring.spec.ts`, `job-control.spec.ts`, `job-results.spec.ts`
 
 Tests password cracking job functionality:
 
@@ -80,49 +82,44 @@ Tests password cracking job functionality:
 - Job monitoring and progress tracking
 - Job control (pause/stop/restart)
 - Results viewing and export
-- Job filtering and search
 
 ### 🔄 Workflow Tests (`workflows/`)
 
-**File**: `workflows/complete-workflow.spec.ts`
+**Files**: `basic-workflow.spec.ts`, `advanced-workflow.spec.ts`
 
 Tests complete end-to-end workflows:
 
-- Full upload-to-crack workflows
-- Multi-job scenarios
-- Integration between components
-- Error handling in complex scenarios
+- Basic upload-to-crack workflows
+- Multi-job scenarios and concurrent execution
+- Complex workflows with user management
+- Session persistence across workflows
 
-## 🛠️ Test Utilities
+## 🛠️ Test Infrastructure
 
-### Main Helper (`helpers/test-helpers.ts`)
+### Session Management (`setup/session-manager.ts`)
 
-The `TestHelpers` class provides common utilities for:
+The `SessionManager` class provides:
 
-- System initialization and authentication
-- API requests with proper headers
-- File uploads (dictionaries and PCAPs)
-- Job creation and monitoring
-- Navigation and UI interactions
-- Test data generation
+- Session storage and retrieval between test files
+- Session validation and refresh mechanisms
+- Automatic session cleanup after tests
 
-### Global Setup (`helpers/global-setup.ts`)
+### Database Cleanup (`setup/database-cleanup.ts`)
 
-Handles global test environment setup:
+The `DatabaseCleanup` class provides:
 
-- Environment variable configuration
-- Test directory creation
-- Fixture validation
-- Cleanup of previous test artifacts
+- Complete database cleanup before and after test runs
+- Proper handling of foreign key constraints
+- Clean test state isolation
 
-### Global Teardown (`helpers/global-teardown.ts`)
+### System Initialization (`setup/system-initialization.spec.ts`)
 
-Handles post-test cleanup:
+A dedicated test that:
 
-- Test report generation
-- Temporary file cleanup
-- Coverage report generation
-- Environment cleanup
+- Runs first to initialize the system
+- Creates the superuser account
+- Handles initial password change
+- Stores session for subsequent tests
 
 ## 🏃 Running Tests
 
@@ -139,21 +136,21 @@ pnpm test:e2e:ui
 pnpm test:e2e:headed
 
 # Run specific test file
-pnpm test:e2e auth/auth.spec.ts
+pnpm test:e2e auth/login.spec.ts
 
 # Run tests matching a pattern
 pnpm test:e2e --grep "Authentication"
 pnpm test:e2e --grep "User Management"
+pnpm test:e2e --grep "Upload"
+pnpm test:e2e --grep "Jobs"
+pnpm test:e2e --grep "Workflow"
 ```
 
 ### Environment Variables
 
 ```bash
-# Disable authentication for faster testing
-DISABLE_AUTH=true
-
 # Set custom base URL
-BASE_URL=http://localhost:3001
+BASE_URL=http://localhost:3000
 
 # Enable coverage reporting
 PLAYWRIGHT_COVERAGE=true
@@ -171,6 +168,7 @@ Test results are saved to the `test-results/` directory:
 - HTML reports
 - Video recordings (when enabled)
 - Test summary documentation
+- Session data (`e2e-session.json`)
 
 ## 🔧 Configuration
 
@@ -180,38 +178,38 @@ The test suite is configured via `playwright.config.ts`:
 - Browser: Chromium (Desktop Chrome)
 - Base URL: `http://localhost:3000`
 - Global setup/teardown: enabled
-- Parallel execution: disabled (for database consistency)
+- Parallel execution: disabled (for session management)
 - Retries: 2 in CI, 0 locally
 
 ## 📝 Best Practices
 
 ### Test Organization
 
-- Organize tests by feature, not by implementation
-- Use descriptive test names that explain what is being tested
-- Group related tests using `test.describe()`
-- Keep test files focused on a single feature area
+- Tests are organized by feature with smaller, focused files
+- Session state is shared between tests using the SessionManager
+- Database cleanup ensures test isolation
+- Tests run with authentication enabled (no DISABLE_AUTH)
 
-### Test Data
+### Session Management
 
-- Use the provided test fixtures instead of creating data in tests
-- Generate unique test data using `TestHelpers.generateTestData()`
-- Clean up test data after tests complete
-- Don't hardcode credentials or sensitive data
+- Tests use `TestHelpers.loginWithSession()` for authentication
+- Session data is automatically saved and loaded
+- Sessions are validated before use
+- Session cleanup happens after test completion
 
 ### Error Handling
 
-- Test both happy path and error scenarios
-- Verify error messages are user-friendly
-- Test edge cases and boundary conditions
-- Use proper assertions to validate behavior
+- Tests include both positive and negative scenarios
+- Error messages are validated for user-friendliness
+- Edge cases and boundary conditions are tested
+- Proper assertions validate behavior
 
 ### Performance
 
-- Use appropriate timeouts (not too short, not too long)
-- Avoid unnecessary waits and delays
-- Reuse authentication sessions across tests when possible
-- Clean up resources to prevent memory leaks
+- Session persistence reduces redundant authentication
+- Database cleanup ensures clean test state
+- Appropriate timeouts prevent test failures
+- Resource cleanup prevents memory leaks
 
 ## 🚨 Troubleshooting
 
@@ -219,7 +217,8 @@ The test suite is configured via `playwright.config.ts`:
 
 1. **Tests fail with "No session cookie found"**
    - Ensure proper authentication in `beforeAll` hooks
-   - Check that auth headers are correctly set for API requests
+   - Check that session files are being created in `test-results/`
+   - Verify session validation logic
 
 2. **Tests timeout waiting for elements**
    - Increase timeout values for slow operations
@@ -248,28 +247,38 @@ DEBUG=pw:api pnpm test:e2e
 HEADED=true pnpm test:e2e
 
 # Run specific test in debug mode
-pnpm test:e2e --debug auth/auth.spec.ts
+pnpm test:e2e --debug auth/login.spec.ts
 ```
 
 ## 📈 Coverage and Metrics
 
 The test suite covers:
 
-- ✅ Authentication flows
-- ✅ User management
+- ✅ Authentication flows with session management
+- ✅ User management with role-based access
 - ✅ File upload and validation
-- ✅ Job creation and monitoring
-- ✅ Complete workflows
-- ✅ Error handling
-- ✅ UI interactions
-- ✅ API endpoints
+- ✅ Job creation, monitoring, and control
+- ✅ Complete workflows with session persistence
+- ✅ Error handling and edge cases
+- ✅ UI interactions and API endpoints
+- ✅ Database cleanup and test isolation
 
 Test metrics are tracked in:
 
 - Code coverage (when enabled)
 - Test execution time
 - Pass/fail rates
-- Performance benchmarks
+- Session persistence performance
+
+## 🔄 Migration from Old Structure
+
+The old monolithic test files have been broken down as follows:
+
+- `auth/auth.spec.ts` → `auth/login.spec.ts`, `auth/password-change.spec.ts`, `auth/auth-guards.spec.ts`
+- `jobs/jobs.spec.ts` → `jobs/job-creation.spec.ts`, `jobs/job-monitoring.spec.ts`, `jobs/job-control.spec.ts`, `jobs/job-results.spec.ts`
+- `upload/upload.spec.ts` → `upload/dictionary-upload.spec.ts`, `upload/pcap-upload.spec.ts`, `upload/file-management.spec.ts`
+- `user-management/user-management.spec.ts` → `user-management/user-creation.spec.ts`, `user-management/user-editing.spec.ts`, `user-management/user-permissions.spec.ts`
+- `workflows/complete-workflow.spec.ts` → `workflows/basic-workflow.spec.ts`, `workflows/advanced-workflow.spec.ts`
 
 ---
 
@@ -278,11 +287,11 @@ Test metrics are tracked in:
 When adding new tests:
 
 1. Choose the appropriate directory based on functionality
-2. Follow the existing patterns and naming conventions
-3. Use `TestHelpers` for common operations
+2. Use `TestHelpers.loginWithSession()` for authentication
+3. Follow the existing patterns and naming conventions
 4. Add proper assertions and error handling
-5. Update this README if adding new test categories
-6. Test both positive and negative scenarios
-7. Ensure tests are isolated and don't depend on each other
+5. Test both positive and negative scenarios
+6. Ensure tests are isolated and don't depend on each other
+7. Update this README if adding new test categories
 
 For questions about the test suite, refer to the Playwright documentation or the existing test files for examples.

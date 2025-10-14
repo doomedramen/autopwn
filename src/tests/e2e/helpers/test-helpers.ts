@@ -6,6 +6,7 @@ import {
 } from '@playwright/test';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { SessionManager } from '../setup/session-manager';
 
 export interface TestUser {
   email: string;
@@ -38,20 +39,10 @@ export interface NetworkData {
  */
 export class TestHelpers {
   /**
-   * Initialize the system (create superuser) or bypass for no-auth mode
+   * Initialize the system (create superuser)
    */
   static async initializeSystem(page: Page): Promise<TestUser> {
     console.log('🚀 Initializing system...');
-
-    // If auth is disabled, return mock credentials
-    if (process.env.DISABLE_AUTH === 'true') {
-      console.log('🔓 Auth disabled - using mock credentials');
-      return {
-        email: 'test@autopwn.local',
-        password: 'TestPassword123!',
-        username: 'testuser',
-      };
-    }
 
     await page.goto('/setup');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
@@ -63,11 +54,125 @@ export class TestHelpers {
     if (!initButtonExists) {
       // If system is already initialized, try to use existing superuser credentials
       console.log('🔄 System already initialized, using existing superuser...');
-      return {
-        email: 'superuser@autopwn.local',
-        password: 'TestPassword123!',
-        username: 'superuser',
-      };
+
+      // Try to use hardcoded credentials but have a fallback
+      try {
+        const hardcodedCredentials = {
+          email: 'superuser@autopwn.local',
+          password: 'TestPassword123!',
+          username: 'superuser',
+        };
+
+        // Test if these credentials work by attempting to login
+        await page.goto('/login');
+        await page.fill('input[type="email"]', hardcodedCredentials.email);
+        await page.fill(
+          'input[type="password"]',
+          hardcodedCredentials.password
+        );
+        await page.click('button:has-text("Sign In")');
+
+        // Wait a moment for login attempt
+        await page.waitForTimeout(3000);
+
+        const currentUrl = page.url();
+
+        // If login successful or we're on password change page, the credentials work
+        if (
+          currentUrl.includes('/dashboard') ||
+          currentUrl.includes('/change-password') ||
+          currentUrl.endsWith('/')
+        ) {
+          console.log('✅ Hardcoded superuser credentials work');
+
+          // Handle password change if needed
+          if (currentUrl.includes('/change-password')) {
+            console.log('🔒 Need to change password...');
+            const newPassword = `TestPassword${Date.now()}!`;
+
+            await page.fill(
+              'input[name="currentPassword"]',
+              hardcodedCredentials.password
+            );
+            await page.fill('input[name="newPassword"]', newPassword);
+            await page.fill('input[name="confirmPassword"]', newPassword);
+            await page.click('button:has-text("Change Password")');
+
+            await page.waitForSelector('text=Password Updated!', {
+              timeout: 10000,
+            });
+            await page.waitForTimeout(2000);
+
+            // Update credentials with new password
+            hardcodedCredentials.password = newPassword;
+          }
+
+          return hardcodedCredentials;
+        } else {
+          console.log(
+            '🔄 Hardcoded credentials redirected to login page - they failed'
+          );
+        }
+      } catch (error) {
+        console.log(
+          '⚠️ Hardcoded credentials failed, continuing with fallback:',
+          error
+        );
+      }
+
+      // If hardcoded credentials don't work, we need to force re-initialize the system
+      // This can happen when the database was completely cleaned
+      console.log(
+        '🔄 Hardcoded credentials failed, forcing system re-initialization...'
+      );
+
+      // Go to setup page to trigger system initialization
+      await page.goto('/setup');
+      await page.waitForLoadState('networkidle', { timeout: 10000 });
+
+      // Check if initialize button exists now (it should after database cleanup)
+      const initButton = page.locator(
+        '[data-testid="initialize-system-button"]'
+      );
+      const initButtonExists = await initButton.isVisible().catch(() => false);
+
+      if (initButtonExists) {
+        console.log(
+          '🚀 System re-initialization available, creating new superuser...'
+        );
+        await initButton.click();
+
+        await page.waitForSelector('[data-testid="superuser-email"]', {
+          timeout: 10000,
+        });
+        await page.waitForSelector('[data-testid="superuser-password"]', {
+          timeout: 10000,
+        });
+
+        const emailElement = await page.locator(
+          '[data-testid="superuser-email"]'
+        );
+        const passwordElement = await page.locator(
+          '[data-testid="superuser-password"]'
+        );
+        const emailText = await emailElement.textContent();
+        const passwordText = await passwordElement.textContent();
+
+        const credentials = {
+          email: emailText!.replace('Email:', '').trim(),
+          password: passwordText!.replace('Password:', '').trim(),
+          username: 'superuser',
+        };
+
+        console.log('✅ System re-initialized successfully');
+        return credentials;
+      } else {
+        // If we still can't initialize, something is wrong with the setup
+        console.log('❌ System re-initialization failed');
+        throw new Error(
+          'Unable to re-initialize system - setup page not working properly'
+        );
+      }
     }
 
     // Click initialize button and get credentials
@@ -98,6 +203,88 @@ export class TestHelpers {
   }
 
   /**
+   * Login with session management
+   */
+  static async loginWithSession(
+    page: Page,
+    context: BrowserContext,
+    email?: string,
+    password?: string
+  ): Promise<void> {
+    console.log(`🔑 Logging in with session management...`);
+
+    // Always clear sessions for test suite to ensure complete isolation
+    if (process.env.PLAYWRIGHT_TEST_INDEX !== undefined) {
+      console.log('🔄 Running in test suite - forcing fresh session');
+      await SessionManager.clearSession();
+
+      // Clear all browser data for maximum isolation
+      await context.clearCookies();
+      await context.clearPermissions();
+
+      // Clear any localStorage/sessionStorage that might interfere
+      await page.goto('about:blank');
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+
+      // Force clear any BetterAuth specific storage
+      await page.evaluate(() => {
+        // Clear any potential BetterAuth session storage
+        if (typeof window !== 'undefined') {
+          Object.keys(window.localStorage).forEach(key => {
+            if (
+              key.includes('better-auth') ||
+              key.includes('session') ||
+              key.includes('auth')
+            ) {
+              localStorage.removeItem(key);
+            }
+          });
+          Object.keys(window.sessionStorage).forEach(key => {
+            if (
+              key.includes('better-auth') ||
+              key.includes('session') ||
+              key.includes('auth')
+            ) {
+              sessionStorage.removeItem(key);
+            }
+          });
+        }
+      });
+    }
+
+    // For individual test runs, try to load existing session
+    if (process.env.PLAYWRIGHT_TEST_INDEX === undefined) {
+      const hasSession = await SessionManager.loadSession(context);
+
+      if (hasSession && (await SessionManager.validateSession(page))) {
+        console.log('✅ Using existing session');
+        return;
+      }
+    }
+
+    // If no valid session, use provided credentials or initialize system
+    let user: TestUser;
+    if (email && password) {
+      user = { email, password, username: 'knownuser' };
+    } else {
+      user = await this.initializeSystem(page);
+    }
+
+    // Perform login
+    await this.login(page, user.email, user.password);
+
+    // Only save session for individual test runs, not full suite
+    if (process.env.PLAYWRIGHT_TEST_INDEX === undefined) {
+      await SessionManager.saveSession(context);
+    }
+
+    console.log('✅ Login with session complete');
+  }
+
+  /**
    * Login and handle password change if needed
    */
   static async login(
@@ -106,14 +293,6 @@ export class TestHelpers {
     password: string
   ): Promise<void> {
     console.log(`🔑 Logging in as: ${email}`);
-
-    // If auth is disabled, just navigate to dashboard
-    if (process.env.DISABLE_AUTH === 'true') {
-      console.log('🔓 Auth disabled - going directly to dashboard');
-      await page.goto('/');
-      await page.waitForLoadState('networkidle', { timeout: 5000 });
-      return;
-    }
 
     // Normal auth flow
     await page.goto('/login');
@@ -346,8 +525,37 @@ export class TestHelpers {
    */
   static async navigateToTab(page: Page, tabName: string): Promise<void> {
     console.log(`📑 Navigating to ${tabName} tab`);
-    await page.click(`[role="tab"]:has-text("${tabName}")`);
-    await page.waitForTimeout(1000);
+
+    // Map tab names to their actual display text
+    const tabMap: Record<string, string> = {
+      Dicts: 'Dicts',
+      Dictionaries: 'Dicts',
+      Jobs: 'Jobs',
+      Networks: 'Networks',
+      Users: 'Users',
+    };
+
+    const displayTabName = tabMap[tabName] || tabName;
+
+    // Try multiple selectors for Radix UI Tabs
+    const selectors = [
+      `button[data-state][role="tab"]:has-text("${displayTabName}")`,
+      `[data-radix-collection-item]:has-text("${displayTabName}")`,
+      `button:has-text("${displayTabName}")`,
+      `div:has-text("${displayTabName}")`,
+    ];
+
+    for (const selector of selectors) {
+      try {
+        await page.click(selector, { timeout: 5000 });
+        await page.waitForTimeout(1000);
+        return;
+      } catch {
+        // Continue to next selector
+      }
+    }
+
+    throw new Error(`Could not find tab with name: ${displayTabName}`);
   }
 
   /**

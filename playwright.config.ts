@@ -5,10 +5,11 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./src/tests/e2e",
-  fullyParallel: true,
+  fullyParallel: false, // Disable full parallelism for session management
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  retries: 0, // No retries for faster feedback
+  workers: 1, // Keep single worker for database consistency
+  failOnFlakyTests: true, // Fail on flaky tests
   reporter: "list",
   use: {
     baseURL: process.env.BASE_URL || "http://localhost:3000",
