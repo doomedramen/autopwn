@@ -15,7 +15,7 @@ WiFi Network Analysis & Password Cracking Tool
 
 ## 🚀 Quick Start
 
-### Docker Deployment (Recommended)
+### Docker Compose (Recommended & Default Deployment)
 
 ```bash
 # Clone and setup
@@ -35,7 +35,7 @@ docker-compose up -d
 # Initial credentials will be shown in container logs
 ```
 
-### Local Development
+### Local Development (for testing/development only)
 
 ```bash
 # Install dependencies
@@ -56,10 +56,13 @@ pnpm dev
 
 ## 📋 Requirements
 
+### For Docker Compose Deployment (Recommended)
+- **Docker** & **Docker Compose**
+
+### For Local Development
 - **Node.js** 20+
 - **pnpm** package manager
-- **PostgreSQL** 15+ (local development)
-- **Docker & Docker Compose** (optional)
+- **PostgreSQL** 15+
 
 ## 🔧 Configuration
 

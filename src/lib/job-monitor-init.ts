@@ -2,7 +2,8 @@ import { jobMonitor } from '@/lib/job-monitor';
 
 // Initialize the job monitor service on server startup, but not during build
 // We check if we're in a build environment by looking for NEXT_BUILD
-const isBuildTime = process.env.NEXT_BUILD === 'true' || process.argv.includes('build');
+const isBuildTime =
+  process.env.NEXT_BUILD === 'true' || process.argv.includes('build');
 
 if (typeof window === 'undefined' && !isBuildTime) {
   // Only start if we're on server and not during build
