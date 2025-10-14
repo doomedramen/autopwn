@@ -4,7 +4,7 @@ FROM node:20-alpine AS base
 # Install dependencies only when needed
 FROM base AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat curl git
+RUN apk add --no-cache libc6-compat curl git postgresql-client
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -65,8 +65,21 @@ ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install postgresql-client for migration script
+RUN apk add --no-cache postgresql-client
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Copy package files for pnpm
+COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/pnpm-lock.yaml* ./
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy migration files and entrypoint script
+COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
 COPY --from=builder /app/public ./public
 
@@ -79,6 +92,9 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Make entrypoint script executable
+RUN chmod +x docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -86,6 +102,9 @@ EXPOSE 3000
 ENV PORT=3000
 # set hostname to localhost
 ENV HOSTNAME="0.0.0.0"
+
+# Use the entrypoint script that runs migrations before starting the app
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
