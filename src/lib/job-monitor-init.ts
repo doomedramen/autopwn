@@ -8,12 +8,18 @@ const isBuildTime =
   process.env.NEXT_PHASE === 'phase-development';
 
 // CI/CD environment detection
-const isCICD = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+const isCICD =
+  process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
 // Check if database URL is available (for Docker builds without DB)
 const hasDatabaseUrl = !!process.env.DATABASE_URL;
 
-if (typeof window === 'undefined' && !isBuildTime && !isCICD && hasDatabaseUrl) {
+if (
+  typeof window === 'undefined' &&
+  !isBuildTime &&
+  !isCICD &&
+  hasDatabaseUrl
+) {
   // Only start if we're on server, not during build, not in CI/CD, and have DB connection
   try {
     console.log('Initializing job monitor service...');
@@ -26,7 +32,9 @@ if (typeof window === 'undefined' && !isBuildTime && !isCICD && hasDatabaseUrl) 
 } else if (isCICD) {
   console.log('Skipping job monitor initialization in CI/CD');
 } else if (!hasDatabaseUrl) {
-  console.log('Skipping job monitor initialization - no DATABASE_URL available');
+  console.log(
+    'Skipping job monitor initialization - no DATABASE_URL available'
+  );
 }
 
 // Export a flag to indicate the monitor is configured (not necessarily running)
