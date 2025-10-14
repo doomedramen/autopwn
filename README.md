@@ -1,305 +1,143 @@
 # AutoPWN
 
-A powerful security analysis tool for network penetration testing and vulnerability assessment.
+WiFi Network Analysis & Password Cracking Tool
+
+## ⚠️ LEGAL WARNING
+
+**This tool is intended for authorized security testing, educational purposes, and legitimate security research ONLY.**
+
+- **Only use on networks you own or have explicit, written permission to test**
+- **Unauthorized access to computer networks is illegal in most jurisdictions**
+- **Users are solely responsible for complying with all applicable laws and regulations**
+- **The authors assume no liability for misuse or illegal use of this software**
+
+**Do not use this tool for any malicious or illegal activities.**
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Docker Deployment (Recommended)
 
-- **Node.js** 20+ (LTS recommended)
+```bash
+# Clone and setup
+git clone <repository-url>
+cd autopwn
+cp .env.docker.example .env
+
+# Edit .env with your configuration
+# Required: BETTER_AUTH_SECRET (generate with: openssl rand -base64 32)
+# Required: Change POSTGRES_PASSWORD from default
+# Required: Update APP_URL to your domain/IP
+
+# Start services
+docker-compose up -d
+
+# Access at http://localhost:3000
+# Initial credentials will be shown in container logs
+```
+
+### Local Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Setup environment
+cp .env.example .env.local
+# Edit .env.local with your database configuration
+
+# Setup database
+createdb autopwn
+pnpm db:generate
+pnpm db:migrate
+
+# Start development server
+pnpm dev
+```
+
+## 📋 Requirements
+
+- **Node.js** 20+
 - **pnpm** package manager
-- **PostgreSQL** 15+ (for local development)
-- **Docker** & **Docker Compose** (optional, for containerized deployment)
+- **PostgreSQL** 15+ (local development)
+- **Docker & Docker Compose** (optional)
 
-### Option 1: Docker Deployment (Recommended)
-
-1. **Clone and setup:**
-
-   ```bash
-   git clone <repository-url>
-   cd autopwn
-   cp .env.docker.example .env
-   ```
-
-2. **Configure environment:**
-
-   ```bash
-   # Edit .env with your configuration
-   nano .env
-   ```
-
-   **Required changes:**
-   - `BETTER_AUTH_SECRET`: Generate with `openssl rand -base64 32`
-   - `POSTGRES_PASSWORD`: Change from default
-   - `APP_URL`: Update to your domain/IP
-
-3. **Start with Docker Compose:**
-
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the application:**
-   - URL: `http://localhost:3000`
-   - Initial superuser credentials will be displayed in the container logs
-
-### Option 2: Local Development
-
-1. **Install dependencies:**
-
-   ```bash
-   pnpm install
-   ```
-
-2. **Setup environment:**
-
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your database and auth configuration
-   ```
-
-3. **Setup PostgreSQL database:**
-
-   ```bash
-   # Create database
-   createdb autopwn
-
-   # Run migrations
-   pnpm db:generate
-   pnpm db:migrate
-   ```
-
-4. **Start development server:**
-   ```bash
-   pnpm dev
-   ```
-
-## 📁 Environment Configuration
+## 🔧 Configuration
 
 ### Required Environment Variables
 
-| Variable              | Description                       | Default                 |
-| --------------------- | --------------------------------- | ----------------------- |
-| `DATABASE_URL`        | PostgreSQL connection string      | `postgresql://...`      |
-| `BETTER_AUTH_SECRET`  | Authentication secret (32+ chars) | **Required**            |
-| `BETTER_AUTH_URL`     | Base URL for auth callbacks       | `http://localhost:3000` |
-| `NEXT_PUBLIC_APP_URL` | Public application URL            | `http://localhost:3000` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | Required |
+| `BETTER_AUTH_SECRET` | Authentication secret (32+ chars) | Required |
+| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | Public application URL | `http://localhost:3000` |
 
-### Optional Security Configuration
+### Key Security Settings
 
-| Variable                     | Description                          | Default |
-| ---------------------------- | ------------------------------------ | ------- |
-| `MIN_PASSWORD_LENGTH`        | Minimum password length              | `8`     |
-| `REQUIRE_PASSWORD_UPPERCASE` | Require uppercase in passwords       | `true`  |
-| `REQUIRE_PASSWORD_LOWERCASE` | Require lowercase in passwords       | `true`  |
-| `REQUIRE_PASSWORD_NUMBERS`   | Require numbers in passwords         | `true`  |
-| `REQUIRE_PASSWORD_SYMBOLS`   | Require symbols in passwords         | `true`  |
-| `ACCOUNT_LOCKOUT_ATTEMPTS`   | Failed login attempts before lockout | `5`     |
-| `ACCOUNT_LOCKOUT_DURATION`   | Lockout duration in minutes          | `15`    |
-| `SESSION_TIMEOUT`            | Session timeout in hours             | `24`    |
-
-### Testing/Development Variables
-
-| Variable       | Description                        | Usage                      |
-| -------------- | ---------------------------------- | -------------------------- |
-| `DISABLE_AUTH` | Disable authentication for testing | `true`/`false`             |
-| `NODE_ENV`     | Environment mode                   | `development`/`production` |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MIN_PASSWORD_LENGTH` | Minimum password length | `8` |
+| `ACCOUNT_LOCKOUT_ATTEMPTS` | Failed attempts before lockout | `5` |
+| `SESSION_TIMEOUT` | Session timeout in hours | `24` |
 
 ## 🗄️ Database Management
 
-### Migrations
-
 ```bash
-# Generate new migration
+# Generate migrations
 pnpm db:generate
 
 # Apply migrations
 pnpm db:migrate
 
-# Push schema changes (development only)
-pnpm db:push
-
 # Open database studio
 pnpm db:studio
-```
 
-### Database Reset
-
-```bash
 # Reset database (DESTRUCTIVE)
 pnpm db:reset
 ```
 
-## 🐳 Docker Deployment
-
-### Building Custom Image
+## 🐳 Docker Commands
 
 ```bash
-# Build image
+# Build custom image
 docker build -t autopwn:latest .
 
-# Run with custom configuration
-docker run -d \
-  --name autopwn \
-  -p 3000:3000 \
-  --env-file .env \
-  autopwn:latest
-```
-
-### Docker Compose with External Database
-
-```bash
-# Use external PostgreSQL
-# Update docker-compose.yml to remove postgres service
-# Set DATABASE_URL to your external database
-docker-compose up -d
-```
-
-## 🔧 Development
-
-### Available Scripts
-
-| Script                  | Description                             |
-| ----------------------- | --------------------------------------- |
-| `pnpm dev`              | Start development server with Turbopack |
-| `pnpm build`            | Build for production                    |
-| `pnpm start`            | Start production server                 |
-| `pnpm lint`             | Run ESLint                              |
-| `pnpm lint:fix`         | Fix ESLint issues                       |
-| `pnpm format:check`     | Check Prettier formatting               |
-| `pnpm format:write`     | Apply Prettier formatting               |
-| `pnpm tsc`              | Type checking                           |
-| `pnpm test`             | Run integration tests                   |
-| `pnpm test:e2e`         | Run end-to-end tests                    |
-| `pnpm test:integration` | Run integration tests only              |
-
-### Testing
-
-```bash
-# Run all tests
-pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-
-# Run E2E tests
-pnpm test:e2e
-
-# Run with coverage
-pnpm test:coverage
+# Run with custom config
+docker run -d --name autopwn -p 3000:3000 --env-file .env autopwn:latest
 ```
 
 ## 🔐 Initial Setup
 
-### First Login
+1. **First Login**: Use initial superuser credentials shown in logs
+2. **Change Password**: Immediately change the default password after first login
+3. **User Management**: Only superusers/admins can create additional users
 
-1. After starting the application, the initial superuser account is created automatically
-2. Check the container logs or console output for initial credentials:
+## 🚨 Production Security Checklist
 
-   ```
-   🔐 Initial Superuser Created:
-      Email: superuser@autopwn.local
-      Password: TestPassword123!
-      Username: superuser
-   ⚠️  Please change these credentials after first login!
-   ```
-
-3. **Important**: Change the default password immediately after first login
-
-### Creating Additional Users
-
-Only superusers and admins can create additional user accounts:
-
-1. Log in as superuser/admin
-2. Navigate to User Management
-3. Create new users with appropriate roles
-
-## 🚨 Security Notes
-
-### Production Deployment Checklist
-
-- [ ] Change `BETTER_AUTH_SECRET` to a secure random value
+- [ ] Change `BETTER_AUTH_SECRET` to secure random value
 - [ ] Update default PostgreSQL password
 - [ ] Change default superuser credentials
 - [ ] Set `NODE_ENV=production`
-- [ ] Configure appropriate password policies
 - [ ] Enable HTTPS (reverse proxy recommended)
 - [ ] Regularly update dependencies
-- [ ] Monitor security advisories
 
-### Security Features
+## 📚 Usage
 
-- Password complexity requirements
-- Account lockout protection
-- Session management
-- Role-based access control (superuser, admin, user)
-- Secure password hashing (bcrypt)
+1. **Network Analysis**: Upload PCAP files for network traffic analysis
+2. **Password Cracking**: Use hashcat integration for password recovery
+3. **Dictionary Management**: Upload and manage wordlists
+4. **Job Management**: Monitor and control cracking jobs
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Database Connection Errors**
+## 🛠️ Development Scripts
 
 ```bash
-# Check PostgreSQL is running
-pg_isready -h localhost -p 5432
-
-# Verify DATABASE_URL format
-echo $DATABASE_URL
+pnpm dev          # Start development server
+pnpm build        # Build for production
+pnpm lint         # Run ESLint
+pnpm format:write # Apply Prettier formatting
+pnpm test         # Run tests
+pnpm test:e2e     # Run E2E tests
 ```
-
-**Build Errors**
-
-```bash
-# Clear node_modules and reinstall
-rm -rf node_modules pnpm-lock.yaml
-pnpm install
-```
-
-**Authentication Issues**
-
-```bash
-# Check auth configuration
-grep BETTER_AUTH .env
-
-# Restart application after config changes
-docker-compose restart
-```
-
-**Permission Issues**
-
-```bash
-# Fix file permissions for volumes
-sudo chown -R 1001:1001 uploads/ jobs/
-```
-
-### Logs
-
-```bash
-# Docker logs
-docker-compose logs -f app
-docker-compose logs -f postgres
-
-# Development logs
-pnpm dev
-```
-
-## 📚 Additional Resources
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Better Auth Documentation](https://better-auth.com/docs)
-- [Drizzle ORM Documentation](https://orm.drizzle.team/docs)
-- [Docker Documentation](https://docs.docker.com/)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Run linting and tests
-6. Submit a pull request
 
 ## 📄 License
 
@@ -307,5 +145,4 @@ pnpm dev
 
 ---
 
-**⚠️ Important**: This tool is designed for authorized security testing and educational purposes only. Users are responsible for ensuring they have proper authorization before testing any systems.
-test change
+**⚠️ REMINDER**: This software must only be used for authorized security testing and educational purposes. Unauthorized use is illegal and unethical.
