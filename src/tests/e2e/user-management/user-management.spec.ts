@@ -1,39 +1,66 @@
 import { test, expect } from '@playwright/test';
-import { TestUtils } from './test-utils';
+import { TestHelpers, TestUser } from '../helpers/test-helpers';
 
 test.describe('User Management', () => {
-  test('should show users tab only for admin users', async ({ page }) => {
-    // Create a fresh system and superuser for this test
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
+  let adminUser: TestUser;
+  let regularUser: TestUser;
 
-    // Create an admin user
-    const adminData = TestUtils.generateTestData();
-    await TestUtils.createUser(
+  test.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Initialize system and create admin user
+    const superUser = await TestHelpers.initializeSystem(page);
+    await TestHelpers.login(page, superUser.email, superUser.password);
+
+    // Create admin user for tests
+    const adminData = TestHelpers.generateTestData();
+    await TestHelpers.createUser(
       page,
       adminData.username,
       adminData.email,
       adminData.password,
       'admin'
     );
+    adminUser = adminData;
 
-    // Logout and login as admin
-    await page.context().clearCookies();
-    await TestUtils.login(page, adminData.email, adminData.password);
+    // Create regular user for tests
+    const regularData = TestHelpers.generateTestData();
+    await TestHelpers.createUser(
+      page,
+      regularData.username,
+      regularData.email,
+      regularData.password,
+      'user'
+    );
+    regularUser = regularData;
 
+    await context.close();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    // Login as admin for each test
+    const superUser = await TestHelpers.initializeSystem(page);
+    await TestHelpers.login(page, superUser.email, superUser.password);
+  });
+
+  test('should show users tab only for admin users', async ({ page }) => {
     // Should see users tab as admin
     await expect(page.locator('text=Users')).toBeVisible();
     const usersTab = page.locator('[role="tab"]:has-text("Users")');
     await expect(usersTab).toBeVisible();
+
+    // Logout and login as regular user
+    await page.context().clearCookies();
+    await TestHelpers.login(page, regularUser.email, regularUser.password);
+
+    // Should not see users tab as regular user
+    await expect(page.locator('text=Users')).not.toBeVisible();
   });
 
   test('should display user management interface', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Check page elements
     await expect(page.locator('h2')).toContainText('User Management');
@@ -58,15 +85,11 @@ test.describe('User Management', () => {
   });
 
   test('should create new user successfully', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Create test user data
-    const userData = TestUtils.generateTestData();
+    const userData = TestHelpers.generateTestData();
 
     // Open create user dialog
     await page.click('button:has-text("Add User")');
@@ -98,22 +121,8 @@ test.describe('User Management', () => {
   });
 
   test('should validate user creation form', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
-    // Create an admin user first for the duplicate email test
-    const adminData = TestUtils.generateTestData();
-    await TestUtils.createUser(
-      page,
-      adminData.username,
-      adminData.email,
-      adminData.password,
-      'admin'
-    );
-
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Open create user dialog
     await page.click('button:has-text("Add User")');
@@ -136,7 +145,7 @@ test.describe('User Management', () => {
     await expect(passwordInput).toHaveAttribute('minlength', '8');
 
     // Test password mismatch
-    const testUser1 = TestUtils.generateTestData();
+    const testUser1 = TestHelpers.generateTestData();
     await page.fill('input[placeholder="username"]', testUser1.username);
     await page.fill('input[placeholder="user@example.com"]', testUser1.email);
     await page.fill('input[placeholder="Min 8 characters"]', 'Password123!');
@@ -150,9 +159,9 @@ test.describe('User Management', () => {
     await expect(page.locator("text=Passwords don't match")).toBeVisible();
 
     // Test duplicate email
-    const testUser2 = TestUtils.generateTestData();
+    const testUser2 = TestHelpers.generateTestData();
     await page.fill('input[placeholder="username"]', testUser2.username);
-    await page.fill('input[placeholder="user@example.com"]', adminData.email); // Use existing admin email
+    await page.fill('input[placeholder="user@example.com"]', adminUser.email); // Use existing admin email
     await page.fill('input[placeholder="Min 8 characters"]', 'Password123!');
     await page.fill('input[placeholder="Confirm password"]', 'Password123!');
     await page.click('button:has-text("Create User")');
@@ -162,13 +171,9 @@ test.describe('User Management', () => {
   });
 
   test('should edit user information', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
     // Create a test user first
-    const userData = TestUtils.generateTestData();
-    await TestUtils.createUser(
+    const userData = TestHelpers.generateTestData();
+    await TestHelpers.createUser(
       page,
       userData.username,
       userData.email,
@@ -177,7 +182,7 @@ test.describe('User Management', () => {
     );
 
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Find and edit test user
     const userRow = page.locator('text=' + userData.username).first();
@@ -190,7 +195,7 @@ test.describe('User Management', () => {
     await expect(page.locator('text=Edit User')).toBeVisible();
 
     // Update user information
-    const updatedData = TestUtils.generateTestData();
+    const updatedData = TestHelpers.generateTestData();
     await page.fill('input[placeholder="user@example.com"]', updatedData.email);
     await page.fill('input[placeholder="username"]', updatedData.username);
 
@@ -206,13 +211,9 @@ test.describe('User Management', () => {
   });
 
   test('should toggle user active status', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
     // Create a test user first
-    const userData = TestUtils.generateTestData();
-    await TestUtils.createUser(
+    const userData = TestHelpers.generateTestData();
+    await TestHelpers.createUser(
       page,
       userData.username,
       userData.email,
@@ -221,7 +222,7 @@ test.describe('User Management', () => {
     );
 
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Find the test user
     const userRow = page.locator('text=' + userData.username).first();
@@ -251,12 +252,11 @@ test.describe('User Management', () => {
   });
 
   test('should prevent editing superuser account', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
+    // Get superuser credentials
+    const superUser = await TestHelpers.initializeSystem(page);
 
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Find superuser row
     const superUserRow = page.locator('text=' + superUser.username).first();
@@ -272,113 +272,60 @@ test.describe('User Management', () => {
   });
 
   test('should filter users by role', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
-    // Create admin and regular users
-    const adminData = TestUtils.generateTestData();
-    const regularUserData = TestUtils.generateTestData();
-
-    await TestUtils.createUser(
-      page,
-      adminData.username,
-      adminData.email,
-      adminData.password,
-      'admin'
-    );
-    await TestUtils.createUser(
-      page,
-      regularUserData.username,
-      regularUserData.email,
-      regularUserData.password,
-      'user'
-    );
-
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Filter by admin role
     await page.click('button:has-text("Filter by role")');
     await page.click('text=Admin');
 
     // Should only show admin users
-    await expect(page.locator('text=' + adminData.email)).toBeVisible();
-    await expect(
-      page.locator('text=' + regularUserData.email)
-    ).not.toBeVisible();
+    await expect(page.locator('text=' + adminUser.email)).toBeVisible();
+    await expect(page.locator('text=' + regularUser.email)).not.toBeVisible();
 
     // Filter by user role
     await page.click('button:has-text("Filter by role")');
     await page.click('text=User');
 
     // Should only show regular users
-    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
-    await expect(page.locator('text=' + adminData.email)).not.toBeVisible();
+    await expect(page.locator('text=' + regularUser.email)).toBeVisible();
+    await expect(page.locator('text=' + adminUser.email)).not.toBeVisible();
 
     // Show all roles
     await page.click('button:has-text("Filter by role")');
     await page.click('text=All Roles');
 
     // Should show all users
-    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
-    await expect(page.locator('text=' + adminData.email)).toBeVisible();
+    await expect(page.locator('text=' + regularUser.email)).toBeVisible();
+    await expect(page.locator('text=' + adminUser.email)).toBeVisible();
   });
 
   test('should search users', async ({ page }) => {
-    // Create a fresh system and superuser
-    const superUser = await TestUtils.initializeSystem(page);
-    await TestUtils.login(page, superUser.email, superUser.password);
-
-    // Create admin and regular users
-    const adminData = TestUtils.generateTestData();
-    const regularUserData = TestUtils.generateTestData();
-
-    await TestUtils.createUser(
-      page,
-      adminData.username,
-      adminData.email,
-      adminData.password,
-      'admin'
-    );
-    await TestUtils.createUser(
-      page,
-      regularUserData.username,
-      regularUserData.email,
-      regularUserData.password,
-      'user'
-    );
-
     // Navigate to users tab
-    await TestUtils.navigateToTab(page, 'Users');
+    await TestHelpers.navigateToTab(page, 'Users');
 
     // Search by username
     await page.fill(
       'input[placeholder*="Search users"]',
-      adminData.username.substring(0, 5)
+      adminUser.username.substring(0, 5)
     );
 
     // Should show admin user
-    await expect(page.locator('text=' + adminData.email)).toBeVisible();
-    await expect(
-      page.locator('text=' + regularUserData.email)
-    ).not.toBeVisible();
+    await expect(page.locator('text=' + adminUser.email)).toBeVisible();
+    await expect(page.locator('text=' + regularUser.email)).not.toBeVisible();
 
     // Search by email
-    await page.fill(
-      'input[placeholder*="Search users"]',
-      regularUserData.email
-    );
+    await page.fill('input[placeholder*="Search users"]', regularUser.email);
 
     // Should show regular user
-    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
-    await expect(page.locator('text=' + adminData.email)).not.toBeVisible();
+    await expect(page.locator('text=' + regularUser.email)).toBeVisible();
+    await expect(page.locator('text=' + adminUser.email)).not.toBeVisible();
 
     // Clear search
     await page.fill('input[placeholder*="Search users"]', '');
 
     // Should show all users again
-    await expect(page.locator('text=' + regularUserData.email)).toBeVisible();
-    await expect(page.locator('text=' + adminData.email)).toBeVisible();
+    await expect(page.locator('text=' + regularUser.email)).toBeVisible();
+    await expect(page.locator('text=' + adminUser.email)).toBeVisible();
   });
 });

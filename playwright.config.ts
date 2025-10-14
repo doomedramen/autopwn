@@ -14,8 +14,8 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || "http://localhost:3000",
     trace: "on-first-retry",
   },
-  globalSetup: require.resolve("./src/tests/e2e/global-setup.ts"),
-  globalTeardown: require.resolve("./src/tests/e2e/global-teardown.ts"),
+  globalSetup: require.resolve("./src/tests/e2e/helpers/global-setup.ts"),
+  globalTeardown: require.resolve("./src/tests/e2e/helpers/global-teardown.ts"),
 
   projects: [
     {
