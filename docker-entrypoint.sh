@@ -14,8 +14,8 @@ done
 
 echo "Database is ready - running migrations..."
 
-# Run database migrations
-pnpm db:migrate
+# Run database migrations using corepack
+corepack pnpm db:migrate
 
 echo "Migrations completed - starting application..."
 

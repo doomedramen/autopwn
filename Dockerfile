@@ -71,10 +71,11 @@ RUN apk add --no-cache postgresql-client
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy package files for pnpm
+# Copy package files and pnpm
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/pnpm-lock.yaml* ./
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /usr/local/bin/pnpm /usr/local/bin/pnpm
 
 # Copy migration files and entrypoint script
 COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
