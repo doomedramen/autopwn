@@ -58,3 +58,4 @@ src/tests/fixtures/pcaps/test-output.hc22000
 src/tests/fixtures/pcaps/test-output2.hc22000
 src/tests/fixtures/pcaps/test-essids2.txt
 src/tests/fixtures/pcaps/test-essids.txt
+/coverage-report
