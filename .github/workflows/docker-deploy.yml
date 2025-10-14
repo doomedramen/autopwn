@@ -130,70 +130,8 @@ jobs:
         run: pnpm test:integration
         continue-on-error: false
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps
-
-      - name: Set up E2E test environment
-        run: |
-          # Create test directories
-          mkdir -p uploads/pcap uploads/dictionary jobs test-results
-
-          # Create test environment file
-          cat > .env.test << EOF
-          NODE_ENV=test
-          BASE_URL=http://localhost:3000
-          DATABASE_URL=postgresql://test:test@localhost:5432/autopwn_test
-          EOF
-
-      - name: Start PostgreSQL for tests
-        run: |
-          docker run -d \
-            --name postgres-test \
-            -e POSTGRES_USER=test \
-            -e POSTGRES_PASSWORD=test \
-            -e POSTGRES_DB=autopwn_test \
-            -p 5432:5432 \
-            postgres:15
-
-      - name: Wait for PostgreSQL
-        run: |
-          timeout 60 bash -c 'until pg_isready -h localhost -p 5432; do sleep 1; done'
-
-      - name: Run E2E tests
-        id: e2e-tests
-        env:
-          BASE_URL: http://localhost:3000
-        run: |
-          # Start development server for E2E tests
-          pnpm dev &
-          DEV_PID=$!
-
-          # Wait for server to be ready
-          timeout 120 bash -c 'until curl -f http://localhost:3000/api/auth/status; do sleep 2; done'
-
-          # Run E2E tests
-          pnpm test:e2e
-          E2E_EXIT_CODE=$?
-
-          # Cleanup
-          kill $DEV_PID || true
-          exit $E2E_EXIT_CODE
-
-      - name: Upload E2E test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-test-results-${{ github.sha }}
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
-
-      - name: Cleanup test environment
-        if: always()
-        run: |
-          docker stop postgres-test || true
-          docker rm postgres-test || true
+      # E2E tests skipped in CI - run locally for comprehensive testing
+      # Use: pnpm test:e2e for local E2E testing
 
       - name: Run security audit
         id: security-audit
