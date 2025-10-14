@@ -141,7 +141,6 @@ jobs:
           # Create test environment file
           cat > .env.test << EOF
           NODE_ENV=test
-          DISABLE_AUTH=true
           BASE_URL=http://localhost:3000
           DATABASE_URL=postgresql://test:test@localhost:5432/autopwn_test
           EOF
@@ -164,7 +163,6 @@ jobs:
         id: e2e-tests
         env:
           BASE_URL: http://localhost:3000
-          DISABLE_AUTH: true
         run: |
           # Start development server for E2E tests
           pnpm dev &
