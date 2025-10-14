@@ -1,20 +1,27 @@
 import { jobMonitor } from '@/lib/job-monitor';
 
-// Initialize the job monitor service on server startup, but not during build
-// We check if we're in a build environment by looking for NEXT_BUILD
+// Comprehensive build detection to prevent database connections during build/static generation
 const isBuildTime =
-  process.env.NEXT_BUILD === 'true' || process.argv.includes('build');
+  process.env.NEXT_BUILD === 'true' ||
+  process.env.NODE_ENV === 'production' ||
+  process.argv.includes('build') ||
+  process.argv.includes('next') ||
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  process.env.NEXT_PHASE === 'phase-development';
 
-if (typeof window === 'undefined' && !isBuildTime) {
-  // Only start if we're on server and not during build
+// Also skip if we're in CI/CD environment
+const isCICD = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+
+if (typeof window === 'undefined' && !isBuildTime && !isCICD) {
+  // Only start if we're on server, not during build, and not in CI/CD
   try {
     console.log('Initializing job monitor service...');
     jobMonitor.start();
   } catch (error) {
     console.warn('Failed to initialize job monitor:', error);
   }
-} else if (isBuildTime) {
-  console.log('Skipping job monitor initialization during build');
+} else if (isBuildTime || isCICD) {
+  console.log('Skipping job monitor initialization during build/CI');
 }
 
 // Export a flag to indicate the monitor is running
