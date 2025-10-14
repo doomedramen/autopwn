@@ -12,12 +12,7 @@ until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
   sleep 2
 done
 
-echo "Database is ready - syncing database schema..."
+echo "Database is ready - starting application..."
 
-# Sync database schema using corepack (better for production with existing data)
-corepack pnpm db:push
-
-echo "Database sync completed - starting application..."
-
-# Start the application
+# Start the application directly without migrations
 exec "$@"

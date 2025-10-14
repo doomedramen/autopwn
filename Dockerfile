@@ -77,10 +77,7 @@ COPY --from=deps /app/pnpm-lock.yaml* ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /usr/local/bin/pnpm /usr/local/bin/pnpm
 
-# Copy migration files, schema and entrypoint script
-COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
-COPY --from=builder /app/src/lib/db/schema.ts ./src/lib/db/schema.ts
-COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+# Copy entrypoint script
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
 COPY --from=builder /app/public ./public
