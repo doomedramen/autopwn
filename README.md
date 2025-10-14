@@ -17,6 +17,12 @@ WiFi Network Analysis & Password Cracking Tool
 
 ### Docker Compose (Recommended & Default Deployment)
 
+The Docker Compose setup includes:
+- **AutoPWN Application** (Next.js frontend + API)
+- **PostgreSQL Database** (persistent data storage)
+- **Health Checks** for both services
+- **Persistent Volumes** for data and uploads
+
 ```bash
 # Clone and setup
 git clone <repository-url>
@@ -28,7 +34,7 @@ cp .env.docker.example .env
 # Required: Change POSTGRES_PASSWORD from default
 # Required: Update APP_URL to your domain/IP
 
-# Start services
+# Start all services (app + PostgreSQL)
 docker-compose up -d
 
 # Access at http://localhost:3000
@@ -101,11 +107,27 @@ pnpm db:reset
 
 ## 🐳 Docker Commands
 
+### Docker Compose (Recommended)
+```bash
+# Start all services (app + PostgreSQL)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Restart services
+docker-compose restart
+```
+
+### Standalone Docker
 ```bash
 # Build custom image
 docker build -t autopwn:latest .
 
-# Run with custom config
+# Run with custom config (requires external database)
 docker run -d --name autopwn -p 3000:3000 --env-file .env autopwn:latest
 ```
 
