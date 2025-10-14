@@ -10,6 +10,7 @@ import type { UploadProgress } from '@/lib/upload';
 
 export const runtime = 'nodejs';
 export const maxDuration = 600; // 10 minutes for large dictionary files
+export const dynamic = 'force-dynamic';
 
 /**
  * Dictionary file upload endpoint

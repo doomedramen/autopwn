@@ -11,6 +11,7 @@ import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
 
 /**
  * PCAP file upload endpoint

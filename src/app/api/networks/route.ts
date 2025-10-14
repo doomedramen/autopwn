@@ -6,6 +6,8 @@ import { isNotNull } from 'drizzle-orm';
 /**
  * Get all networks
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Start with a simple query without relations

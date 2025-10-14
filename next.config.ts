@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     // This can be helpful for standalone builds
   },
 
+  
   // Add any other config options here
 };
 

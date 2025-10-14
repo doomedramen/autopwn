@@ -21,6 +21,7 @@ import { auth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for job creation
+export const dynamic = 'force-dynamic';
 
 interface JobRequest {
   name: string;

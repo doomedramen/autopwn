@@ -4,6 +4,7 @@ import { crackedPasswords } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * Get cracked passwords for a specific network

@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * Get logs for a specific job

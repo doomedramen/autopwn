@@ -66,6 +66,12 @@ jobs:
 
       - name: Run build
         run: pnpm build
+        env:
+          NODE_ENV: production
+          DATABASE_URL: postgresql://test:test@localhost:5432/test?connect_timeout=10&statement_timeout=10
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          BETTER_AUTH_SECRET: github-action-build-secret-32-chars-long
+          BETTER_AUTH_URL: http://localhost:3000
 
       - name: Run integration tests
         run: pnpm test:integration

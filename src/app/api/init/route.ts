@@ -5,6 +5,7 @@ import { userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * Initialize the application by creating a superuser if none exists

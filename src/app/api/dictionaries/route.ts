@@ -6,6 +6,8 @@ import { eq } from 'drizzle-orm';
 /**
  * Get all dictionaries
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const dictionaryList = await db.query.uploads.findMany({

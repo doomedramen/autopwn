@@ -7,6 +7,7 @@ import { updateUserPassword, updateUserProfile } from '@/lib/auth';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Schema for password change
 const changePasswordSchema = z

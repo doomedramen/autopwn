@@ -10,6 +10,7 @@ import { z } from 'zod';
 const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Schema for user creation
 const createUserSchema = z.object({
