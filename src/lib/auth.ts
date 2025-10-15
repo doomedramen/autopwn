@@ -43,9 +43,10 @@ export const auth = betterAuth({
     },
   },
   // Modern Next.js 15+ configuration - use dynamic baseURL
-  baseURL: process.env.NODE_ENV === 'production'
-    ? '' // Use relative URLs in production - works with any domain
-    : 'http://localhost:3000', // Only for local development
+  baseURL:
+    process.env.NODE_ENV === 'production'
+      ? '' // Use relative URLs in production - works with any domain
+      : 'http://localhost:3000', // Only for local development
 });
 
 export type Session = typeof auth.$Infer.Session;
