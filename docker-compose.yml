@@ -12,7 +12,7 @@ services:
   app:
     image: doomedramen/autopwn:drizzle-fixed
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       DATABASE_URL: postgresql://autopwn:autopwn_password@postgres:5432/autopwn
       NEXT_PUBLIC_APP_URL: http://localhost:3000
