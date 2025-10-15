@@ -115,12 +115,14 @@ RUN apk update \
 # Install hashcat for password cracking (CPU-only version)
 RUN apk add --no-cache \
     make gcc git g++ libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
-    cblas libgomp \
+    cblas libgomp ncurses \
     && cd /tmp \
     && git clone https://github.com/hashcat/hashcat.git \
     && cd hashcat \
     && make \
     && make install \
+    && mkdir -p /usr/local/share/hashcat/modules \
+    && cp -r deps/* /usr/local/share/hashcat/modules/ \
     && cd / \
     && rm -rf /tmp/hashcat
 

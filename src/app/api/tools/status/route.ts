@@ -25,9 +25,9 @@ export async function GET() {
           available: availableTools,
           missing: totalTools - availableTools,
           criticalMissing: missingCritical.length,
-          allAvailable: missingCritical.length === 0
-        }
-      }
+          allAvailable: missingCritical.length === 0,
+        },
+      },
     });
   } catch (error) {
     console.error('Tool status check error:', error);

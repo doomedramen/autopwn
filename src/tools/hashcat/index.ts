@@ -236,7 +236,10 @@ export class HashcatWrapper {
         });
       } catch (spawnError) {
         // Handle ENOENT and other spawn errors immediately
-        if (spawnError instanceof Error && spawnError.message.includes('ENOENT')) {
+        if (
+          spawnError instanceof Error &&
+          spawnError.message.includes('ENOENT')
+        ) {
           const errorMsg = `Hashcat binary not found. Please install hashcat on the system. Command: '${this.executablePath}'`;
           console.error(`[hashcat] ${errorMsg}`);
           job.status = 'failed';
@@ -570,15 +573,23 @@ export class HashcatWrapper {
     // Session management
     args.push('--session', sessionName);
 
+    // Force CPU-only device (device ID 1 is typically CPU)
+    args.push('-d', '1');
+
     // Hash type
     args.push('-m', job.options.hashType.toString());
 
     // Attack mode
     args.push('-a', job.options.attackMode.toString());
 
-    // Workload profile
+    // Workload profile (lower for CPU to avoid overheating)
     if (job.options.workloadProfile) {
-      args.push('-w', job.options.workloadProfile.toString());
+      // Cap workload profile at 2 for CPU-only to avoid excessive CPU usage
+      const workloadProfile = Math.min(job.options.workloadProfile, 2);
+      args.push('-w', workloadProfile.toString());
+    } else {
+      // Default to workload profile 2 (medium) for CPU-only
+      args.push('-w', '2');
     }
 
     // Disable potfile if requested
@@ -586,20 +597,19 @@ export class HashcatWrapper {
       args.push('--potfile-disable');
     }
 
-    // GPU temperature abort
+    // Force CPU-only mode - disable all GPU-related optimizations
+    // Note: CPU-only so no GPU temperature monitoring needed
     if (job.options.gpuTempAbort) {
       args.push('--hwmon-temp-abort', job.options.gpuTempAbort.toString());
     }
 
-    // GPU temp disable
+    // Force CPU-only mode - disable hardware monitoring for GPU features
     if (job.options.gpuTempDisable) {
       args.push('--hwmon-disable');
     }
 
-    // Optimized kernel enable
-    if (job.options.optimizedKernelEnable) {
-      args.push('-O');
-    }
+    // NEVER use optimized kernel (-O) flag as it's GPU-only
+    // Remove optimizedKernelEnable check to ensure CPU-only compatibility
 
     // Rules
     if (job.options.rules && job.options.rules.length > 0) {

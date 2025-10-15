@@ -28,17 +28,23 @@ async function validateToolsOnStartup() {
       missingCritical.forEach(tool => {
         console.error(`  - ${tool.name}: ${tool.error || 'Unknown error'}`);
       });
-      console.error('\n⚠️  AutoPWN will run in degraded mode without these tools.');
+      console.error(
+        '\n⚠️  AutoPWN will run in degraded mode without these tools.'
+      );
       console.error('Password cracking functionality will not work properly.');
       console.error('PCAP analysis functionality will be limited.');
-      console.error('Please ensure you are using a Docker image with all tools installed.');
+      console.error(
+        'Please ensure you are using a Docker image with all tools installed.'
+      );
     } else {
       console.log('\n✅ All required tools are available!');
       console.log('AutoPWN is ready for full functionality.');
     }
   } catch (error) {
     console.warn('⚠️  Tool validation failed:', error);
-    console.warn('Application will continue, but functionality may be limited.');
+    console.warn(
+      'Application will continue, but functionality may be limited.'
+    );
   }
 }
 
@@ -59,9 +65,13 @@ if (
     console.warn('Failed to initialize job monitor:', error);
   }
 } else if (isBuildTime) {
-  console.log('Skipping tool validation and job monitor initialization during build');
+  console.log(
+    'Skipping tool validation and job monitor initialization during build'
+  );
 } else if (isCICD) {
-  console.log('Skipping tool validation and job monitor initialization in CI/CD');
+  console.log(
+    'Skipping tool validation and job monitor initialization in CI/CD'
+  );
 } else if (!hasDatabaseUrl) {
   console.log(
     'Skipping tool validation and job monitor initialization - no DATABASE_URL available'

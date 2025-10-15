@@ -27,13 +27,20 @@ export class ToolValidator {
   /**
    * Check if a command-line tool is available and working
    */
-  async checkTool(toolName: string, args: string[] = ['--version'], critical: boolean = true): Promise<ToolCheckResult> {
+  async checkTool(
+    toolName: string,
+    args: string[] = ['--version'],
+    critical: boolean = true
+  ): Promise<ToolCheckResult> {
     try {
       console.log(`🔍 Checking availability of ${toolName}...`);
 
-      const { stdout, stderr } = await execAsync(`${toolName} ${args.join(' ')}`, {
-        timeout: 10000,
-      });
+      const { stdout, stderr } = await execAsync(
+        `${toolName} ${args.join(' ')}`,
+        {
+          timeout: 10000,
+        }
+      );
 
       // Extract version from output
       let version: string | undefined;
@@ -61,9 +68,9 @@ export class ToolValidator {
       console.log(`✅ ${toolName} is available (version: ${version})`);
       this.validationResults.set(toolName, result);
       return result;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       const result: ToolCheckResult = {
         name: toolName,
         available: false,
@@ -139,7 +146,9 @@ export class ToolValidator {
       return '';
     }
 
-    const toolList = missingTools.map(t => `- ${t.name}: ${t.error || 'Unknown error'}`).join('\n');
+    const toolList = missingTools
+      .map(t => `- ${t.name}: ${t.error || 'Unknown error'}`)
+      .join('\n');
     return `Required tools are missing:\n${toolList}\n\nPlease install the missing tools and restart the application.\n\nFor Docker users, ensure the tools are installed in the Docker image.`;
   }
 }

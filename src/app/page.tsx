@@ -130,7 +130,11 @@ export default function Home() {
         console.log('📡 Dashboard: Setting networks:', networksData.data);
         setNetworks(networksData.data || []);
       } else {
-        console.error('❌ Dashboard: Networks API failed:', networksResponse.status, networksResponse.statusText);
+        console.error(
+          '❌ Dashboard: Networks API failed:',
+          networksResponse.status,
+          networksResponse.statusText
+        );
       }
 
       // Load dictionaries
