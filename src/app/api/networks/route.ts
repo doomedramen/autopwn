@@ -27,9 +27,11 @@ export async function GET() {
       // Check if any uploads have networks
       for (const upload of allUploads) {
         const uploadNetworks = await db.query.networks.findMany({
-          where: (networks, { eq }) => eq(networks.uploadId, upload.id)
+          where: (networks, { eq }) => eq(networks.uploadId, upload.id),
         });
-        console.log(`📶 Upload ${upload.id} (${upload.filename}): ${uploadNetworks.length} networks`);
+        console.log(
+          `📶 Upload ${upload.id} (${upload.filename}): ${uploadNetworks.length} networks`
+        );
       }
     }
 
