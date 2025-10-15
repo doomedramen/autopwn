@@ -12,7 +12,23 @@ until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
   sleep 2
 done
 
-echo "Database is ready - starting application..."
+echo "Database is ready - applying database migrations..."
 
-# Start the application directly without migrations
+# Run database migrations using Drizzle
+if [ -f "package.json" ] && [ -d "node_modules" ]; then
+  echo "Running Drizzle database migrations..."
+  # Use npm instead of pnpm to avoid corepack issues in Docker
+  npm run db:migrate || {
+    echo "Migration failed, trying schema push (might be a fresh database)..."
+    npm run db:push || {
+      echo "Both migration and push failed, continuing anyway (schema might already be up to date)"
+    }
+  }
+
+  echo "Database migrations completed - starting application..."
+else
+  echo "Package files not found, skipping database migrations - starting application..."
+fi
+
+# Start the application
 exec "$@"

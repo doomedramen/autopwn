@@ -80,6 +80,12 @@ COPY --from=deps /usr/local/bin/pnpm /usr/local/bin/pnpm
 # Copy entrypoint script
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
+# Copy drizzle config for migrations
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+
+# Copy drizzle migration files
+COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
+
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache

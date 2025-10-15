@@ -1,65 +1,30 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: autopwn-postgres
-    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-autopwn}
-      POSTGRES_USER: ${POSTGRES_USER:-autopwn}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autopwn_password}
-      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
-    ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      POSTGRES_DB: autopwn
+      POSTGRES_USER: autopwn
+      POSTGRES_PASSWORD: autopwn_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-autopwn}']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   app:
-    image: ${DOCKER_IMAGE:-doomedramen/autopwn:latest}
-    container_name: autopwn-app
-    restart: unless-stopped
+    image: doomedramen/autopwn:drizzle-fixed
     ports:
-      - '${APP_PORT:-3000}:3000'
+      - "3000:3000"
     environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-autopwn}:${POSTGRES_PASSWORD:-autopwn_password}@postgres:5432/${POSTGRES_DB:-autopwn}
-      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${APP_URL:-http://localhost:3000}
-      MIN_PASSWORD_LENGTH: ${MIN_PASSWORD_LENGTH:-8}
-      REQUIRE_PASSWORD_UPPERCASE: ${REQUIRE_PASSWORD_UPPERCASE:-true}
-      REQUIRE_PASSWORD_LOWERCASE: ${REQUIRE_PASSWORD_LOWERCASE:-true}
-      REQUIRE_PASSWORD_NUMBERS: ${REQUIRE_PASSWORD_NUMBERS:-true}
-      REQUIRE_PASSWORD_SYMBOLS: ${REQUIRE_PASSWORD_SYMBOLS:-true}
-      ACCOUNT_LOCKOUT_ATTEMPTS: ${ACCOUNT_LOCKOUT_ATTEMPTS:-5}
-      ACCOUNT_LOCKOUT_DURATION: ${ACCOUNT_LOCKOUT_DURATION:-15}
-      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-24}
+      DATABASE_URL: postgresql://autopwn:autopwn_password@postgres:5432/autopwn
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: change-this-in-production
+      BETTER_AUTH_URL: http://localhost:3000
     volumes:
       - uploads_data:/app/uploads
       - jobs_data:/app/jobs
     depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test:
-        ['CMD-SHELL', 'curl -f http://localhost:3000/api/auth/status || exit 1']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      - postgres
 
 volumes:
   postgres_data:
-    driver: local
   uploads_data:
-    driver: local
   jobs_data:
-    driver: local

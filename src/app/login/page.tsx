@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from '@/lib/auth-client';
+import { signIn, useSession } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,16 +12,26 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
+import { useEffect } from 'react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
+  const { data: session, isPending } = useSession();
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+
+  // If user is already authenticated, redirect them
+  useEffect(() => {
+    if (session && !isPending) {
+      toast.success('Login successful!');
+      router.push(redirect);
+    }
+  }, [session, isPending, router, redirect]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +45,13 @@ function LoginForm() {
         callbackURL: redirect,
       });
 
-      toast.success('Login successful!');
-      router.push(redirect);
+      // Don't immediately show success or redirect
+      // Let the session hook detect the authentication change
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setIsLoading(false);
     }
   };
