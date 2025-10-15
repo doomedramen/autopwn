@@ -88,8 +88,14 @@ export default function ChangePasswordPage() {
 
         // Redirect after a short delay with fallback
         setTimeout(() => {
+          console.log('Attempting redirect to dashboard...');
           try {
             router.push('/');
+            // If router.push doesn't work, use fallback
+            setTimeout(() => {
+              console.log('Using fallback redirect');
+              window.location.href = '/';
+            }, 1000);
           } catch (error) {
             console.error('Redirect failed:', error);
             // Fallback: force page reload to go to root
@@ -198,7 +204,24 @@ export default function ChangePasswordPage() {
                         You will be redirected to the dashboard shortly...
                       </p>
                     </div>
-                    <Button onClick={() => router.push('/')} className="w-full">
+                    <Button
+                      onClick={() => {
+                        console.log('Dashboard button clicked');
+                        // Use multiple redirect methods for maximum compatibility
+                        try {
+                          router.push('/');
+                          // Fallback immediate redirect if router doesn't work
+                          setTimeout(() => {
+                            window.location.href = '/';
+                          }, 100);
+                        } catch (error) {
+                          console.error('Router push failed:', error);
+                          // Force redirect
+                          window.location.href = '/';
+                        }
+                      }}
+                      className="w-full"
+                    >
                       Go to Dashboard Now
                     </Button>
                   </div>
