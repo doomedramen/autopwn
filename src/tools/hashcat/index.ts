@@ -227,10 +227,30 @@ export class HashcatWrapper {
         `[hashcat #${this.instanceId}] Starting session ${sessionName} with args:`,
         args
       );
-      const child = spawn(this.executablePath, args, {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        detached: false,
-      });
+
+      let child: ChildProcess;
+      try {
+        child = spawn(this.executablePath, args, {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          detached: false,
+        });
+      } catch (spawnError) {
+        // Handle ENOENT and other spawn errors immediately
+        if (spawnError instanceof Error && spawnError.message.includes('ENOENT')) {
+          const errorMsg = `Hashcat binary not found. Please install hashcat on the system. Command: '${this.executablePath}'`;
+          console.error(`[hashcat] ${errorMsg}`);
+          job.status = 'failed';
+          job.error = errorMsg;
+          return {
+            success: false,
+            stdout: '',
+            stderr: errorMsg,
+            exitCode: -1,
+            executionTime: Date.now() - startTime,
+          };
+        }
+        throw spawnError;
+      }
 
       // Log process PID
       console.log(
@@ -298,10 +318,18 @@ export class HashcatWrapper {
       // Handle process errors
       child.on('error', error => {
         console.error(`[hashcat] Session ${sessionName} error:`, error);
+
+        // Provide better error message for ENOENT
+        let errorMessage = error.message;
+        if (error.message.includes('ENOENT')) {
+          errorMessage = `Hashcat binary not found. Please install hashcat on the system. Command: '${this.executablePath}'`;
+          console.error(`[hashcat] ${errorMessage}`);
+        }
+
         const currentStatus = this.sessionStatus.get(sessionName);
         if (currentStatus) {
           currentStatus.status = 'stopped';
-          currentStatus.error = error.message;
+          currentStatus.error = errorMessage;
           this.sessionStatus.set(sessionName, currentStatus);
         }
       });

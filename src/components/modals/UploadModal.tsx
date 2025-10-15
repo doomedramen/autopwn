@@ -142,11 +142,11 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
     // Call completion callback
     onComplete?.(activeTab, results);
 
-    // Auto-close modal after successful uploads
-    if (successfulUploads.length > 0 && failedUploads.length === 0) {
+    // Auto-close modal after uploads complete (with or without failures)
+    if (successfulUploads.length > 0 || failedUploads.length > 0) {
       setTimeout(() => {
         handleClose();
-      }, 2000); // Close after 2 seconds
+      }, 3000); // Close after 3 seconds to show success/error messages
     }
   };
 

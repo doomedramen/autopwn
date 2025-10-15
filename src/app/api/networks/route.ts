@@ -16,6 +16,9 @@ export async function GET() {
       orderBy: (networks, { desc }) => [desc(networks.createdAt)],
     });
 
+    console.log(`🌐 Networks API: Found ${networkList.length} networks`);
+    console.log('📊 Network data:', JSON.stringify(networkList, null, 2));
+
     return NextResponse.json({
       success: true,
       data: networkList,

@@ -126,7 +126,11 @@ export default function Home() {
       const networksResponse = await fetch('/api/networks');
       if (networksResponse.ok) {
         const networksData = await networksResponse.json();
+        console.log('📡 Dashboard: Networks API response:', networksData);
+        console.log('📡 Dashboard: Setting networks:', networksData.data);
         setNetworks(networksData.data || []);
+      } else {
+        console.error('❌ Dashboard: Networks API failed:', networksResponse.status, networksResponse.statusText);
       }
 
       // Load dictionaries

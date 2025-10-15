@@ -68,7 +68,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Install postgresql-client and su-exec for user switching
 RUN apk add --no-cache postgresql-client su-exec
 
-# Install hcxtools for PCAP analysis
+# Install hcxtools for PCAP analysis and hashcat for password cracking
 RUN apk update \
     && apk add --no-cache --virtual .build-deps \
     make gcc git libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
@@ -80,6 +80,18 @@ RUN apk update \
     && cd / \
     && rm -rf /tmp/hcxtools \
     && apk del .build-deps
+
+# Install hashcat for password cracking
+RUN apk add --no-cache --virtual .hashcat-build-deps \
+    make gcc git libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
+    && cd /tmp \
+    && git clone https://github.com/hashcat/hashcat.git \
+    && cd hashcat \
+    && make \
+    && make install \
+    && cd / \
+    && rm -rf /tmp/hashcat \
+    && apk del .hashcat-build-deps
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
