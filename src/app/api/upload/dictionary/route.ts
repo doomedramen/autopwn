@@ -73,11 +73,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.success) {
-      // Mark progress as completed
-      progressTracker.completeTracking(
-        fileId,
-        result.data as unknown as Record<string, unknown>
-      );
 
       // Extract dictionary metadata
       const metadata =
@@ -206,9 +201,6 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
-      // Mark progress as failed
-      progressTracker.failTracking(fileId, result.stderr || 'Upload failed');
-
       return NextResponse.json(
         {
           success: false,

@@ -65,8 +65,21 @@ ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install postgresql-client for migration script
-RUN apk add --no-cache postgresql-client
+# Install postgresql-client and su-exec for user switching
+RUN apk add --no-cache postgresql-client su-exec
+
+# Install hcxtools for PCAP analysis
+RUN apk update \
+    && apk add --no-cache --virtual .build-deps \
+    make gcc git libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
+    && cd /tmp \
+    && git clone https://github.com/ZerBea/hcxtools.git \
+    && cd hcxtools \
+    && make \
+    && make install \
+    && cd / \
+    && rm -rf /tmp/hcxtools \
+    && apk del .build-deps
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -88,6 +101,10 @@ COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
 COPY --from=builder /app/public ./public
 
+# Create and set permissions for uploads and jobs directories
+RUN mkdir -p /app/uploads/pcap /app/uploads/dictionary /app/uploads/general /app/jobs
+RUN chown -R nextjs:nodejs /app/uploads /app/jobs
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
@@ -100,7 +117,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Make entrypoint script executable
 RUN chmod +x docker-entrypoint.sh
 
-USER nextjs
+USER root
 
 EXPOSE 3000
 

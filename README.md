@@ -39,7 +39,11 @@ cp .env.docker.example .env
 docker-compose up -d
 
 # Access at http://localhost:3000
-# Initial credentials will be shown in container logs
+# Initial credentials (hardcoded for first-time setup)
+# Email: superuser@autopwn.local
+# Username: superuser
+# Password: TestPassword123!
+# NOTE: Change these immediately after first login!
 ```
 
 ### Local Development (for testing/development only)
@@ -138,15 +142,26 @@ docker run -d --name autopwn -p 3000:3000 --env-file .env autopwn:latest
 
 ## 🔐 Initial Setup
 
-1. **First Login**: Use initial superuser credentials shown in logs
-2. **Change Password**: Immediately change the default password after first login
-3. **User Management**: Only superusers/admins can create additional users
+### Default Superuser Credentials (First-Time Setup)
+
+- **Email**: `superuser@autopwn.local`
+- **Username**: `superuser`
+- **Password**: `TestPassword123!`
+
+### Setup Steps
+
+1. **First Visit**: Go to http://localhost:3000/setup (automatic redirect)
+2. **Create Account**: Use default credentials above to log in
+3. **Change Password**: System will prompt to change the default password
+4. **User Management**: Only superusers/admins can create additional users
+
+**⚠️ IMPORTANT**: Change the default password immediately after first login!
 
 ## 🚨 Production Security Checklist
 
 - [ ] Change `BETTER_AUTH_SECRET` to secure random value
 - [ ] Update default PostgreSQL password
-- [ ] Change default superuser credentials
+- [ ] Change default superuser credentials (superuser@autopwn.local / TestPassword123!)
 - [ ] Set `NODE_ENV=production`
 - [ ] Enable HTTPS (reverse proxy recommended)
 - [ ] Regularly update dependencies

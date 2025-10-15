@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,9 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
 
   const handleUploadComplete = (results: UploadResponse[]) => {
     // Update the upload state to reflect completion
+    const successfulUploads = results.filter(r => r.success);
+    const failedUploads = results.filter(r => !r.success);
+
     setUploadState(prev => ({
       ...prev,
       uploads: prev.uploads.map(upload => {
@@ -74,11 +78,63 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
         return upload;
       }),
     }));
+
+    // Show appropriate toast notifications
+    if (successfulUploads.length > 0) {
+      if (activeTab === 'pcap') {
+        const totalNetworks = successfulUploads.reduce((sum, result) => {
+          const networks = (result.data?.networks as Array<{hasHandshake: boolean}>) || [];
+          return sum + networks.length;
+        }, 0);
+        const networksWithHandshakes = successfulUploads.reduce((sum, result) => {
+          const networks = (result.data?.networks as Array<{hasHandshake: boolean}>) || [];
+          return sum + networks.filter((n) => n.hasHandshake).length;
+        }, 0);
+
+        if (networksWithHandshakes > 0) {
+          toast.success(`✅ Successfully uploaded ${successfulUploads.length} PCAP file(s) with ${networksWithHandshakes} WiFi handshakes found!`);
+        } else if (totalNetworks > 0) {
+          toast.warning(`📡 Uploaded ${successfulUploads.length} PCAP file(s) with ${totalNetworks} networks found, but no handshakes. Handshakes are required for password cracking.`);
+        } else {
+          toast.error(`❌ No WiFi networks found in the uploaded PCAP file(s). Please check that the files contain valid WiFi captures.`);
+        }
+      } else if (activeTab === 'dictionary') {
+        const totalLines = successfulUploads.reduce((sum, result) => {
+          const metadata = (result.data?.dictionary as {lineCount?: number}) || {};
+          return sum + (metadata.lineCount || 0);
+        }, 0);
+
+        if (totalLines > 0) {
+          toast.success(`📚 Successfully uploaded ${successfulUploads.length} dictionary file(s) with ${totalLines.toLocaleString()} passwords!`);
+        } else {
+          toast.success(`✅ Successfully uploaded ${successfulUploads.length} dictionary file(s)!`);
+        }
+      }
+    }
+
+    if (failedUploads.length > 0) {
+      const errors = failedUploads.map(r => r.error || r.message || 'Unknown error').filter(Boolean);
+      if (errors.length > 0) {
+        toast.error(`❌ ${failedUploads.length} file(s) failed to upload: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? ` and ${errors.length - 2} more` : ''}`);
+      }
+    }
+
+    // Call completion callback
     onComplete?.(activeTab, results);
+
+    // Auto-close modal after successful uploads
+    if (successfulUploads.length > 0 && failedUploads.length === 0) {
+      setTimeout(() => {
+        handleClose();
+      }, 2000); // Close after 2 seconds
+    }
   };
 
   const handleUploadError = (error: string) => {
     console.error('Upload error:', error);
+
+    // Show error toast notification
+    toast.error(`❌ Upload failed: ${error}`);
   };
 
   const handleClose = () => {
@@ -106,7 +162,17 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in"
+        onPointerDownOutside={(e) => {
+          e.preventDefault();
+          handleClose();
+        }}
+        onEscapeKeyDown={(e) => {
+          e.preventDefault();
+          handleClose();
+        }}
+      >
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center space-x-3 text-xl">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -125,17 +191,17 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
           onValueChange={value => setActiveTab(value as UploadType)}
           className="space-y-6"
         >
-          <TabsList className="grid w-full h-12 p-1 bg-muted/50 rounded-xl">
+          <TabsList className="flex w-full h-12 p-1 bg-muted/50 rounded-xl">
             <TabsTrigger
               value="pcap"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 rounded-lg hover-lift"
+              className="flex-1 flex items-center justify-center space-x-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 rounded-lg hover-lift"
             >
               <Wifi className="h-4 w-4" />
               <span className="font-medium">PCAP Files</span>
             </TabsTrigger>
             <TabsTrigger
               value="dictionary"
-              className="flex items-center justify-center space-x-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 rounded-lg hover-lift"
+              className="flex-1 flex items-center justify-center space-x-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 rounded-lg hover-lift"
             >
               <FileText className="h-4 w-4" />
               <span className="font-medium">Dictionaries</span>
@@ -143,7 +209,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
           </TabsList>
 
           <TabsContent value="pcap" className="space-y-6 animate-slide-up">
-            <Card className="border-dashed border-blue-200 hover:border-blue-300 transition-colors group">
+            <Card className="bg-background">
               <CardHeader className="text-center pb-4">
                 <div className="flex justify-center mb-4">
                   <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full group-hover:scale-110 transition-transform">
@@ -168,40 +234,38 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                   onUploadComplete={handleUploadComplete}
                   onUploadError={handleUploadError}
                 >
-                  <div className="border-2 border-dashed border-blue-200 rounded-xl p-8 hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200 group cursor-pointer">
-                    <div className="text-center space-y-4">
-                      <div className="flex justify-center">
-                        <div className="p-6 bg-blue-500/10 rounded-full group-hover:bg-blue-500/20 transition-colors">
-                          <UploadIcon className="h-12 w-12 text-blue-600" />
-                        </div>
+                  <div className="text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="p-6 bg-blue-500/10 rounded-full group-hover:bg-blue-500/20 transition-colors">
+                        <UploadIcon className="h-12 w-12 text-blue-600" />
                       </div>
-                      <h3 className="text-xl font-semibold text-blue-900 dark:text-blue-100">
-                        Drop PCAP files here
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Drag and drop files, or click to browse
-                      </p>
                     </div>
+                    <h3 className="text-xl font-semibold text-blue-900 dark:text-blue-100">
+                      Drop PCAP files here
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Drag and drop files, or click to browse
+                    </p>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                      <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">
-                          .pcap, .cap, .pcapng
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">
-                          Max 50MB per file
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                        <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">
-                          WiFi handshakes required
-                        </span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <span className="text-sm font-medium">
+                        .pcap, .cap, .pcapng
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm font-medium">
+                        Max 50MB per file
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                      <span className="text-sm font-medium">
+                        WiFi handshakes required
+                      </span>
                     </div>
                   </div>
                 </FileUpload>
@@ -213,7 +277,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
             value="dictionary"
             className="space-y-6 animate-slide-up"
           >
-            <Card className="border-dashed border-emerald-200 hover:border-emerald-300 transition-colors group">
+            <Card className="bg-background">
               <CardHeader className="text-center pb-4">
                 <div className="flex justify-center mb-4">
                   <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 rounded-full group-hover:scale-110 transition-transform">
@@ -238,40 +302,38 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
                   onUploadComplete={handleUploadComplete}
                   onUploadError={handleUploadError}
                 >
-                  <div className="border-2 border-dashed border-emerald-200 rounded-xl p-8 hover:border-emerald-400 hover:bg-emerald-50/50 transition-all duration-200 group cursor-pointer">
-                    <div className="text-center space-y-4">
-                      <div className="flex justify-center">
-                        <div className="p-6 bg-emerald-500/10 rounded-full group-hover:bg-emerald-500/20 transition-colors">
-                          <UploadIcon className="h-12 w-12 text-emerald-600" />
-                        </div>
+                  <div className="text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="p-6 bg-emerald-500/10 rounded-full group-hover:bg-emerald-500/20 transition-colors">
+                        <UploadIcon className="h-12 w-12 text-emerald-600" />
                       </div>
-                      <h3 className="text-xl font-semibold text-emerald-900 dark:text-emerald-100">
-                        Drop dictionary files here
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Drag and drop files, or click to browse
-                      </p>
                     </div>
+                    <h3 className="text-xl font-semibold text-emerald-900 dark:text-emerald-100">
+                      Drop dictionary files here
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Drag and drop files, or click to browse
+                    </p>
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                      <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">
-                          .txt, .lst, .dic, .gz, .bz2, .zip
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">
-                          Max 5GB per file
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                        <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
-                        <span className="text-sm font-medium">
-                          Compression supported
-                        </span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <span className="text-sm font-medium">
+                        .txt, .lst, .dic, .gz, .bz2, .zip
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm font-medium">
+                        Max 5GB per file
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                      <span className="text-sm font-medium">
+                        Compression supported
+                      </span>
                     </div>
                   </div>
                 </FileUpload>

@@ -63,11 +63,25 @@ export function FileUpload({
       {/* Upload area */}
       <div
         className={cn(
-          'relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
-          'hover:border-primary/50 hover:bg-primary/5',
-          isDragOver && 'border-primary bg-primary/10',
-          disabled && 'opacity-50 cursor-not-allowed',
-          isUploading && 'border-primary/30'
+          'relative p-8 text-center cursor-pointer transition-colors border-2 border-dashed rounded-lg',
+          // Color-specific styling based on type
+          type === 'pcap' && (
+            cn(
+              'border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950/20',
+              'hover:border-blue-500 hover:bg-blue-100 dark:hover:border-blue-500 dark:hover:bg-blue-950/30',
+              isDragOver && 'border-blue-500 bg-blue-100 dark:border-blue-500 dark:bg-blue-950/30',
+              isUploading && 'border-blue-400/50 bg-blue-50/50 dark:border-blue-600/50 dark:bg-blue-950/10'
+            )
+          ),
+          type === 'dictionary' && (
+            cn(
+              'border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-950/20',
+              'hover:border-green-500 hover:bg-green-100 dark:hover:border-green-500 dark:hover:bg-green-950/30',
+              isDragOver && 'border-green-500 bg-green-100 dark:border-green-500 dark:bg-green-950/30',
+              isUploading && 'border-green-400/50 bg-green-50/50 dark:border-green-600/50 dark:bg-green-950/10'
+            )
+          ),
+          disabled && 'opacity-50 cursor-not-allowed'
         )}
         onClick={handleClick}
         onDragOver={handleDragOver}
@@ -132,9 +146,17 @@ function DefaultUploadContent({
   return (
     <div className="space-y-4">
       {/* Upload icon */}
-      <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+      <div className={cn(
+        'mx-auto w-12 h-12 rounded-lg flex items-center justify-center',
+        type === 'pcap' && 'bg-blue-100 dark:bg-blue-950/30',
+        type === 'dictionary' && 'bg-green-100 dark:bg-green-950/30'
+      )}>
         <svg
-          className="w-6 h-6 text-primary"
+          className={cn(
+            'w-6 h-6',
+            type === 'pcap' && 'text-blue-600 dark:text-blue-400',
+            type === 'dictionary' && 'text-green-600 dark:text-green-400'
+          )}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

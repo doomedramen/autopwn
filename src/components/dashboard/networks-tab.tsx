@@ -101,7 +101,7 @@ function NetworkItem({ network }: { network: NetworkInfo }) {
       <ItemContent>
         <ItemTitle>{network.essid || 'Unknown Network'}</ItemTitle>
         <ItemDescription>
-          {network.bssid} • Channel {network.channel} • {network.encryption}
+          {network.bssid} • {network.encryption}
         </ItemDescription>
       </ItemContent>
       <ItemActions>

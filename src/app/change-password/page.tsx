@@ -86,9 +86,15 @@ export default function ChangePasswordPage() {
         toast.success('Password updated successfully!');
         await refreshUser();
 
-        // Redirect after a short delay
+        // Redirect after a short delay with fallback
         setTimeout(() => {
-          router.push('/');
+          try {
+            router.push('/');
+          } catch (error) {
+            console.error('Redirect failed:', error);
+            // Fallback: force page reload to go to root
+            window.location.href = '/';
+          }
         }, 2000);
       } else {
         setError(data.error || 'Failed to update password');
@@ -183,13 +189,21 @@ export default function ChangePasswordPage() {
                   <div className="text-lg font-semibold text-green-600">
                     Success!
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-muted-foreground">
-                      Your password has been changed successfully.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      You will be redirected to the dashboard shortly...
-                    </p>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">
+                        Your password has been changed successfully.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        You will be redirected to the dashboard shortly...
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => router.push('/')}
+                      className="w-full"
+                    >
+                      Go to Dashboard Now
+                    </Button>
                   </div>
                 </div>
               </CardContent>

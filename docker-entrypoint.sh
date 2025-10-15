@@ -12,7 +12,15 @@ until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER"; do
   sleep 2
 done
 
-echo "Database is ready - applying database migrations..."
+echo "Database is ready - setting up directory permissions..."
+
+# Ensure uploads and jobs directories have correct ownership
+echo "Setting ownership for uploads and jobs directories..."
+mkdir -p /app/uploads/pcap /app/uploads/dictionary /app/uploads/general /app/jobs
+chown -R nextjs:nodejs /app/uploads /app/jobs
+chmod -R 755 /app/uploads /app/jobs
+
+echo "Directory permissions setup complete - applying database migrations..."
 
 # Run database migrations using Drizzle
 if [ -f "package.json" ] && [ -d "node_modules" ]; then

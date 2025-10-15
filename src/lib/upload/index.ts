@@ -107,7 +107,7 @@ export class UploadService {
 
       // Update progress to validation stage
       progress.stage = 'validating';
-      progress.message = 'Validating file...';
+      progress.message = 'Validating file format and integrity...';
       this.activeUploads.set(fileId, progress);
       onProgress?.(progress);
 
@@ -131,7 +131,9 @@ export class UploadService {
       let processingResult: ProcessingResult = {};
       if (config.processing.extractMetadata || config.customProcessing) {
         progress.stage = 'processing';
-        progress.message = 'Processing file...';
+        progress.message = config.type === 'pcap'
+          ? 'Extracting WiFi networks and handshakes...'
+          : 'Counting passwords and analyzing dictionary...';
         this.activeUploads.set(fileId, progress);
         onProgress?.(progress);
 
@@ -141,7 +143,9 @@ export class UploadService {
       // Stage 4: Complete
       progress.stage = 'completed';
       progress.percentage = 100;
-      progress.message = 'Upload completed successfully';
+      progress.message = config.type === 'pcap'
+        ? 'Network analysis complete! Upload finished successfully.'
+        : 'Dictionary processed successfully! Upload finished.';
       this.activeUploads.set(fileId, progress);
       onProgress?.(progress);
 
@@ -288,14 +292,25 @@ export class UploadService {
    * Process PCAP files with network analysis
    */
   private async processPcapFile(filePath: string): Promise<ProcessingResult> {
+    console.log(`[UploadService] Processing PCAP file: ${filePath}`);
+
     const { HcxPcapNgTool } = await import('@/tools/hcxpcapngtool');
     const hcxTool = new HcxPcapNgTool();
+
+    console.log(`[UploadService] HcxPcapNgTool instance created, calling processPcapForUpload`);
 
     // Use processPcapForUpload which extracts networks and creates hash files
     const result = await hcxTool.processPcapForUpload(
       resolve(filePath),
       dirname(resolve(filePath))
     );
+
+    console.log(`[UploadService] processPcapForUpload result:`, {
+      success: result.success,
+      stderr: result.stderr,
+      networksCount: result.data?.networks?.length || 0,
+      networks: result.data?.networks
+    });
 
     if (!result.success || !result.data) {
       return {

@@ -10,7 +10,7 @@ services:
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
 
   app:
-    image: doomedramen/autopwn:drizzle-fixed
+    image: doomedramen/autopwn:latest
     ports:
       - '3000:3000'
     environment:
@@ -23,6 +23,7 @@ services:
       - jobs_data:/app/jobs
     depends_on:
       - postgres
+    user: "1001:1001"  # Run as nextjs user with correct permissions
 
 volumes:
   postgres_data:

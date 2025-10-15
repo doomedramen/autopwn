@@ -54,14 +54,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Start progress tracking with the same fileId that will be used by upload service
-    const fileId = uploadService.generateFileId();
-    progressTracker.startTracking(fileId, file.size);
-
     // Progress callback for real-time updates
     const onProgress = (progress: UploadProgress) => {
       progressTracker.updateProgress(fileId, progress);
     };
+
+    // Start progress tracking with the same fileId that will be used by upload service
+    const fileId = uploadService.generateFileId();
+    progressTracker.startTracking(fileId, file.size);
 
     // Handle upload with PCAP-specific processing
     const result = await uploadService.handleUpload(
@@ -72,11 +72,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.success) {
-      // Mark progress as completed
-      progressTracker.completeTracking(
-        fileId,
-        result.data as unknown as Record<string, unknown>
-      );
 
       const processingResult =
         (result.data?.processingResult as Record<string, unknown>) || {};
@@ -201,9 +196,6 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
-      // Mark progress as failed
-      progressTracker.failTracking(fileId, result.stderr || 'Upload failed');
-
       return NextResponse.json(
         {
           success: false,

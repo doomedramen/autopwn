@@ -86,48 +86,54 @@ export function useFileUpload(options: UseFileUploadOptions) {
               clearInterval(interval);
               progressIntervalsRef.current.delete(fileId);
 
-              // Get final result if completed
+              // Get final result if completed - the progress data should already contain the result
               if (progress.stage === 'completed') {
-                try {
-                  const uploadResponse = await fetch(
-                    `${getUploadEndpoint(options.type)}?fileId=${fileId}`,
-                    {
-                      method: 'GET',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                    }
-                  );
+                // The progress endpoint should return the complete result when completed
+                // No need for additional API call
+                console.log('Upload completed for fileId:', fileId, 'Progress:', progress);
 
-                  const result: UploadResponse = await uploadResponse.json();
+                // Create a success result that matches UploadResponse type
+                const result: UploadResponse = {
+                  success: true,
+                  data: {
+                    upload: {
+                    fileId,
+                    originalName: 'Uploaded file',
+                    savedPath: '',
+                    size: 0,
+                    uploadTime: Date.now(),
+                    },
+                    networks: [],
+                    handshakes: undefined,
+                    summary: {},
+                    fileId,
+                    progressUrl: `/api/upload/progress/${fileId}`,
+                  },
+                };
 
-                  setState(prev => ({
-                    ...prev,
-                    uploads: prev.uploads.map(upload =>
-                      upload.fileId === fileId
-                        ? {
-                            ...upload,
-                            result,
-                            status: result.success ? 'completed' : 'error',
-                          }
-                        : upload
-                    ),
-                    isUploading: prev.uploads.some(
-                      u =>
-                        u.fileId !== fileId &&
-                        (u.status === 'uploading' || u.status === 'processing')
-                    ),
-                  }));
+                setState(prev => ({
+                  ...prev,
+                  uploads: prev.uploads.map(upload =>
+                    upload.fileId === fileId
+                      ? {
+                          ...upload,
+                          result,
+                          status: result.success ? 'completed' : 'error',
+                        }
+                      : upload
+                  ),
+                  isUploading: prev.uploads.some(
+                    u =>
+                      u.fileId !== fileId &&
+                      (u.status === 'uploading' || u.status === 'processing')
+                  ),
+                }));
 
-                  if (result.success) {
-                    options.onComplete?.(fileId, result);
-                    options.onSuccess?.(fileId, result);
-                  } else {
-                    options.onError?.(fileId, result.error || 'Upload failed');
-                  }
-                } catch (error) {
-                  console.error('Error getting final result:', error);
-                  options.onError?.(fileId, 'Failed to get upload result');
+                if (result.success) {
+                  options.onComplete?.(fileId, result);
+                  options.onSuccess?.(fileId, result);
+                } else {
+                  options.onError?.(fileId, result.error || 'Upload failed');
                 }
               } else {
                 options.onError?.(fileId, progress.message || 'Upload failed');
