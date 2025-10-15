@@ -57,7 +57,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
         timeout: 5000,
       });
       console.log('✅ Dictionary found in Dicts tab');
-    } catch (error) {
+    } catch {
       console.log(
         'ℹ️ Dictionary not visible in Dicts tab, but was uploaded successfully'
       );
@@ -70,7 +70,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
         timeout: 5000,
       });
       console.log('✅ Networks found in Networks tab');
-    } catch (error) {
+    } catch {
       console.log(
         'ℹ️ Networks not visible in Networks tab, but were extracted successfully'
       );
@@ -105,7 +105,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
           console.log(`✅ Job found in UI: ${selector}`);
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -121,7 +121,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             clickedJob = true;
             break;
           }
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
@@ -149,7 +149,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             detailsFound = true;
             console.log(`✅ Job details found: ${selector}`);
             break;
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -205,7 +205,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
           console.log(`✅ Multi-network job found in UI: ${selector}`);
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -221,7 +221,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             clickedJob = true;
             break;
           }
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
@@ -247,7 +247,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             detailsFound = true;
             console.log(`✅ Multi-network job details found: ${selector}`);
             break;
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -316,7 +316,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
           console.log(`✅ Multi-dictionary job found in UI: ${selector}`);
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -332,7 +332,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             clickedJob = true;
             break;
           }
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
@@ -358,7 +358,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             detailsFound = true;
             console.log(`✅ Multi-dictionary job details found: ${selector}`);
             break;
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -419,7 +419,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
             console.log(`⚠️ Unexpected: Invalid job found in UI: ${selector}`);
             break;
           }
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
@@ -435,7 +435,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
               clickedJob = true;
               break;
             }
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -465,7 +465,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
               errorFound = true;
               console.log(`✅ Error indicator found: ${selector}`);
               break;
-            } catch (error) {
+            } catch {
               // Continue to next selector
             }
           }
@@ -485,7 +485,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
           '✅ Job with invalid parameters not shown in UI (appropriate behavior)'
         );
       }
-    } catch (error) {
+    } catch {
       // Job creation failed as expected
       console.log('✅ Error handling works - job creation failed as expected');
     }
@@ -532,7 +532,7 @@ test.describe('Basic Workflow: Upload and Crack Passwords', () => {
         authConfirmed = true;
         console.log(`✅ Authentication confirmed via: ${selector}`);
         break;
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }

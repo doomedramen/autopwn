@@ -83,7 +83,7 @@ test.describe('User Creation', () => {
         userFound = true;
         console.log(`✅ Found username in UI: ${selector}`);
         break;
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -103,7 +103,7 @@ test.describe('User Creation', () => {
         emailFound = true;
         console.log(`✅ Found email in UI: ${selector}`);
         break;
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -139,7 +139,7 @@ test.describe('User Creation', () => {
         });
         roleVisible = true;
         break;
-      } catch (error) {
+      } catch {
         // Continue to next indicator
       }
     }
@@ -201,23 +201,23 @@ test.describe('User Creation', () => {
       await expect(page.locator('text=Email already registered')).toBeVisible({
         timeout: 3000,
       });
-    } catch (error) {
+    } catch {
       try {
         // Alternative error messages
         await expect(
           page.locator('text=already registered').first()
         ).toBeVisible({ timeout: 1000 });
-      } catch (error) {
+      } catch {
         try {
           await expect(page.locator('text=already exists').first()).toBeVisible(
             { timeout: 1000 }
           );
-        } catch (error) {
+        } catch {
           try {
             await expect(
               page.locator('text=Email already in use').first()
             ).toBeVisible({ timeout: 1000 });
-          } catch (error) {
+          } catch {
             // If no specific error message is shown, just check that form validation occurred
             console.log(
               'ℹ️ Duplicate email validation may be handled differently'

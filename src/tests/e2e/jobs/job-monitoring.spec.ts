@@ -71,7 +71,7 @@ test.describe('Job Status and Progress', () => {
           jobRow = element;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -101,7 +101,7 @@ test.describe('Job Status and Progress', () => {
         });
         statusFound = true;
         break;
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -129,7 +129,7 @@ test.describe('Job Status and Progress', () => {
         });
         progressFound = true;
         break;
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -172,7 +172,7 @@ test.describe('Job Status and Progress', () => {
           clickedJob = true;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -205,7 +205,7 @@ test.describe('Job Status and Progress', () => {
         });
         detailsFound = true;
         break;
-      } catch (error) {
+      } catch {
         // Continue to next indicator
       }
     }
@@ -227,7 +227,7 @@ test.describe('Job Status and Progress', () => {
           timeout: 500,
         });
         configFound++;
-      } catch (error) {
+      } catch {
         // Element not found, continue
       }
     }
@@ -272,7 +272,7 @@ test.describe('Job Status and Progress', () => {
           clickedJob = true;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -324,7 +324,7 @@ test.describe('Job Status and Progress', () => {
               progressFound = true;
               break;
             }
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -336,7 +336,7 @@ test.describe('Job Status and Progress', () => {
         }
 
         await page.waitForTimeout(3000); // Increased wait time between checks
-      } catch (error) {
+      } catch {
         // Progress monitoring failed
         await page.waitForTimeout(2000);
       }
@@ -390,7 +390,7 @@ test.describe('Job Status and Progress', () => {
             jobsVisible++;
             break;
           }
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
@@ -422,7 +422,7 @@ test.describe('Job Status and Progress', () => {
           console.log(`✅ Job filter found: ${selector}`);
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -466,7 +466,7 @@ test.describe('Job Status and Progress', () => {
           await searchElement.fill('');
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }

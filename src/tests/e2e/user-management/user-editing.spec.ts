@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import { TestHelpers, TestUser } from '../helpers/test-helpers';
 test.describe('User Editing', () => {
   let adminUser: TestUser;
-  let regularUser: TestUser;
 
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext();
@@ -32,7 +31,6 @@ test.describe('User Editing', () => {
       regularData.password,
       'user'
     );
-    regularUser = regularData;
 
     await context.close();
   });

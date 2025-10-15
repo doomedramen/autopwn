@@ -63,7 +63,7 @@ test.describe('Dictionary Upload', () => {
       await page.waitForSelector('text=Upload Progress', { timeout: 5000 });
       // If progress shows, wait a bit for completion
       await page.waitForTimeout(5000);
-    } catch (error) {
+    } catch {
       // Progress indicator might not show, just wait for upload to complete
       console.log(
         'ℹ️ Upload progress indicator not shown, waiting for upload to complete'
@@ -227,7 +227,7 @@ test.describe('Dictionary Upload', () => {
         // Switch to Dictionaries tab if available
         try {
           await page.click('button:has-text("Dictionaries")');
-        } catch (error) {
+        } catch {
           // Tab might not exist, continue
         }
 
@@ -254,7 +254,7 @@ test.describe('Dictionary Upload', () => {
             progressFound = true;
             console.log(`✅ Found progress indicator: ${selector}`);
             break;
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -269,7 +269,7 @@ test.describe('Dictionary Upload', () => {
 
         // Don't wait for completion - just check if progress indicators exist
         console.log('✅ Upload progress UI test completed');
-      } catch (error) {
+      } catch {
         console.log(
           'ℹ️ Upload modal may not be available or different implementation'
         );
@@ -278,10 +278,10 @@ test.describe('Dictionary Upload', () => {
       // Close modal if still open
       try {
         await page.click('button:has-text("Close")', { timeout: 1000 });
-      } catch (error) {
+      } catch {
         // Modal may have closed
       }
-    } catch (error) {
+    } catch {
       console.log('ℹ️ Upload button not found or modal not accessible');
       console.log(
         'ℹ️ Upload progress UI may not be implemented, but API upload works'

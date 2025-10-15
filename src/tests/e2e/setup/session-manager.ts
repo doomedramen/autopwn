@@ -93,7 +93,7 @@ export class SessionManager {
 
       console.log('✅ Session data loaded');
       return true;
-    } catch (error) {
+    } catch {
       console.log('⚠️ No session data found or invalid format');
       return false;
     }
@@ -105,7 +105,7 @@ export class SessionManager {
     try {
       await fs.unlink(this.SESSION_FILE);
       console.log('✅ Session data cleared');
-    } catch (error) {
+    } catch {
       // File might not exist, which is fine
       console.log('ℹ️ No session data to clear');
     }
@@ -121,7 +121,7 @@ export class SessionManager {
       );
 
       console.log('✅ Cleared browser session artifacts');
-    } catch (error) {
+    } catch {
       console.log('⚠️ Could not clear browser session artifacts');
     }
   }
@@ -171,7 +171,7 @@ export class SessionManager {
             );
             return true;
           }
-        } catch (error) {
+        } catch {
           // Continue to next indicator
         }
       }

@@ -134,7 +134,7 @@ export class DatabaseCleanup {
           await this.db.execute(
             `ALTER TABLE ${tableName} ALTER COLUMN id RESTART WITH 1;`
           );
-        } catch (error) {
+        } catch {
           // Ignore errors for tables without identity columns
         }
 

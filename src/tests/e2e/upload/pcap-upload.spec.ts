@@ -57,7 +57,7 @@ test.describe('PCAP Upload', () => {
       await page.waitForSelector('text=Upload Progress', { timeout: 5000 });
       // If progress shows, wait a bit for completion
       await page.waitForTimeout(5000);
-    } catch (error) {
+    } catch {
       // Progress indicator might not show, just wait for upload to complete
       console.log(
         'ℹ️ Upload progress indicator not shown, waiting for upload to complete'
@@ -212,7 +212,7 @@ test.describe('PCAP Upload', () => {
       await expect(page.locator('[data-testid="upload-progress"]')).toBeVisible(
         { timeout: 5000 }
       );
-    } catch (error) {
+    } catch {
       console.log(
         '⚠️ Upload progress indicator not found - might not be implemented'
       );
@@ -222,7 +222,7 @@ test.describe('PCAP Upload', () => {
     try {
       await page.waitForSelector('text=Upload completed', { timeout: 30000 });
       await expect(page.locator('text=100%')).toBeVisible({ timeout: 5000 });
-    } catch (error) {
+    } catch {
       console.log(
         'ℹ️ Upload progress indicators might not be implemented in modal'
       );
@@ -231,7 +231,7 @@ test.describe('PCAP Upload', () => {
     // Close the modal if still open
     try {
       await page.click('button:has-text("Close")', { timeout: 2000 });
-    } catch (error) {
+    } catch {
       // Modal might have closed automatically
     }
   });

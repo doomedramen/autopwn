@@ -81,7 +81,7 @@ test.describe('Job Results', () => {
           clickedJob = true;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -119,7 +119,7 @@ test.describe('Job Results', () => {
           crackedSectionFound = true;
           console.log(`✅ Found cracked passwords section: ${selector}`);
           break;
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
@@ -161,7 +161,7 @@ test.describe('Job Results', () => {
               }
               break;
             }
-          } catch (error) {
+          } catch {
             // Continue to next selector
           }
         }
@@ -224,7 +224,7 @@ test.describe('Job Results', () => {
           clickedJob = true;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -269,7 +269,7 @@ test.describe('Job Results', () => {
               const download = await downloadPromise;
               expect(download.suggestedFilename()).toMatch(/\.(txt|csv|json)$/);
               console.log('✅ Password export works');
-            } catch (error) {
+            } catch {
               console.log(
                 'ℹ️ Export button found but download handling failed'
               );
@@ -279,7 +279,7 @@ test.describe('Job Results', () => {
           }
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -318,7 +318,7 @@ test.describe('Job Results', () => {
           clickedJob = true;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -351,7 +351,7 @@ test.describe('Job Results', () => {
           console.log(`✅ Found statistics section: ${selector}`);
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -384,7 +384,7 @@ test.describe('Job Results', () => {
             metricsFound++;
             console.log(`✅ Found metric: ${selector}`);
             break;
-          } catch (error) {
+          } catch {
             // Continue to next alternative
           }
         }
@@ -481,7 +481,7 @@ test.describe('Job Results', () => {
           clickedJob = true;
           break;
         }
-      } catch (error) {
+      } catch {
         // Continue to next selector
       }
     }
@@ -521,7 +521,7 @@ test.describe('Job Results', () => {
           messageFound = true;
           console.log(`✅ Found empty results message: ${selector}`);
           break;
-        } catch (error) {
+        } catch {
           // Continue to next selector
         }
       }
