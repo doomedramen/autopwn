@@ -1,6 +1,37 @@
 # Use Node.js 20 Alpine as base image
 FROM node:20-alpine AS base
 
+# GPU OPTIMIZATION NOTE:
+# This Dockerfile builds a CPU-only version of AutoPWN.
+#
+# Future GPU optimization variants should be created for better performance:
+#
+# 1. NVIDIA GPU Support (Dockerfile.nvidia):
+#    - Base: nvidia/cuda:12.0-runtime-ubuntu22.04
+#    - Install: NVIDIA CUDA toolkit, cuDNN
+#    - Hashcat: Built with NVIDIA GPU support
+#    - Performance: 10-100x faster than CPU
+#
+# 2. AMD GPU Support (Dockerfile.amd):
+#    - Base: ubuntu:22.04
+#    - Install: AMD ROCm, OpenCL drivers
+#    - Hashcat: Built with AMD GPU support
+#    - Performance: 5-50x faster than CPU
+#
+# 3. Intel GPU Support (Dockerfile.intel):
+#    - Base: ubuntu:22.04
+#    - Install: Intel oneAPI, OpenCL drivers
+#    - Hashcat: Built with Intel GPU support
+#    - Performance: 2-20x faster than CPU
+#
+# 4. Multi-GPU Support (Dockerfile.multigpu):
+#    - Combined support for NVIDIA + AMD + Intel
+#    - Automatic GPU detection and load balancing
+#    - Best performance for enterprise deployments
+#
+# TODO: Create separate Dockerfile variants for each GPU type
+# Users should select appropriate variant based on their hardware
+
 # Install dependencies only when needed
 FROM base AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
@@ -81,17 +112,23 @@ RUN apk update \
     && rm -rf /tmp/hcxtools \
     && apk del .build-deps
 
-# Install hashcat for password cracking
-RUN apk add --no-cache --virtual .hashcat-build-deps \
-    make gcc git libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
+# Install hashcat for password cracking (CPU-only version)
+RUN apk add --no-cache \
+    make gcc git g++ libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
+    cblas libgomp \
     && cd /tmp \
     && git clone https://github.com/hashcat/hashcat.git \
     && cd hashcat \
     && make \
     && make install \
     && cd / \
-    && rm -rf /tmp/hashcat \
-    && apk del .hashcat-build-deps
+    && rm -rf /tmp/hashcat
+
+# Note: This installs CPU-only hashcat. For GPU support, use future GPU-optimized variants:
+# - Dockerfile.nvidia (NVIDIA GPU support)
+# - Dockerfile.amd (AMD GPU support)
+# - Dockerfile.intel (Intel GPU support)
+# - Dockerfile.multigpu (Multi-GPU support)
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

@@ -45,3 +45,51 @@ docker-compose up -d
 - Containers will automatically restart on failure (`restart: unless-stopped`)
 - Container names: `autopwn-app`, `autopwn-postgres`
 - Default port: 3000
+
+## GPU Optimization Variants
+
+**Current Implementation**: CPU-only hashcat installation
+
+**Future GPU Support Required**:
+For optimal performance, separate Dockerfile variants should be created:
+
+### 🚀 Performance Comparison
+**Note**: Actual performance varies significantly based on:
+- Hash type (WPA/WPA2 vs other formats)
+- GPU model and architecture
+- Dictionary size and optimization
+- System configuration
+
+**General Performance Tiers** (for WPA/WPA2 cracking):
+- **CPU-only**: Baseline performance (varies by CPU)
+- **Intel GPU**: Moderate improvement over CPU
+- **AMD GPU**: Significant improvement over CPU
+- **NVIDIA GPU**: Typically highest performance for GPU cracking
+
+**Real-world testing required** for accurate benchmarks on specific hardware.
+
+### 📋 Future Dockerfile Variants
+```bash
+# CPU-only (current)
+docker build -t doomedramen/autopwn:latest .
+
+# NVIDIA GPU (future)
+docker build -f Dockerfile.nvidia -t doomedramen/autopwn:nvidia .
+
+# AMD GPU (future)
+docker build -f Dockerfile.amd -t doomedramen/autopwn:amd .
+
+# Intel GPU (future)
+docker build -f Dockerfile.intel -t doomedramen/autopwn:intel .
+
+# Multi-GPU (future)
+docker build -f Dockerfile.multigpu -t doomedramen/autopwn:multigpu .
+```
+
+### 🔧 Requirements for GPU Variants
+- **NVIDIA**: NVIDIA drivers, CUDA toolkit, Docker nvidia-runtime
+- **AMD**: AMD drivers, ROCm, OpenCL support
+- **Intel**: Intel drivers, oneAPI, OpenCL support
+- **Multi-GPU**: All drivers + automatic GPU detection
+
+**TODO**: Create GPU-optimized Dockerfile variants for enterprise deployments
