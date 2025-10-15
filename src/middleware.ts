@@ -3,6 +3,29 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Add CORS headers for all responses
+  const response = NextResponse.next();
+
+  // Get the origin from the request or use a fallback
+  const origin = request.headers.get('origin') || request.nextUrl.origin;
+
+  // Set CORS headers
+  response.headers.set('Access-Control-Allow-Origin', origin);
+  response.headers.set(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE, OPTIONS'
+  );
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, Cookie'
+  );
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: response.headers });
+  }
+
   // Define public routes that don't require authentication
   const publicRoutes = [
     '/api/auth',
@@ -19,7 +42,7 @@ export async function middleware(request: NextRequest) {
 
   // Skip authentication for public routes
   if (isPublicRoute) {
-    return NextResponse.next();
+    return response;
   }
 
   // For the root path, check if system is initialized and if user needs password change
@@ -27,18 +50,33 @@ export async function middleware(request: NextRequest) {
     try {
       // Check if system is initialized by calling the API
       const baseUrl = request.nextUrl.origin;
-      const response = await fetch(`${baseUrl}/api/init`, {
+      const initResponse = await fetch(`${baseUrl}/api/init`, {
         headers: {
           cookie: request.headers.get('cookie') || '',
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (initResponse.ok) {
+        const data = await initResponse.json();
         if (!data.initialized) {
           // System not initialized, redirect to setup
           const setupUrl = new URL('/setup', request.url);
-          return NextResponse.redirect(setupUrl);
+          const redirectResponse = NextResponse.redirect(setupUrl);
+          // Copy CORS headers
+          redirectResponse.headers.set('Access-Control-Allow-Origin', origin);
+          redirectResponse.headers.set(
+            'Access-Control-Allow-Methods',
+            'GET, POST, PUT, DELETE, OPTIONS'
+          );
+          redirectResponse.headers.set(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Authorization, Cookie'
+          );
+          redirectResponse.headers.set(
+            'Access-Control-Allow-Credentials',
+            'true'
+          );
+          return redirectResponse;
         }
       }
 
@@ -54,7 +92,22 @@ export async function middleware(request: NextRequest) {
         if (userData.user?.requirePasswordChange) {
           // User requires password change, redirect to change password page
           const changePasswordUrl = new URL('/change-password', request.url);
-          return NextResponse.redirect(changePasswordUrl);
+          const redirectResponse = NextResponse.redirect(changePasswordUrl);
+          // Copy CORS headers
+          redirectResponse.headers.set('Access-Control-Allow-Origin', origin);
+          redirectResponse.headers.set(
+            'Access-Control-Allow-Methods',
+            'GET, POST, PUT, DELETE, OPTIONS'
+          );
+          redirectResponse.headers.set(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Authorization, Cookie'
+          );
+          redirectResponse.headers.set(
+            'Access-Control-Allow-Credentials',
+            'true'
+          );
+          return redirectResponse;
         }
       }
     } catch (error) {
@@ -73,12 +126,24 @@ export async function middleware(request: NextRequest) {
   if (!sessionToken) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    // Copy CORS headers
+    redirectResponse.headers.set('Access-Control-Allow-Origin', origin);
+    redirectResponse.headers.set(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, DELETE, OPTIONS'
+    );
+    redirectResponse.headers.set(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, Cookie'
+    );
+    redirectResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+    return redirectResponse;
   }
 
   // For authenticated requests, allow them to proceed
   // Individual pages will handle their own authentication checks
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
