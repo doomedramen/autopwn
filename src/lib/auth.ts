@@ -11,9 +11,6 @@ import {
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
-// Feature flag to disable authentication for testing
-const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
-
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -25,7 +22,7 @@ export const auth = betterAuth({
     },
   }),
   emailAndPassword: {
-    enabled: !DISABLE_AUTH,
+    enabled: true,
     requireEmailVerification: false, // Will be handled manually
   },
   session: {
@@ -44,13 +41,6 @@ export const auth = betterAuth({
     database: {
       generateId: () => crypto.randomUUID(),
     },
-    // Add bypass for testing
-    ...(DISABLE_AUTH && {
-      bypass: {
-        session: true,
-        signIn: true,
-      },
-    }),
   },
 });
 
@@ -243,46 +233,8 @@ export async function createUserBySuperUser(data: {
   username: string;
   role: 'admin' | 'user';
 }) {
-  if (DISABLE_AUTH) {
-    // In auth-disabled mode, create user directly without Better Auth
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(data.password, saltRounds);
-
-    // Create user record directly
-    const [user] = await db
-      .insert(users)
-      .values({
-        email: data.email,
-        name: data.username,
-      })
-      .returning();
-
-    // Create account record with hashed password
-    await db.insert(accounts).values({
-      userId: user.id,
-      accountId: user.id, // Use user ID as account ID for email/password
-      providerId: 'credential', // Standard provider ID for email/password
-      password: hashedPassword,
-    });
-
-    // Create user profile
-    const [profile] = await db
-      .insert(userProfiles)
-      .values({
-        userId: user.id,
-        username: data.username,
-        role: data.role,
-        isActive: true,
-        isEmailVerified: true, // Auto-verify in auth-disabled mode
-        requirePasswordChange: false,
-      })
-      .returning();
-
-    return { user, profile };
-  } else {
-    // Normal auth flow
-    return createUser(data);
-  }
+  // Normal auth flow
+  return createUser(data);
 }
 
 export async function deactivateUser(userId: string) {

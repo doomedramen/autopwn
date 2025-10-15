@@ -6,9 +6,6 @@ import { eq, and, or, ilike } from 'drizzle-orm';
 import { createUserBySuperUser, getAllUsers } from '@/lib/auth';
 import { z } from 'zod';
 
-// Feature flag to disable authentication for testing
-const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -37,60 +34,17 @@ export async function GET(request: NextRequest) {
       headers: request.headers,
     });
 
-    let currentUser;
-
-    if (DISABLE_AUTH) {
-      // In auth-disabled mode, use or create a default superuser for testing
-      currentUser = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.role, 'superuser'),
-        with: {
-          user: true,
-        },
-      });
-
-      if (!currentUser) {
-        // Create a default superuser for testing
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            name: 'superuser',
-            email: 'superuser@autopwn.local',
-          })
-          .returning();
-
-        [currentUser] = await db
-          .insert(userProfiles)
-          .values({
-            userId: newUser.id,
-            username: 'superuser',
-            role: 'superuser',
-            isActive: true,
-            isEmailVerified: true,
-            requirePasswordChange: false,
-          })
-          .returning();
-
-        // Refresh the query to get the complete record with user relation
-        currentUser = await db.query.userProfiles.findFirst({
-          where: eq(userProfiles.id, currentUser.id),
-          with: {
-            user: true,
-          },
-        });
-      }
-    } else {
-      // Normal auth flow
-      if (!session?.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-
-      currentUser = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.userId, session.user.id),
-        with: {
-          user: true,
-        },
-      });
+    // Normal auth flow
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const currentUser = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.userId, session.user.id),
+      with: {
+        user: true,
+      },
+    });
 
     if (
       !currentUser ||
@@ -183,60 +137,17 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
 
-    let currentUser;
-
-    if (DISABLE_AUTH) {
-      // In auth-disabled mode, use or create a default superuser for testing
-      currentUser = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.role, 'superuser'),
-        with: {
-          user: true,
-        },
-      });
-
-      if (!currentUser) {
-        // Create a default superuser for testing
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            name: 'superuser',
-            email: 'superuser@autopwn.local',
-          })
-          .returning();
-
-        [currentUser] = await db
-          .insert(userProfiles)
-          .values({
-            userId: newUser.id,
-            username: 'superuser',
-            role: 'superuser',
-            isActive: true,
-            isEmailVerified: true,
-            requirePasswordChange: false,
-          })
-          .returning();
-
-        // Refresh the query to get the complete record with user relation
-        currentUser = await db.query.userProfiles.findFirst({
-          where: eq(userProfiles.id, currentUser.id),
-          with: {
-            user: true,
-          },
-        });
-      }
-    } else {
-      // Normal auth flow
-      if (!session?.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-
-      currentUser = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.userId, session.user.id),
-        with: {
-          user: true,
-        },
-      });
+    // Normal auth flow
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const currentUser = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.userId, session.user.id),
+      with: {
+        user: true,
+      },
+    });
 
     if (
       !currentUser ||
@@ -317,60 +228,17 @@ export async function PATCH(request: NextRequest) {
       headers: request.headers,
     });
 
-    let currentUser;
-
-    if (DISABLE_AUTH) {
-      // In auth-disabled mode, use or create a default superuser for testing
-      currentUser = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.role, 'superuser'),
-        with: {
-          user: true,
-        },
-      });
-
-      if (!currentUser) {
-        // Create a default superuser for testing
-        const [newUser] = await db
-          .insert(users)
-          .values({
-            name: 'superuser',
-            email: 'superuser@autopwn.local',
-          })
-          .returning();
-
-        [currentUser] = await db
-          .insert(userProfiles)
-          .values({
-            userId: newUser.id,
-            username: 'superuser',
-            role: 'superuser',
-            isActive: true,
-            isEmailVerified: true,
-            requirePasswordChange: false,
-          })
-          .returning();
-
-        // Refresh the query to get the complete record with user relation
-        currentUser = await db.query.userProfiles.findFirst({
-          where: eq(userProfiles.id, currentUser.id),
-          with: {
-            user: true,
-          },
-        });
-      }
-    } else {
-      // Normal auth flow
-      if (!session?.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-
-      currentUser = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.userId, session.user.id),
-        with: {
-          user: true,
-        },
-      });
+    // Normal auth flow
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const currentUser = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.userId, session.user.id),
+      with: {
+        user: true,
+      },
+    });
 
     if (
       !currentUser ||

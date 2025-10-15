@@ -188,7 +188,7 @@ The test suite is configured via `playwright.config.ts`:
 - Tests are organized by feature with smaller, focused files
 - Session state is shared between tests using the SessionManager
 - Database cleanup ensures test isolation
-- Tests run with authentication enabled (no DISABLE_AUTH)
+- Tests run with authentication enabled
 
 ### Session Management
 

@@ -19,12 +19,8 @@ async function globalSetup(_config: FullConfig) {
   // Set environment variables to indicate test environment
   process.env.PLAYWRIGHT = 'true';
 
-  // Respect DISABLE_AUTH setting - don't remove it if explicitly set
-  if (process.env.DISABLE_AUTH === 'true') {
-    console.log('🔓 Auth disabled mode detected');
-  } else {
-    console.log('🔐 Authentication enabled mode');
-  }
+  // Authentication is always enabled for tests
+  console.log('🔐 Authentication enabled mode');
 
   // Load environment variables from .env.local
   try {

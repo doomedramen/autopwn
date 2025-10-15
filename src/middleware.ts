@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Feature flag to disable authentication for testing
-const DISABLE_AUTH = process.env.DISABLE_AUTH === 'true';
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -16,11 +13,6 @@ export async function middleware(request: NextRequest) {
     '/_next',
     '/favicon.ico',
   ];
-
-  // If auth is disabled, allow all requests to proceed
-  if (DISABLE_AUTH) {
-    return NextResponse.next();
-  }
 
   // Check if the current path is public
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));

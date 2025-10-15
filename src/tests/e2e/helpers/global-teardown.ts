@@ -210,7 +210,6 @@ pnpm test:e2e:headed
 ## Environment Setup
 
 Tests use the following environment variables:
-- \`DISABLE_AUTH=true\` - Bypass authentication for faster testing
 - \`PLAYWRIGHT=true\` - Indicate Playwright test environment
 - \`BASE_URL\` - Override default base URL for tests
 
