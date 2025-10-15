@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.success) {
-
       const processingResult =
         (result.data?.processingResult as Record<string, unknown>) || {};
       const analysis =

@@ -83,39 +83,59 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
     if (successfulUploads.length > 0) {
       if (activeTab === 'pcap') {
         const totalNetworks = successfulUploads.reduce((sum, result) => {
-          const networks = (result.data?.networks as Array<{hasHandshake: boolean}>) || [];
+          const networks =
+            (result.data?.networks as Array<{ hasHandshake: boolean }>) || [];
           return sum + networks.length;
         }, 0);
-        const networksWithHandshakes = successfulUploads.reduce((sum, result) => {
-          const networks = (result.data?.networks as Array<{hasHandshake: boolean}>) || [];
-          return sum + networks.filter((n) => n.hasHandshake).length;
-        }, 0);
+        const networksWithHandshakes = successfulUploads.reduce(
+          (sum, result) => {
+            const networks =
+              (result.data?.networks as Array<{ hasHandshake: boolean }>) || [];
+            return sum + networks.filter(n => n.hasHandshake).length;
+          },
+          0
+        );
 
         if (networksWithHandshakes > 0) {
-          toast.success(`✅ Successfully uploaded ${successfulUploads.length} PCAP file(s) with ${networksWithHandshakes} WiFi handshakes found!`);
+          toast.success(
+            `✅ Successfully uploaded ${successfulUploads.length} PCAP file(s) with ${networksWithHandshakes} WiFi handshakes found!`
+          );
         } else if (totalNetworks > 0) {
-          toast.warning(`📡 Uploaded ${successfulUploads.length} PCAP file(s) with ${totalNetworks} networks found, but no handshakes. Handshakes are required for password cracking.`);
+          toast.warning(
+            `📡 Uploaded ${successfulUploads.length} PCAP file(s) with ${totalNetworks} networks found, but no handshakes. Handshakes are required for password cracking.`
+          );
         } else {
-          toast.error(`❌ No WiFi networks found in the uploaded PCAP file(s). Please check that the files contain valid WiFi captures.`);
+          toast.error(
+            `❌ No WiFi networks found in the uploaded PCAP file(s). Please check that the files contain valid WiFi captures.`
+          );
         }
       } else if (activeTab === 'dictionary') {
         const totalLines = successfulUploads.reduce((sum, result) => {
-          const metadata = (result.data?.dictionary as {lineCount?: number}) || {};
+          const metadata =
+            (result.data?.dictionary as { lineCount?: number }) || {};
           return sum + (metadata.lineCount || 0);
         }, 0);
 
         if (totalLines > 0) {
-          toast.success(`📚 Successfully uploaded ${successfulUploads.length} dictionary file(s) with ${totalLines.toLocaleString()} passwords!`);
+          toast.success(
+            `📚 Successfully uploaded ${successfulUploads.length} dictionary file(s) with ${totalLines.toLocaleString()} passwords!`
+          );
         } else {
-          toast.success(`✅ Successfully uploaded ${successfulUploads.length} dictionary file(s)!`);
+          toast.success(
+            `✅ Successfully uploaded ${successfulUploads.length} dictionary file(s)!`
+          );
         }
       }
     }
 
     if (failedUploads.length > 0) {
-      const errors = failedUploads.map(r => r.error || r.message || 'Unknown error').filter(Boolean);
+      const errors = failedUploads
+        .map(r => r.error || r.message || 'Unknown error')
+        .filter(Boolean);
       if (errors.length > 0) {
-        toast.error(`❌ ${failedUploads.length} file(s) failed to upload: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? ` and ${errors.length - 2} more` : ''}`);
+        toast.error(
+          `❌ ${failedUploads.length} file(s) failed to upload: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? ` and ${errors.length - 2} more` : ''}`
+        );
       }
     }
 
@@ -164,11 +184,11 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         className="max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in"
-        onPointerDownOutside={(e) => {
+        onPointerDownOutside={e => {
           e.preventDefault();
           handleClose();
         }}
-        onEscapeKeyDown={(e) => {
+        onEscapeKeyDown={e => {
           e.preventDefault();
           handleClose();
         }}

@@ -198,10 +198,7 @@ export default function ChangePasswordPage() {
                         You will be redirected to the dashboard shortly...
                       </p>
                     </div>
-                    <Button
-                      onClick={() => router.push('/')}
-                      className="w-full"
-                    >
+                    <Button onClick={() => router.push('/')} className="w-full">
                       Go to Dashboard Now
                     </Button>
                   </div>

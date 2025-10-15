@@ -23,7 +23,7 @@ services:
       - jobs_data:/app/jobs
     depends_on:
       - postgres
-    user: "1001:1001"  # Run as nextjs user with correct permissions
+    user: '1001:1001' # Run as nextjs user with correct permissions
 
 volumes:
   postgres_data:

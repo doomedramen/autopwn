@@ -73,7 +73,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.success) {
-
       // Extract dictionary metadata
       const metadata =
         (result.data?.processingResult as Record<string, unknown>) || {};

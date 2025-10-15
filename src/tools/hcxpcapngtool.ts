@@ -54,7 +54,8 @@ export class HcxPcapNgTool {
         return {
           success: false,
           stdout: '',
-          stderr: 'hcxpcapngtool is not available. PCAP analysis requires this tool to be installed on the system.',
+          stderr:
+            'hcxpcapngtool is not available. PCAP analysis requires this tool to be installed on the system.',
           exitCode: 1,
         };
       }
@@ -122,7 +123,8 @@ export class HcxPcapNgTool {
         return {
           success: false,
           stdout: '',
-          stderr: 'hcxpcapngtool is not available. PCAP analysis requires this tool to be installed on the system.',
+          stderr:
+            'hcxpcapngtool is not available. PCAP analysis requires this tool to be installed on the system.',
           exitCode: 1,
         };
       }
@@ -155,7 +157,6 @@ export class HcxPcapNgTool {
     }
   }
 
-  
   /**
    * Process PCAP file for upload - extract networks and create hash file
    */
@@ -165,7 +166,11 @@ export class HcxPcapNgTool {
   ): Promise<ProcessPcapResult> {
     try {
       // Generate hash file name based on PCAP file name
-      const pcapBasename = pcapPath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'unknown';
+      const pcapBasename =
+        pcapPath
+          .split('/')
+          .pop()
+          ?.replace(/\.[^/.]+$/, '') || 'unknown';
       const hashFile = join(outputDir, `${pcapBasename}.hc22000`);
 
       // Check if hcxpcapngtool is available
@@ -176,7 +181,8 @@ export class HcxPcapNgTool {
         return {
           success: false,
           stdout: '',
-          stderr: 'hcxpcapngtool is not available. PCAP analysis requires this tool to be installed on the system.',
+          stderr:
+            'hcxpcapngtool is not available. PCAP analysis requires this tool to be installed on the system.',
           exitCode: 1,
         };
       }
@@ -277,7 +283,10 @@ export class HcxPcapNgTool {
 
         networks.push({
           essid,
-          bssid: macAp.replace(/(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})/, '$1:$2:$3:$4:$5:$6'),
+          bssid: macAp.replace(
+            /(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})/,
+            '$1:$2:$3:$4:$5:$6'
+          ),
           channel: null, // HC22000 format doesn't include channel information
           encryption: 'WPA2',
           hasHandshake,
@@ -286,7 +295,9 @@ export class HcxPcapNgTool {
         });
       }
 
-      console.log(`[HcxPcapNgTool] Parsed ${networks.length} networks successfully`);
+      console.log(
+        `[HcxPcapNgTool] Parsed ${networks.length} networks successfully`
+      );
       return networks;
     } catch (error) {
       console.error('[HcxPcapNgTool] Error parsing hash file:', error);

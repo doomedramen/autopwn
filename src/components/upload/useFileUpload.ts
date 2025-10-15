@@ -90,18 +90,23 @@ export function useFileUpload(options: UseFileUploadOptions) {
               if (progress.stage === 'completed') {
                 // The progress endpoint should return the complete result when completed
                 // No need for additional API call
-                console.log('Upload completed for fileId:', fileId, 'Progress:', progress);
+                console.log(
+                  'Upload completed for fileId:',
+                  fileId,
+                  'Progress:',
+                  progress
+                );
 
                 // Create a success result that matches UploadResponse type
                 const result: UploadResponse = {
                   success: true,
                   data: {
                     upload: {
-                    fileId,
-                    originalName: 'Uploaded file',
-                    savedPath: '',
-                    size: 0,
-                    uploadTime: Date.now(),
+                      fileId,
+                      originalName: 'Uploaded file',
+                      savedPath: '',
+                      size: 0,
+                      uploadTime: Date.now(),
                     },
                     networks: [],
                     handshakes: undefined,
