@@ -19,8 +19,8 @@ services:
     container_name: autopwn-app
     environment:
       - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn
-      - BETTER_AUTH_SECRET=change-this-in-production
-      - NODE_ENV=development
+      - BETTER_AUTH_SECRET=change-this-in-production-use-a-secure-secret
+      - NODE_ENV=production
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
