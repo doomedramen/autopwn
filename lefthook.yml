@@ -6,5 +6,8 @@ pre-commit:
       run: pnpm format:write
     typecheck:
       run: pnpm typecheck
+
+pre-push:
+  commands:
     build:
       run: pnpm build
