@@ -11,10 +11,11 @@ export async function GET() {
     if (!result.success) {
       // Check if this is a CPU-only system without GPU support
       const errorLower = result.stderr?.toLowerCase() || '';
-      const isCPUOnlyIssue = errorLower.includes('opencl') ||
-                           errorLower.includes('cuda') ||
-                           errorLower.includes('hip') ||
-                           errorLower.includes('no compatible platform');
+      const isCPUOnlyIssue =
+        errorLower.includes('opencl') ||
+        errorLower.includes('cuda') ||
+        errorLower.includes('hip') ||
+        errorLower.includes('no compatible platform');
 
       if (isCPUOnlyIssue) {
         return NextResponse.json({
@@ -28,9 +29,10 @@ export async function GET() {
               memory: 0,
               cores: 1,
               clockSpeed: 0,
-            }
+            },
           ],
-          warning: 'GPU acceleration not available. Using CPU-only mode. Performance will be slower but functional.',
+          warning:
+            'GPU acceleration not available. Using CPU-only mode. Performance will be slower but functional.',
         });
       }
 
@@ -57,7 +59,7 @@ export async function GET() {
             memory: 0,
             cores: 1,
             clockSpeed: 0,
-          }
+          },
         ],
         warning: 'No GPU devices detected. Using CPU-only mode.',
       });

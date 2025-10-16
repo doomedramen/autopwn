@@ -1,13 +1,13 @@
 pre-commit:
-  commands:
-    lint-fix:
-      run: pnpm lint:fix
-    format-fix:
+  run_serial:
+    - name: format-fix
       run: pnpm format:write
-    typecheck:
+    - name: lint-fix
+      run: pnpm lint:fix
+    - name: typecheck
       run: pnpm typecheck
 
 pre-push:
-  commands:
-    build:
+  run_serial:
+    - name: build
       run: pnpm build

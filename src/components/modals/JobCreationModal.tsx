@@ -527,7 +527,13 @@ export function JobCreationModal({
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className={networksWithHandshakes.length > 3 ? "max-h-64 overflow-y-auto" : ""}>
+            <CardContent
+              className={
+                networksWithHandshakes.length > 3
+                  ? 'max-h-64 overflow-y-auto'
+                  : ''
+              }
+            >
               {networksWithHandshakes.length > 0 ? (
                 <div className="grid gap-3">
                   {networksWithHandshakes.map(network => (
@@ -610,7 +616,11 @@ export function JobCreationModal({
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className={dictionaries.length > 3 ? "max-h-64 overflow-y-auto" : ""}>
+            <CardContent
+              className={
+                dictionaries.length > 3 ? 'max-h-64 overflow-y-auto' : ''
+              }
+            >
               {dictionaries.length > 0 ? (
                 <div className="grid gap-3">
                   {dictionaries.map(dictionary => (
