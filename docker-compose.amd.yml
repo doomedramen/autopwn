@@ -13,6 +13,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U autopwn']
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   app:
     image: ${DOCKER_IMAGE:-doomedramen/autopwn:latest-amd}
@@ -21,7 +26,7 @@ services:
       - DATABASE_URL=postgresql://autopwn:change-this-password-in-production@postgres:5432/autopwn
       - BETTER_AUTH_SECRET=change-this-in-production-use-a-secure-secret
       - NODE_ENV=production
-      - LOG_LEVEL=INFO # ERROR, WARN, INFO, DEBUG, VERBOSE
+      - LOG_LEVEL=INFO
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
@@ -31,7 +36,8 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     devices:
       - /dev/dri:/dev/dri

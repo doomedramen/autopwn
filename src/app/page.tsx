@@ -172,7 +172,35 @@ export default function Home() {
       const jobsResponse = await fetch('/api/jobs');
       if (jobsResponse.ok) {
         const jobsData = await jobsResponse.json();
-        setJobs(jobsData.data || []);
+        // Map API response to expected interface with real-time data
+        const mappedJobs = (jobsData.data || []).map(
+          (job: Record<string, unknown>) => {
+            const speedCurrent = Number(job.speedCurrent) || 0;
+            const speedUnit = (job.speedUnit as string) || 'H/s';
+
+            return {
+              id: job.id,
+              name: job.name,
+              status: job.status,
+              progress: Math.round(Number(job.progress) || 0),
+              cracked: Number(job.cracked) || 0,
+              total: Number(job.totalHashes) || 0,
+              speed:
+                speedCurrent > 0
+                  ? `${speedCurrent.toLocaleString()} ${speedUnit}`
+                  : undefined,
+              eta:
+                job.eta && job.status === 'processing'
+                  ? (job.eta as string)
+                  : undefined,
+              currentDictionary: undefined, // This could be added later from job-dictionaries relation
+              startedAt: job.startedAt as string,
+              networks: [], // This could be added later from job-pcaps relation
+              createdAt: job.createdAt as string,
+            };
+          }
+        );
+        setJobs(mappedJobs);
       }
 
       setIsInitialLoad(false);

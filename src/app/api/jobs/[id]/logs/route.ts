@@ -52,18 +52,26 @@ export async function GET(
       }
     }
 
-    // Get job status updates from database as additional logs
+    // Get real-time job status updates
+    const speedCurrent = Number(job.speedCurrent || 0);
+    const speedFormatted =
+      speedCurrent > 0
+        ? `${speedCurrent.toLocaleString()} ${job.speedUnit || 'H/s'}`
+        : '0 H/s';
+
+    const etaFormatted = job.eta && job.status === 'processing' ? job.eta : '';
+
     const statusLogs = [
       `Job created: ${new Date(job.createdAt).toLocaleString()}`,
       `Status: ${job.status}`,
       `Progress: ${job.progress || 0}%`,
       `Cracked: ${job.cracked || 0} / ${job.totalHashes || 0}`,
-      `Speed: ${Number(job.speedCurrent || 0).toLocaleString()} ${job.speedUnit || 'H/s'}`,
-      job.eta ? `ETA: ${job.eta}` : '',
+      `Speed: ${speedFormatted}`,
+      etaFormatted ? `ETA: ${etaFormatted}` : '',
       job.startedAt
         ? `Started: ${new Date(job.startedAt).toLocaleString()}`
         : '',
-      job.updatedAt && (job.status === 'completed' || job.status === 'failed')
+      (job.status === 'completed' || job.status === 'failed') && job.updatedAt
         ? `Finished: ${new Date(job.updatedAt).toLocaleString()}`
         : '',
       job.errorMessage ? `Error: ${job.errorMessage}` : '',

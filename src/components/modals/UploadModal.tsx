@@ -105,8 +105,8 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
             `📡 Uploaded ${successfulUploads.length} PCAP file(s) with ${totalNetworks} networks found, but no handshakes. Handshakes are required for password cracking.`
           );
         } else {
-          toast.error(
-            `❌ No WiFi networks found in the uploaded PCAP file(s). Please check that the files contain valid WiFi captures.`
+          toast.success(
+            `✅ Successfully uploaded ${successfulUploads.length} PCAP file(s) (no WiFi networks found in capture)`
           );
         }
       } else if (activeTab === 'dictionary') {
