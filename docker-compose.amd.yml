@@ -22,8 +22,6 @@ services:
       - BETTER_AUTH_SECRET=change-this-in-production-use-a-secure-secret
       - NODE_ENV=production
       - LOG_LEVEL=INFO # ERROR, WARN, INFO, DEBUG, VERBOSE
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
-      - BETTER_AUTH_URL=http://localhost:3000
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
