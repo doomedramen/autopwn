@@ -553,9 +553,7 @@ export class HcxPcapNgTool {
 
       const timeout = options.timeout || this.defaultTimeout;
       const timeoutId = setTimeout(() => {
-        logDebug(
-          `[hcxpcapngtool] Timeout after ${timeout}ms, killing process`
-        );
+        logDebug(`[hcxpcapngtool] Timeout after ${timeout}ms, killing process`);
         child.kill('SIGKILL');
         resolve({
           success: false,

@@ -283,10 +283,7 @@ export class HashcatWrapper {
       // Attach stdout listener to parse status updates in real-time
       child.stdout?.on('data', (data: Buffer) => {
         const output = data.toString();
-        logDebug(
-          `[hashcat] ${sessionName} stdout:`,
-          output.substring(0, 200)
-        );
+        logDebug(`[hashcat] ${sessionName} stdout:`, output.substring(0, 200));
         this.appendToBuffer(sessionName, output);
         this.parseAndUpdateStatus(sessionName);
       });
@@ -294,10 +291,7 @@ export class HashcatWrapper {
       // Attach stderr listener (hashcat outputs status to stderr)
       child.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
-        logDebug(
-          `[hashcat] ${sessionName} stderr:`,
-          output.substring(0, 200)
-        );
+        logDebug(`[hashcat] ${sessionName} stderr:`, output.substring(0, 200));
         this.appendToBuffer(sessionName, output);
         this.parseAndUpdateStatus(sessionName);
       });
@@ -339,9 +333,7 @@ export class HashcatWrapper {
       });
 
       // Log when process is spawned successfully
-      logDebug(
-        `[hashcat] Session ${sessionName} process started successfully`
-      );
+      logDebug(`[hashcat] Session ${sessionName} process started successfully`);
 
       // Update job status
       job.status = 'processing';
@@ -390,9 +382,7 @@ export class HashcatWrapper {
       const cachedStatus = this.sessionStatus.get(sessionName);
 
       if (!cachedStatus) {
-        logError(
-          `[hashcat] ERROR: No cache found for session: ${sessionName}`
-        );
+        logError(`[hashcat] ERROR: No cache found for session: ${sessionName}`);
         logError(`[hashcat] Available sessions:`, allSessions);
         return {
           success: false,
