@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { join, resolve, dirname, basename, extname } from 'path';
 import { FileSystemManager } from '@/lib/filesystem';
 import { ToolResult } from '@/types';
-import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
+import { logDebug } from '@/lib/logger';
 
 export type ProcessingResult = Record<string, unknown>;
 

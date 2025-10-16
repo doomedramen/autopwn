@@ -44,7 +44,7 @@ export class HcxPcapNgTool {
   async extractHandshakes(
     pcapFilePaths: string[],
     outputFile: string,
-    options: { outputFormat?: string } = {}
+    _options: { outputFormat?: string } = {}
   ): Promise<ProcessPcapResult> {
     try {
       // Check if hcxpcapngtool is available
@@ -251,9 +251,9 @@ export class HcxPcapNgTool {
         if (parts.length < 7) continue;
 
         const hashType = `${parts[0]}*${parts[1]}`; // WPA*01 (PMKID) or WPA*02 (EAPOL)
-        const hash1 = parts[2];
+        // const hash1 = parts[2]; // Unused - needed for hash validation but not for network info
         const macAp = parts[3]; // AP MAC is in position 3 (e438838cbcbe)
-        const hash2 = parts[4];
+        // const hash2 = parts[4]; // Unused - needed for hash validation but not for network info
         const essidHex = parts[5]; // ESSID is in position 5 (50696b6c205374616666)
 
         // Convert hex ESSID to string

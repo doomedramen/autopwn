@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { networks } from '@/lib/db/schema';
 import { logApi, logData, logDebug, logError } from '@/lib/logger';
 
 /**
@@ -21,7 +20,6 @@ export async function GET() {
     // Add debug info if no networks found
     if (networkList.length === 0) {
       logDebug('No networks found. Checking uploads table...');
-      const { uploads } = await import('@/lib/db/schema');
       const allUploads = await db.query.uploads.findMany();
       logDebug(`Found ${allUploads.length} uploads`);
 

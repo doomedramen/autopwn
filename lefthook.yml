@@ -4,6 +4,8 @@ pre-commit:
       run: pnpm format:write
     - name: lint-fix
       run: pnpm lint:fix
+    - name: lint-check
+      run: pnpm lint --max-warnings=0
     - name: typecheck
       run: pnpm typecheck
 

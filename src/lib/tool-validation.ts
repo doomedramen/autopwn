@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
+import { logError, logInfo } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 

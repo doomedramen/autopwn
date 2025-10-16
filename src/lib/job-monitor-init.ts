@@ -1,6 +1,6 @@
 import { jobMonitor } from '@/lib/job-monitor';
 import { toolValidator } from '@/lib/tool-validation';
-import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
+import { logError, logInfo, logWarn } from '@/lib/logger';
 
 // Build time detection - only skip during actual build/static generation
 const isBuildTime =

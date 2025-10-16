@@ -7,7 +7,7 @@ import { uploads, users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import type { UploadProgress } from '@/lib/upload';
-import { logError, logDebug, logInfo } from '@/lib/logger';
+import { logError, logDebug } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 600; // 10 minutes for large dictionary files

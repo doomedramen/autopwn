@@ -2,7 +2,7 @@ import { UploadConfig } from './index';
 import { dirname, extname, basename } from 'path';
 import { promises as fs, createReadStream } from 'fs';
 import * as readline from 'readline';
-import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
+import { logWarn } from '@/lib/logger';
 
 /**
  * PCAP file upload configuration

@@ -54,7 +54,7 @@ class Logger {
     return level <= this.currentLevel;
   }
 
-  private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
+  private formatMessage(level: LogLevel, message: string): string {
     const timestamp = new Date().toISOString();
     const levelName = LOG_LEVEL_NAMES[level];
     const prefix = `[${timestamp}] [${levelName}]`;
@@ -62,46 +62,46 @@ class Logger {
     return `${prefix} ${message}`;
   }
 
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.ERROR)) {
       console.error(this.formatMessage(LogLevel.ERROR, message), ...args);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.WARN)) {
       console.warn(this.formatMessage(LogLevel.WARN, message), ...args);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.INFO)) {
       console.log(this.formatMessage(LogLevel.INFO, message), ...args);
     }
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
       console.log(this.formatMessage(LogLevel.DEBUG, message), ...args);
     }
   }
 
-  verbose(message: string, ...args: any[]): void {
+  verbose(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.VERBOSE)) {
       console.log(this.formatMessage(LogLevel.VERBOSE, message), ...args);
     }
   }
 
   // Helper methods for common patterns
-  api(message: string, data?: any): void {
+  api(message: string, data?: unknown): void {
     this.debug(`🌐 API: ${message}`, data);
   }
 
-  data(message: string, data?: any): void {
+  data(message: string, data?: unknown): void {
     this.verbose(`📊 Data: ${message}`, data);
   }
 
-  tool(message: string, data?: any): void {
+  tool(message: string, data?: unknown): void {
     this.debug(`🔧 Tool: ${message}`, data);
   }
 
@@ -125,11 +125,11 @@ class Logger {
 export const logger = new Logger();
 
 // Export convenience functions
-export const logError = (message: string, ...args: any[]) => logger.error(message, ...args);
-export const logWarn = (message: string, ...args: any[]) => logger.warn(message, ...args);
-export const logInfo = (message: string, ...args: any[]) => logger.info(message, ...args);
-export const logDebug = (message: string, ...args: any[]) => logger.debug(message, ...args);
-export const logVerbose = (message: string, ...args: any[]) => logger.verbose(message, ...args);
-export const logApi = (message: string, data?: any) => logger.api(message, data);
-export const logData = (message: string, data?: any) => logger.data(message, data);
-export const logTool = (message: string, data?: any) => logger.tool(message, data);
+export const logError = (message: string, ...args: unknown[]) => logger.error(message, ...args);
+export const logWarn = (message: string, ...args: unknown[]) => logger.warn(message, ...args);
+export const logInfo = (message: string, ...args: unknown[]) => logger.info(message, ...args);
+export const logDebug = (message: string, ...args: unknown[]) => logger.debug(message, ...args);
+export const logVerbose = (message: string, ...args: unknown[]) => logger.verbose(message, ...args);
+export const logApi = (message: string, data?: unknown) => logger.api(message, data);
+export const logData = (message: string, data?: unknown) => logger.data(message, data);
+export const logTool = (message: string, data?: unknown) => logger.tool(message, data);
