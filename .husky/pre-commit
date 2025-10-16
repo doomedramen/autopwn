@@ -8,4 +8,12 @@ pnpm typecheck
 echo "🔧 Running lint-staged..."
 npx lint-staged
 
+# Auto-bump package version if package.json was changed
+if git diff --cached --name-only | grep -q "package.json"; then
+  echo "📦 Auto-bumping package version..."
+  npx -y package-bump@latest patch --stage
+else
+  echo "📦 No package.json changes detected, skipping version bump"
+fi
+
 echo "✅ All pre-commit checks passed!"

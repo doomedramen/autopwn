@@ -1,6 +1,6 @@
 {
   "name": "app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -27,7 +27,8 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
-    "prepare": "husky"
+    "prepare": "husky",
+    "bump": "package-bump patch --stage"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -75,6 +76,7 @@
     "eslint-config-next": "15.5.4",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.4",
+    "package-bump": "^1.1.7",
     "playwright-coverage-reporter": "^2.0.49",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
