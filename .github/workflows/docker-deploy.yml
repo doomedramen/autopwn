@@ -18,6 +18,9 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: autopwn
   NODE_VERSION: '20'
+  # Control which variants to build (comma-separated: cpu,nvidia,amd,intel)
+  # Set to 'cpu' to only build CPU variant, or 'cpu,nvidia' for CPU+NVIDIA, etc.
+  BUILD_VARIANTS: 'cpu,nvidia,amd,intel'
 
 jobs:
   build:
@@ -116,8 +119,8 @@ jobs:
         id: tests
         run: echo "All tests completed successfully"
 
-  deploy:
-    name: Build and Deploy Docker Images
+  setup-matrix:
+    name: Setup Build Matrix
     runs-on: ubuntu-latest
     needs: [build, test]
     if: |
@@ -126,21 +129,87 @@ jobs:
       needs.build.outputs.build-success == 'success' &&
       needs.test.outputs.tests-success == 'success'
 
+    outputs:
+      variants: ${{ steps.generate-matrix.outputs.variants }}
+      security-variants: ${{ steps.generate-matrix.outputs.security-variants }}
+
+    steps:
+      - name: Generate build matrix
+        id: generate-matrix
+        run: |
+          # Define all available variants
+          ALL_VARIANTS='{"cpu": {"name": "cpu", "file": "docker/Dockerfile.cpu", "platforms": "linux/amd64,linux/arm64"}, "nvidia": {"name": "nvidia", "file": "docker/Dockerfile.nvidia", "platforms": "linux/amd64"}, "amd": {"name": "amd", "file": "docker/Dockerfile.amd", "platforms": "linux/amd64"}, "intel": {"name": "intel", "file": "docker/Dockerfile.intel", "platforms": "linux/amd64"}}'
+
+          # Get variants to build from environment variable
+          BUILD_VARIANTS="${{ env.BUILD_VARIANTS }}"
+          echo "BUILD_VARIANTS: $BUILD_VARIANTS"
+
+          # Convert comma-separated string to JSON array
+          if [ "$BUILD_VARIANTS" = "all" ] || [ -z "$BUILD_VARIANTS" ]; then
+            VARIANTS_TO_BUILD="cpu,nvidia,amd,intel"
+          else
+            VARIANTS_TO_BUILD="$BUILD_VARIANTS"
+          fi
+
+          # Generate the matrix JSON
+          VARIANTS_JSON="["
+          SECURITY_VARIANTS_JSON="["
+          FIRST=true
+
+          IFS=',' read -ra VARIANTS <<< "$VARIANTS_TO_BUILD"
+          for variant in "${VARIANTS[@]}"; do
+            variant=$(echo "$variant" | xargs) # trim whitespace
+
+            case $variant in
+              "cpu")
+                VARIANT_JSON='{"name": "cpu", "file": "docker/Dockerfile.cpu", "platforms": "linux/amd64,linux/arm64"}'
+                ;;
+              "nvidia")
+                VARIANT_JSON='{"name": "nvidia", "file": "docker/Dockerfile.nvidia", "platforms": "linux/amd64"}'
+                ;;
+              "amd")
+                VARIANT_JSON='{"name": "amd", "file": "docker/Dockerfile.amd", "platforms": "linux/amd64"}'
+                ;;
+              "intel")
+                VARIANT_JSON='{"name": "intel", "file": "docker/Dockerfile.intel", "platforms": "linux/amd64"}'
+                ;;
+              *)
+                echo "Unknown variant: $variant, skipping..."
+                continue
+                ;;
+            esac
+
+            if [ "$FIRST" = true ]; then
+              FIRST=false
+            else
+              VARIANTS_JSON="$VARIANTS_JSON,"
+              SECURITY_VARIANTS_JSON="$SECURITY_VARIANTS_JSON,"
+            fi
+
+            VARIANTS_JSON="$VARIANTS_JSON$VARIANT_JSON"
+            SECURITY_VARIANTS_JSON="$SECURITY_VARIANTS_JSON{\"name\": \"$variant\"}"
+          done
+
+          VARIANTS_JSON="$VARIANTS_JSON]"
+          SECURITY_VARIANTS_JSON="$SECURITY_VARIANTS_JSON]"
+
+          echo "Generated variants matrix: $VARIANTS_JSON"
+          echo "variants=$VARIANTS_JSON" >> $GITHUB_OUTPUT
+          echo "security-variants=$SECURITY_VARIANTS_JSON" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Build and Deploy Docker Images
+    runs-on: ubuntu-latest
+    needs: [build, test, setup-matrix]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) &&
+      needs.build.outputs.build-success == 'success' &&
+      needs.test.outputs.tests-success == 'success'
+
     strategy:
       matrix:
-        variant:
-          - name: cpu
-            file: docker/Dockerfile.cpu
-            platforms: linux/amd64,linux/arm64
-          - name: nvidia
-            file: docker/Dockerfile.nvidia
-            platforms: linux/amd64
-          - name: amd
-            file: docker/Dockerfile.amd
-            platforms: linux/amd64
-          - name: intel
-            file: docker/Dockerfile.intel
-            platforms: linux/amd64
+        variant: ${{ fromJson(needs.setup-matrix.outputs.variants) }}
 
     outputs:
       image-tag: ${{ steps.meta.outputs.version }}
@@ -258,11 +327,7 @@ jobs:
 
     strategy:
       matrix:
-        variant:
-          - name: cpu
-          - name: nvidia
-          - name: amd
-          - name: intel
+        variant: ${{ fromJson(needs.setup-matrix.outputs.security-variants) }}
 
     steps:
       - name: Run Trivy vulnerability scanner (${{ matrix.variant.name }})

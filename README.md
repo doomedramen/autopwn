@@ -146,6 +146,30 @@ docker run -d --name autopwn -p 3000:3000 --env-file .env autopwn:cpu
 
 📖 **See [Docker Guide](docker/README.md) for complete deployment instructions.**
 
+### Controlling Docker Builds in CI/CD
+
+By default, the GitHub Actions workflow builds all Docker variants (CPU, NVIDIA, AMD, Intel). To control which variants are built, modify the `BUILD_VARIANTS` environment variable in `.github/workflows/docker-deploy.yml`:
+
+```yaml
+env:
+  # Build only CPU and NVIDIA variants
+  BUILD_VARIANTS: 'cpu,nvidia'
+
+  # Or build only CPU variant
+  # BUILD_VARIANTS: 'cpu'
+
+  # Or build all variants (default)
+  # BUILD_VARIANTS: 'cpu,nvidia,amd,intel'
+```
+
+**Use cases:**
+- `cpu` - For development, testing, or when GPU hardware is unavailable
+- `cpu,nvidia` - When you have NVIDIA GPU infrastructure
+- `cpu,amd` - When you have AMD GPU infrastructure
+- `cpu,intel` - When you have Intel GPU infrastructure
+
+This helps reduce build times and resource usage when you don't need all hardware-specific variants.
+
 ## 🔐 Initial Setup
 
 ### Default Superuser Credentials (First-Time Setup)
