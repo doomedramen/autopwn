@@ -1,6 +1,7 @@
 pre-commit:
-  run_serial:
-    - name: format-check-and-fix
+  commands:
+    format-check-and-fix:
+      glob: '{*.{md,json,yml,yaml},src/**/*,components/**/*,.github/**/*}'
       run: |
         if ! pnpm format:check > /dev/null 2>&1; then
           echo "❌ Formatting issues found. Running prettier to fix..."
@@ -10,11 +11,14 @@ pre-commit:
         else
           echo "✅ Code formatting is correct"
         fi
-    - name: lint-fix
+    lint-fix:
+      glob: 'src/**/*.{ts,tsx,js,jsx}'
       run: pnpm lint:fix
-    - name: lint-check
+    lint-check:
+      glob: 'src/**/*.{ts,tsx,js,jsx}'
       run: pnpm lint --max-warnings=0
-    - name: typecheck
+    typecheck:
+      glob: 'src/**/*.{ts,tsx,js,jsx}'
       run: pnpm typecheck
 
 pre-push:
