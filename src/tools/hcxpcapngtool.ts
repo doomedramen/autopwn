@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
+import { logTool, logDebug, logError } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -225,17 +226,17 @@ export class HcxPcapNgTool {
    * Parse hash file (.hc22000) to extract network information
    */
   private async parseHashFile(hashFile: string): Promise<NetworkInfo[]> {
-    console.log(`[HcxPcapNgTool] Parsing hash file: ${hashFile}`);
+    logTool(`Parsing hash file: ${hashFile}`);
 
     if (!existsSync(hashFile)) {
-      console.log(`[HcxPcapNgTool] Hash file does not exist: ${hashFile}`);
+      logError(`Hash file does not exist: ${hashFile}`);
       return [];
     }
 
     try {
       const content = readFileSync(hashFile, 'utf8');
       const lines = content.trim().split('\n');
-      console.log(`[HcxPcapNgTool] Found ${lines.length} lines in hash file`);
+      logDebug(`Found ${lines.length} lines in hash file`);
 
       const networks: NetworkInfo[] = [];
       const seenNetworks = new Set<string>();
@@ -295,12 +296,10 @@ export class HcxPcapNgTool {
         });
       }
 
-      console.log(
-        `[HcxPcapNgTool] Parsed ${networks.length} networks successfully`
-      );
+      logTool(`Parsed ${networks.length} networks successfully`);
       return networks;
     } catch (error) {
-      console.error('[HcxPcapNgTool] Error parsing hash file:', error);
+      logError('Error parsing hash file:', error);
       return [];
     }
   }

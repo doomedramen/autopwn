@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { hashcat } from '@/tools/hashcat';
+import { logError } from '@/lib/logger';
 
 /**
  * Get available hashcat devices
@@ -70,7 +71,7 @@ export async function GET() {
       data: result.data || [],
     });
   } catch (error) {
-    console.error('Device detection error:', error);
+    logError('Device detection error:', error);
 
     return NextResponse.json(
       {

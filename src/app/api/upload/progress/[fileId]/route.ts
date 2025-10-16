@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { progressTracker } from '@/lib/upload/progress';
+import { logError } from '@/lib/logger';
 
 /**
  * Universal progress tracking endpoint
@@ -33,7 +34,7 @@ export async function GET(
       data: progress,
     });
   } catch (error) {
-    console.error('Progress tracking error:', error);
+    logError('Progress tracking error:', error);
 
     return NextResponse.json(
       {
@@ -96,7 +97,7 @@ export async function DELETE(
       },
     });
   } catch (error) {
-    console.error('Upload cancellation error:', error);
+    logError('Upload cancellation error:', error);
 
     return NextResponse.json(
       {

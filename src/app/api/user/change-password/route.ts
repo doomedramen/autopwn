@@ -5,6 +5,7 @@ import { accounts, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { updateUserPassword, updateUserProfile } from '@/lib/auth';
 import { z } from 'zod';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
           );
         }
       } catch (error) {
-        console.error('Password verification error:', error);
+        logError('Password verification error:', error);
         return NextResponse.json(
           { error: 'Current password is incorrect' },
           { status: 400 }
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('User update error:', error);
+    logError('User update error:', error);
     return NextResponse.json(
       {
         error: 'Failed to update user',

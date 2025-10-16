@@ -4,6 +4,7 @@ import { jobs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,7 @@ export async function GET(
           logs = logContent.split('\n').filter(line => line.trim());
         }
       } catch (error) {
-        console.error('Error reading hashcat logs:', error);
+        logError('Error reading hashcat logs:', error);
       }
     }
 
@@ -86,7 +87,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Job logs fetch error:', error);
+    logError('Job logs fetch error:', error);
 
     return NextResponse.json(
       {

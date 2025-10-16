@@ -21,7 +21,7 @@ The Docker Compose setup includes:
 
 - **AutoPWN Application** (Next.js frontend + API)
 - **PostgreSQL Database** (persistent data storage)
-- **Health Checks** for both services
+- **GPU Support** for each variant (NVIDIA, AMD, Intel)
 - **Persistent Volumes** for data and uploads
 
 ```bash
@@ -33,10 +33,14 @@ cp .env.docker.example .env
 # Edit .env with your configuration
 # Required: BETTER_AUTH_SECRET (generate with: openssl rand -base64 32)
 # Required: Change POSTGRES_PASSWORD from default
+# Optional: Set LOG_LEVEL (INFO for production, DEBUG for development)
 # Required: Update APP_URL to your domain/IP
 
-# Start all services (app + PostgreSQL)
-docker-compose up -d
+# Choose your variant and start:
+docker-compose -f docker-compose.cpu.yml up -d      # CPU (recommended for development)
+docker-compose -f docker-compose.nvidia.yml up -d  # NVIDIA GPU
+docker-compose -f docker-compose.amd.yml up -d     # AMD GPU
+docker-compose -f docker-compose.intel.yml up -d   # Intel GPU
 
 # Access at http://localhost:3000
 # Initial credentials (hardcoded for first-time setup)
@@ -114,31 +118,33 @@ pnpm db:reset
 
 ## 🐳 Docker Commands
 
-### Docker Compose (Recommended)
+### Docker Compose Commands
 
 ```bash
-# Start all services (app + PostgreSQL)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
+# View logs (example for CPU variant)
+docker-compose -f docker-compose.cpu.yml logs -f
 
 # Stop services
-docker-compose down
+docker-compose -f docker-compose.cpu.yml down
 
 # Restart services
-docker-compose restart
+docker-compose -f docker-compose.cpu.yml restart
+
+# Fresh database start
+docker-compose -f docker-compose.cpu.yml down -v && docker-compose -f docker-compose.cpu.yml up -d
 ```
+
+**Note**: Replace `cpu.yml` with your variant file (nvidia.yml, amd.yml, intel.yml) in the commands above.
 
 ### Standalone Docker
 
 ```bash
-# Build custom image
-docker build -t autopwn:latest .
-
-# Run with custom config (requires external database)
-docker run -d --name autopwn -p 3000:3000 --env-file .env autopwn:latest
+# Build and run specific variant
+docker build -f docker/Dockerfile.cpu -t autopwn:cpu .
+docker run -d --name autopwn -p 3000:3000 --env-file .env autopwn:cpu
 ```
+
+📖 **See [Docker Guide](docker/README.md) for complete deployment instructions.**
 
 ## 🔐 Initial Setup
 

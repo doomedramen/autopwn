@@ -3,6 +3,7 @@ import { createSuperUserIfNotExists } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,7 +70,7 @@ export async function POST() {
       },
     });
   } catch (error) {
-    console.error('Initialization error:', error);
+    logError('Initialization error:', error);
     return NextResponse.json(
       {
         error: 'Initialization failed',
@@ -96,7 +97,7 @@ export async function GET() {
       hasSuperUser: isInitialized,
     });
   } catch (error) {
-    console.error('Init check error:', error);
+    logError('Init check error:', error);
     return NextResponse.json(
       {
         error: 'Failed to check initialization status',

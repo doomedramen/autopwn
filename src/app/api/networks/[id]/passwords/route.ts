@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { crackedPasswords } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -46,7 +47,7 @@ export async function GET(
       data: passwords,
     });
   } catch (error) {
-    console.error('Failed to fetch cracked passwords:', error);
+    logError('Failed to fetch cracked passwords:', error);
 
     return NextResponse.json(
       {

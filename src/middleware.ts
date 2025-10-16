@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/logger';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -112,7 +113,7 @@ export async function middleware(request: NextRequest) {
       }
     } catch (error) {
       // If we can't check system status or user data, allow request to proceed
-      console.error(
+      logError(
         'Failed to check system initialization or user status in middleware:',
         error
       );

@@ -2,6 +2,7 @@ import { hashcat } from '@/tools/hashcat';
 import { db } from '@/lib/db';
 import { jobs, crackedPasswords, networks } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
 
 interface JobStatusUpdate {
   progress: number;
@@ -26,11 +27,11 @@ export class JobMonitor {
    */
   start() {
     if (this.monitoringInterval) {
-      console.log('Job monitor is already running');
+      logInfo('Job monitor is already running');
       return;
     }
 
-    console.log('Starting job monitor service...');
+    logInfo('Starting job monitor service...');
     this.monitoringInterval = setInterval(
       () => this.checkActiveJobs(),
       this.MONITOR_INTERVAL_MS
@@ -47,7 +48,7 @@ export class JobMonitor {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('Job monitor service stopped');
+      logInfo('Job monitor service stopped');
     }
   }
 
@@ -70,7 +71,7 @@ export class JobMonitor {
         return;
       }
 
-      console.log(
+      logInfo(
         `Checking ${jobsWithSession.length} active jobs with sessions...`
       );
 
@@ -82,7 +83,7 @@ export class JobMonitor {
       // Clean up stale sessions
       this.cleanupStaleSessions();
     } catch (error) {
-      console.error('Error checking active jobs:', error);
+      logError('Error checking active jobs:', error);
     }
   }
 
@@ -94,13 +95,13 @@ export class JobMonitor {
     sessionName: string
   ): Promise<void> {
     try {
-      console.log(`Checking status for job ${jobId} (session: ${sessionName})`);
+      logDebug(`Checking status for job ${jobId} (session: ${sessionName})`);
 
       // Get current status from hashcat
       const statusResult = await hashcat.getJobStatus(sessionName);
 
       if (!statusResult.success) {
-        console.error(
+        logError(
           `Failed to get status for session ${sessionName}:`,
           statusResult.stderr
         );
@@ -115,7 +116,7 @@ export class JobMonitor {
 
       const session = statusResult.data;
       if (!session) {
-        console.error(`No session data returned for session ${sessionName}`);
+        logError(`No session data returned for session ${sessionName}`);
         await this.handleJobFailure(jobId, 'No session data available');
         return;
       }
@@ -137,7 +138,7 @@ export class JobMonitor {
       // Check if job is completed or failed
       if (session.status === 'completed') {
         updateData.completedAt = new Date();
-        console.log(
+        logInfo(
           `Job ${jobId} completed with ${session.cracked} passwords cracked`
         );
       } else if (session.status === 'failed' || session.status === 'stopped') {
@@ -145,7 +146,7 @@ export class JobMonitor {
         updateData.completedAt = new Date();
         updateData.errorMessage =
           session.error || 'Hashcat session was aborted';
-        console.log(`Job ${jobId} failed: ${updateData.errorMessage}`);
+        logInfo(`Job ${jobId} failed: ${updateData.errorMessage}`);
       }
 
       // Update the database
@@ -164,14 +165,14 @@ export class JobMonitor {
         })
         .where(eq(jobs.id, jobId));
 
-      console.log(
+      logDebug(
         `Updated job ${jobId}: ${updateData.cracked}/${updateData.progress}% complete at ${updateData.speedCurrent} ${updateData.speedUnit}`
       );
 
       // Extract and save cracked passwords
       await this.saveCrackedPasswords(jobId, sessionName);
     } catch (error) {
-      console.error(`Error updating job status for ${jobId}:`, error);
+      logError(`Error updating job status for ${jobId}:`, error);
       await this.handleJobFailure(
         jobId,
         error instanceof Error ? error.message : 'Unknown error'
@@ -194,7 +195,7 @@ export class JobMonitor {
         return;
       }
 
-      console.log(
+      logInfo(
         `Found ${crackedPasswordsData.length} cracked passwords for job ${jobId}`
       );
 
@@ -210,7 +211,7 @@ export class JobMonitor {
         });
 
         if (!network) {
-          console.warn(`Network not found for BSSID: ${formattedBssid}`);
+          logWarn(`Network not found for BSSID: ${formattedBssid}`);
           continue;
         }
 
@@ -235,12 +236,12 @@ export class JobMonitor {
           crackedAt: new Date(),
         });
 
-        console.log(
+        logInfo(
           `Saved cracked password for network ${network.essid} (${formattedBssid}): ${crackedPwd.password}`
         );
       }
     } catch (error) {
-      console.error(`Error saving cracked passwords for job ${jobId}:`, error);
+      logError(`Error saving cracked passwords for job ${jobId}:`, error);
       // Don't fail the job update if we can't save passwords
     }
   }
@@ -263,9 +264,9 @@ export class JobMonitor {
         })
         .where(eq(jobs.id, jobId));
 
-      console.log(`Marked job ${jobId} as failed: ${errorMessage}`);
+      logInfo(`Marked job ${jobId} as failed: ${errorMessage}`);
     } catch (dbError) {
-      console.error(`Failed to update job ${jobId} as failed:`, dbError);
+      logError(`Failed to update job ${jobId} as failed:`, dbError);
     }
   }
 
@@ -290,7 +291,7 @@ export class JobMonitor {
       case 'cancelled':
         return 'cancelled';
       default:
-        console.warn(
+        logWarn(
           `Unknown session status: ${sessionStatus}, mapping to processing`
         );
         return 'processing';
@@ -312,7 +313,7 @@ export class JobMonitor {
     }
 
     if (staleSessions.length > 0) {
-      console.log(
+      logInfo(
         `Found ${staleSessions.length} stale sessions: ${staleSessions.join(', ')}`
       );
 
@@ -330,7 +331,7 @@ export class JobMonitor {
             );
           }
         } catch (error) {
-          console.error(`Error handling stale session ${sessionName}:`, error);
+          logError(`Error handling stale session ${sessionName}:`, error);
         } finally {
           this.activeSessions.delete(sessionName);
         }
@@ -343,7 +344,7 @@ export class JobMonitor {
    */
   trackSession(sessionName: string): void {
     this.activeSessions.set(sessionName, new Date());
-    console.log(`Started tracking session: ${sessionName}`);
+    logInfo(`Started tracking session: ${sessionName}`);
   }
 
   /**
@@ -351,7 +352,7 @@ export class JobMonitor {
    */
   untrackSession(sessionName: string): void {
     this.activeSessions.delete(sessionName);
-    console.log(`Stopped tracking session: ${sessionName}`);
+    logInfo(`Stopped tracking session: ${sessionName}`);
   }
 
   /**

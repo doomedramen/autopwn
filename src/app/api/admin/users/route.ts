@@ -5,6 +5,7 @@ import { users, userProfiles } from '@/lib/db/schema';
 import { eq, and, or, ilike } from 'drizzle-orm';
 import { createUserBySuperUser, getAllUsers } from '@/lib/auth';
 import { z } from 'zod';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Users fetch error:', error);
+    logError('Users fetch error:', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch users',
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('User creation error:', error);
+    logError('User creation error:', error);
     return NextResponse.json(
       {
         error: 'Failed to create user',
@@ -316,7 +317,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    console.error('User update error:', error);
+    logError('User update error:', error);
     return NextResponse.json(
       {
         error: 'Failed to update user',

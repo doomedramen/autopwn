@@ -1,5 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -33,7 +34,7 @@ export class ToolValidator {
     critical: boolean = true
   ): Promise<ToolCheckResult> {
     try {
-      console.log(`🔍 Checking availability of ${toolName}...`);
+      logInfo(`🔍 Checking availability of ${toolName}...`);
 
       const { stdout, stderr } = await execAsync(
         `${toolName} ${args.join(' ')}`,
@@ -65,7 +66,7 @@ export class ToolValidator {
         critical,
       };
 
-      console.log(`✅ ${toolName} is available (version: ${version})`);
+      logInfo(`✅ ${toolName} is available (version: ${version})`);
       this.validationResults.set(toolName, result);
       return result;
     } catch (error) {
@@ -78,7 +79,7 @@ export class ToolValidator {
         critical,
       };
 
-      console.error(`❌ ${toolName} is NOT available: ${errorMessage}`);
+      logError(`❌ ${toolName} is NOT available: ${errorMessage}`);
       this.validationResults.set(toolName, result);
       return result;
     }
@@ -88,7 +89,7 @@ export class ToolValidator {
    * Check all required tools for AutoPWN
    */
   async checkRequiredTools(): Promise<ToolCheckResult[]> {
-    console.log('🔧 Starting tool validation for AutoPWN...');
+    logInfo('🔧 Starting tool validation for AutoPWN...');
 
     const tools = [
       { name: 'hashcat', args: ['--version'], critical: true },
@@ -99,15 +100,15 @@ export class ToolValidator {
       tools.map(tool => this.checkTool(tool.name, tool.args, tool.critical))
     );
 
-    console.log('\n📊 Tool Validation Summary:');
+    logInfo('\n📊 Tool Validation Summary:');
     results.forEach(result => {
       const status = result.available ? '✅' : '❌';
       const version = result.version ? ` (v${result.version})` : '';
       const critical = result.critical ? ' [CRITICAL]' : '';
-      console.log(`${status} ${result.name}${version}${critical}`);
+      logInfo(`${status} ${result.name}${version}${critical}`);
 
       if (!result.available && result.error) {
-        console.log(`   Error: ${result.error}`);
+        logInfo(`   Error: ${result.error}`);
       }
     });
 

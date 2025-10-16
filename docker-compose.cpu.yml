@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=autopwn
       - POSTGRES_USER=autopwn
-      - POSTGRES_PASSWORD=autopwn_password
+      - POSTGRES_PASSWORD=change-this-password-in-production
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
@@ -15,12 +15,17 @@ services:
     restart: unless-stopped
 
   app:
-    image: doomedramen/autopwn:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cpu
     container_name: autopwn-app
     environment:
-      - DATABASE_URL=postgresql://autopwn:autopwn_password@postgres:5432/autopwn
-      - BETTER_AUTH_SECRET=change-this-in-production
-      - NODE_ENV=development
+      - DATABASE_URL=postgresql://autopwn:change-this-password-in-production@postgres:5432/autopwn
+      - BETTER_AUTH_SECRET=change-this-in-production-use-a-secure-secret
+      - NODE_ENV=production
+      - LOG_LEVEL=INFO  # ERROR, WARN, INFO, DEBUG, VERBOSE
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - BETTER_AUTH_URL=http://localhost:3000
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC

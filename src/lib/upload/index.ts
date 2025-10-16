@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import { join, resolve, dirname, basename, extname } from 'path';
 import { FileSystemManager } from '@/lib/filesystem';
 import { ToolResult } from '@/types';
+import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
 
 export type ProcessingResult = Record<string, unknown>;
 
@@ -294,12 +295,12 @@ export class UploadService {
    * Process PCAP files with network analysis
    */
   private async processPcapFile(filePath: string): Promise<ProcessingResult> {
-    console.log(`[UploadService] Processing PCAP file: ${filePath}`);
+    logDebug(`[UploadService] Processing PCAP file: ${filePath}`);
 
     const { HcxPcapNgTool } = await import('@/tools/hcxpcapngtool');
     const hcxTool = new HcxPcapNgTool();
 
-    console.log(
+    logDebug(
       `[UploadService] HcxPcapNgTool instance created, calling processPcapForUpload`
     );
 
@@ -309,7 +310,7 @@ export class UploadService {
       dirname(resolve(filePath))
     );
 
-    console.log(`[UploadService] processPcapForUpload result:`, {
+    logDebug(`[UploadService] processPcapForUpload result:`, {
       success: result.success,
       stderr: result.stderr,
       networksCount: result.data?.networks?.length || 0,

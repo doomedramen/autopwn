@@ -8,6 +8,7 @@ import { uploads, networks, users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import type { UploadProgress } from '@/lib/upload';
 import { auth } from '@/lib/auth';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!userProfile) {
-        console.error('❌ User profile not found for user:', userRecord.id);
+        logError('User profile not found for user:', userRecord.id);
         throw new Error(`User profile not found for user: ${userRecord.id}`);
       }
 
@@ -206,7 +207,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('PCAP upload error:', error);
+    logError('PCAP upload error:', error);
 
     return NextResponse.json(
       {
@@ -248,7 +249,7 @@ export async function GET(request: NextRequest) {
       data: progress,
     });
   } catch (error) {
-    console.error('PCAP progress error:', error);
+    logError('PCAP progress error:', error);
 
     return NextResponse.json(
       {

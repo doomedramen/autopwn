@@ -18,6 +18,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import type { AttackMode } from '@/types';
 import { jobMonitor } from '@/lib/job-monitor';
 import { auth } from '@/lib/auth';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for job creation
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
 
     // Log error details if extraction failed
     if (!extractResult.success || !extractResult.data?.outputFile) {
-      console.error('hcxpcapngtool failed:', {
+      logError('hcxpcapngtool failed:', {
         success: extractResult.success,
         stderr: extractResult.stderr,
         stdout: extractResult.stdout,
@@ -243,7 +244,7 @@ export async function POST(request: NextRequest) {
     try {
       await fs.access(actualOutputFile);
     } catch (error) {
-      console.error(`Output file does not exist: ${actualOutputFile}`, error);
+      logError(`Output file does not exist: ${actualOutputFile}`, error);
       // Clean up job directory
       await fs.rm(jobDir, { recursive: true, force: true });
       return NextResponse.json(
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!userProfile) {
-      console.error('❌ User profile not found for user:', userRecord.id);
+      logError('❌ User profile not found for user:', userRecord.id);
       throw new Error(`User profile not found for user: ${userRecord.id}`);
     }
 
@@ -380,7 +381,7 @@ export async function POST(request: NextRequest) {
       data: newJob,
     });
   } catch (error) {
-    console.error('Job creation error:', error);
+    logError('Job creation error:', error);
 
     return NextResponse.json(
       {
@@ -408,7 +409,7 @@ export async function GET() {
       data: jobList,
     });
   } catch (error) {
-    console.error('Jobs fetch error:', error);
+    logError('Jobs fetch error:', error);
 
     return NextResponse.json(
       {

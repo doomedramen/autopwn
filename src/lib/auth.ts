@@ -10,6 +10,7 @@ import {
 } from './db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import { logInfo } from '@/lib/logger';
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -133,11 +134,12 @@ export async function createSuperUserIfNotExists() {
     requirePasswordChange: !process.env.PLAYWRIGHT, // Don't require password change in tests
   });
 
-  console.log('🔐 Initial Superuser Created:');
-  console.log(`   Email: ${randomEmail}`);
-  console.log(`   Password: ${randomPassword}`);
-  console.log(`   Username: ${username}`);
-  console.log('⚠️  Please change these credentials after first login!');
+  logInfo('Initial Superuser Created:', {
+    email: randomEmail,
+    password: randomPassword,
+    username: username,
+    warning: 'Please change these credentials after first login!',
+  });
 
   return { ...superUser, plainPassword: randomPassword };
 }

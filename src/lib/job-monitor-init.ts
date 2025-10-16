@@ -1,5 +1,6 @@
 import { jobMonitor } from '@/lib/job-monitor';
 import { toolValidator } from '@/lib/tool-validation';
+import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
 
 // Build time detection - only skip during actual build/static generation
 const isBuildTime =
@@ -18,31 +19,31 @@ const hasDatabaseUrl = !!process.env.DATABASE_URL;
 // Tool validation function
 async function validateToolsOnStartup() {
   try {
-    console.log('🔧 Validating required tools on application startup...');
+    logInfo('🔧 Validating required tools on application startup...');
     const results = await toolValidator.checkRequiredTools();
     const missingCritical = results.filter(r => r.critical && !r.available);
 
     if (missingCritical.length > 0) {
-      console.error('\n❌ CRITICAL: Required tools are missing!');
-      console.error('Missing tools:');
+      logError('\n❌ CRITICAL: Required tools are missing!');
+      logError('Missing tools:');
       missingCritical.forEach(tool => {
-        console.error(`  - ${tool.name}: ${tool.error || 'Unknown error'}`);
+        logError(`  - ${tool.name}: ${tool.error || 'Unknown error'}`);
       });
-      console.error(
+      logError(
         '\n⚠️  AutoPWN will run in degraded mode without these tools.'
       );
-      console.error('Password cracking functionality will not work properly.');
-      console.error('PCAP analysis functionality will be limited.');
-      console.error(
+      logError('Password cracking functionality will not work properly.');
+      logError('PCAP analysis functionality will be limited.');
+      logError(
         'Please ensure you are using a Docker image with all tools installed.'
       );
     } else {
-      console.log('\n✅ All required tools are available!');
-      console.log('AutoPWN is ready for full functionality.');
+      logInfo('\n✅ All required tools are available!');
+      logInfo('AutoPWN is ready for full functionality.');
     }
   } catch (error) {
-    console.warn('⚠️  Tool validation failed:', error);
-    console.warn(
+    logWarn('⚠️  Tool validation failed:', error);
+    logWarn(
       'Application will continue, but functionality may be limited.'
     );
   }
@@ -59,21 +60,21 @@ if (
     // Validate tools first
     validateToolsOnStartup();
 
-    console.log('Initializing job monitor service...');
+    logInfo('Initializing job monitor service...');
     jobMonitor.start();
   } catch (error) {
-    console.warn('Failed to initialize job monitor:', error);
+    logWarn('Failed to initialize job monitor:', error);
   }
 } else if (isBuildTime) {
-  console.log(
+  logInfo(
     'Skipping tool validation and job monitor initialization during build'
   );
 } else if (isCICD) {
-  console.log(
+  logInfo(
     'Skipping tool validation and job monitor initialization in CI/CD'
   );
 } else if (!hasDatabaseUrl) {
-  console.log(
+  logInfo(
     'Skipping tool validation and job monitor initialization - no DATABASE_URL available'
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { uploads } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { logError } from '@/lib/logger';
 
 /**
  * Get all dictionaries
@@ -49,7 +50,7 @@ export async function GET() {
       data: enrichedDictionaries,
     });
   } catch (error) {
-    console.error('Dictionaries fetch error:', error);
+    logError('Dictionaries fetch error:', error);
 
     return NextResponse.json(
       {

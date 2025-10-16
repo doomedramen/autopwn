@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { logError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       session: session,
     });
   } catch (error) {
-    console.error('Error getting user session:', error);
+    logError('Error getting user session:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -40,7 +40,10 @@ next-env.d.ts
 
 # Documentation
 README.md
-docs/
+
+# Docker
+docker/archived/
+Dockerfile*
 
 # CI/CD
 .github/

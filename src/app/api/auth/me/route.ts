@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       updatedAt: user.updatedAt,
     });
   } catch (error) {
-    console.error('Get user error:', error);
+    logError('Get user error:', error);
     return NextResponse.json(
       {
         error: 'Failed to get user information',

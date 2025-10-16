@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: autopwn-postgres
+    environment:
+      - POSTGRES_DB=autopwn
+      - POSTGRES_USER=autopwn
+      - POSTGRES_PASSWORD=change-this-password-in-production
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.amd
+    container_name: autopwn-app
+    environment:
+      - DATABASE_URL=postgresql://autopwn:change-this-password-in-production@postgres:5432/autopwn
+      - BETTER_AUTH_SECRET=change-this-in-production-use-a-secure-secret
+      - NODE_ENV=production
+      - LOG_LEVEL=INFO  # ERROR, WARN, INFO, DEBUG, VERBOSE
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - BETTER_AUTH_URL=http://localhost:3000
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./uploads_data:/app/uploads
+      - ./jobs_data:/app/jobs
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
+
+volumes:
+  postgres_data:

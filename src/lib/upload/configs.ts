@@ -2,6 +2,7 @@ import { UploadConfig } from './index';
 import { dirname, extname, basename } from 'path';
 import { promises as fs, createReadStream } from 'fs';
 import * as readline from 'readline';
+import { logError, logInfo, logDebug, logWarn } from '@/lib/logger';
 
 /**
  * PCAP file upload configuration
@@ -205,7 +206,7 @@ export const DICTIONARY_UPLOAD_CONFIG: UploadConfig = {
             }
           }
         } catch (error) {
-          console.warn('Failed to process dictionary file:', error);
+          logWarn('Failed to process dictionary file:', error);
         }
       }
 

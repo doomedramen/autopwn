@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { networks } from '@/lib/db/schema';
+import { logApi, logData, logDebug, logError } from '@/lib/logger';
 
 /**
  * Get all networks
@@ -14,24 +15,22 @@ export async function GET() {
       orderBy: (networks, { desc }) => [desc(networks.createdAt)],
     });
 
-    console.log(`🌐 Networks API: Found ${networkList.length} networks`);
-    console.log('📊 Network data:', JSON.stringify(networkList, null, 2));
+    logApi(`Networks found: ${networkList.length}`);
+    logData('Network data:', networkList);
 
     // Add debug info if no networks found
     if (networkList.length === 0) {
-      console.log('🔍 Debug: No networks found. Checking uploads table...');
+      logDebug('No networks found. Checking uploads table...');
       const { uploads } = await import('@/lib/db/schema');
       const allUploads = await db.query.uploads.findMany();
-      console.log(`📦 Found ${allUploads.length} uploads`);
+      logDebug(`Found ${allUploads.length} uploads`);
 
       // Check if any uploads have networks
       for (const upload of allUploads) {
         const uploadNetworks = await db.query.networks.findMany({
           where: (networks, { eq }) => eq(networks.uploadId, upload.id),
         });
-        console.log(
-          `📶 Upload ${upload.id} (${upload.filename}): ${uploadNetworks.length} networks`
-        );
+        logDebug(`Upload ${upload.id} (${upload.filename}): ${uploadNetworks.length} networks`);
       }
     }
 
@@ -44,7 +43,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Networks fetch error:', error);
+    logError('Networks fetch error:', error);
 
     return NextResponse.json(
       {

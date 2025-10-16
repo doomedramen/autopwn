@@ -7,6 +7,7 @@ import { uploads, users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import type { UploadProgress } from '@/lib/upload';
+import { logError, logDebug, logInfo } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 600; // 10 minutes for large dictionary files
@@ -91,18 +92,18 @@ export async function POST(request: NextRequest) {
 
         // Check if user profile exists, create if missing (for test environments)
         if (userRecord) {
-          console.log('🔍 Found authenticated user:', userRecord.id);
+          logDebug('Found authenticated user:', userRecord.id);
           const userProfile = await db.query.userProfiles.findFirst({
             where: eq(userProfiles.userId, userRecord.id),
           });
 
-          console.log('👤 User profile exists:', !!userProfile);
+          logDebug('User profile exists:', !!userProfile);
           if (userProfile) {
-            console.log('✅ User profile ID:', userProfile.id);
-            console.log('🔗 User profile userId:', userProfile.userId);
+            logDebug('User profile ID:', userProfile.id);
+            logDebug('User profile userId:', userProfile.userId);
           }
           if (!userProfile) {
-            console.log('🔧 Creating missing user profile for:', userRecord.id);
+            logDebug('Creating missing user profile for:', userRecord.id);
             await db.insert(userProfiles).values({
               userId: userRecord.id,
               username:
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
               isEmailVerified: true,
               requirePasswordChange: false,
             });
-            console.log('✅ User profile created successfully');
+            logDebug('User profile created successfully');
           }
         }
       }
@@ -151,15 +152,12 @@ export async function POST(request: NextRequest) {
       });
 
       if (!userProfile) {
-        console.error('❌ User profile not found for user:', userRecord.id);
+        logError('User profile not found for user:', userRecord.id);
         throw new Error(`User profile not found for user: ${userRecord.id}`);
       }
 
-      console.log(
-        '💾 Creating upload record with userProfileId:',
-        userProfile.id
-      );
-      console.log('🔑 User profile ID type:', typeof userProfile.id);
+      logDebug('Creating upload record with userProfileId:', userProfile.id);
+      logDebug('User profile ID type:', typeof userProfile.id);
       const [uploadRecord] = await db
         .insert(uploads)
         .values({
@@ -211,11 +209,8 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('Dictionary upload error:', error);
-    console.error(
-      'Error stack:',
-      error instanceof Error ? error.stack : 'No stack trace'
-    );
+  logError('Dictionary upload error:', error);
+  logError('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
     return NextResponse.json(
       {
@@ -258,7 +253,7 @@ export async function GET(request: NextRequest) {
       data: progress,
     });
   } catch (error) {
-    console.error('Dictionary progress error:', error);
+  logError('Dictionary progress error:', error);
 
     return NextResponse.json(
       {
@@ -300,7 +295,7 @@ export async function DELETE(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Dictionary cancel error:', error);
+    logError('Dictionary cancel error:', error);
 
     return NextResponse.json(
       {

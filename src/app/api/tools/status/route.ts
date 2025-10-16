@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { toolValidator } from '@/lib/tool-validation';
+import { logError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Tool status check error:', error);
+    logError('Tool status check error:', error);
 
     return NextResponse.json(
       {
