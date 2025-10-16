@@ -29,9 +29,7 @@ async function validateToolsOnStartup() {
       missingCritical.forEach(tool => {
         logError(`  - ${tool.name}: ${tool.error || 'Unknown error'}`);
       });
-      logError(
-        '\n⚠️  AutoPWN will run in degraded mode without these tools.'
-      );
+      logError('\n⚠️  AutoPWN will run in degraded mode without these tools.');
       logError('Password cracking functionality will not work properly.');
       logError('PCAP analysis functionality will be limited.');
       logError(
@@ -43,9 +41,7 @@ async function validateToolsOnStartup() {
     }
   } catch (error) {
     logWarn('⚠️  Tool validation failed:', error);
-    logWarn(
-      'Application will continue, but functionality may be limited.'
-    );
+    logWarn('Application will continue, but functionality may be limited.');
   }
 }
 
@@ -70,9 +66,7 @@ if (
     'Skipping tool validation and job monitor initialization during build'
   );
 } else if (isCICD) {
-  logInfo(
-    'Skipping tool validation and job monitor initialization in CI/CD'
-  );
+  logInfo('Skipping tool validation and job monitor initialization in CI/CD');
 } else if (!hasDatabaseUrl) {
   logInfo(
     'Skipping tool validation and job monitor initialization - no DATABASE_URL available'

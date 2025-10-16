@@ -28,7 +28,9 @@ export async function GET() {
         const uploadNetworks = await db.query.networks.findMany({
           where: (networks, { eq }) => eq(networks.uploadId, upload.id),
         });
-        logDebug(`Upload ${upload.id} (${upload.filename}): ${uploadNetworks.length} networks`);
+        logDebug(
+          `Upload ${upload.id} (${upload.filename}): ${uploadNetworks.length} networks`
+        );
       }
     }
 

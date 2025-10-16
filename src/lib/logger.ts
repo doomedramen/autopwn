@@ -29,7 +29,9 @@ class Logger {
   private getLogLevelFromEnv(envLevel?: string): LogLevel {
     if (!envLevel) {
       // Default to INFO in production, DEBUG in development
-      return process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
+      return process.env.NODE_ENV === 'production'
+        ? LogLevel.INFO
+        : LogLevel.DEBUG;
     }
 
     const level = envLevel.toUpperCase();
@@ -125,11 +127,19 @@ class Logger {
 export const logger = new Logger();
 
 // Export convenience functions
-export const logError = (message: string, ...args: unknown[]) => logger.error(message, ...args);
-export const logWarn = (message: string, ...args: unknown[]) => logger.warn(message, ...args);
-export const logInfo = (message: string, ...args: unknown[]) => logger.info(message, ...args);
-export const logDebug = (message: string, ...args: unknown[]) => logger.debug(message, ...args);
-export const logVerbose = (message: string, ...args: unknown[]) => logger.verbose(message, ...args);
-export const logApi = (message: string, data?: unknown) => logger.api(message, data);
-export const logData = (message: string, data?: unknown) => logger.data(message, data);
-export const logTool = (message: string, data?: unknown) => logger.tool(message, data);
+export const logError = (message: string, ...args: unknown[]) =>
+  logger.error(message, ...args);
+export const logWarn = (message: string, ...args: unknown[]) =>
+  logger.warn(message, ...args);
+export const logInfo = (message: string, ...args: unknown[]) =>
+  logger.info(message, ...args);
+export const logDebug = (message: string, ...args: unknown[]) =>
+  logger.debug(message, ...args);
+export const logVerbose = (message: string, ...args: unknown[]) =>
+  logger.verbose(message, ...args);
+export const logApi = (message: string, data?: unknown) =>
+  logger.api(message, data);
+export const logData = (message: string, data?: unknown) =>
+  logger.data(message, data);
+export const logTool = (message: string, data?: unknown) =>
+  logger.tool(message, data);

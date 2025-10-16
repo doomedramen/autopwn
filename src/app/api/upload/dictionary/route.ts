@@ -209,8 +209,11 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-  logError('Dictionary upload error:', error);
-  logError('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    logError('Dictionary upload error:', error);
+    logError(
+      'Error stack:',
+      error instanceof Error ? error.stack : 'No stack trace'
+    );
 
     return NextResponse.json(
       {
@@ -253,7 +256,7 @@ export async function GET(request: NextRequest) {
       data: progress,
     });
   } catch (error) {
-  logError('Dictionary progress error:', error);
+    logError('Dictionary progress error:', error);
 
     return NextResponse.json(
       {

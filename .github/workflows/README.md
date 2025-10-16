@@ -10,19 +10,19 @@ The Docker deployment workflow builds and publishes Docker images for multiple h
 
 ### Available Variants
 
-| Variant | Dockerfile | Description | Target Hardware | Size Estimate |
-|---------|------------|-------------|-----------------|---------------|
-| **CPU** | `docker/Dockerfile.cpu` | CPU-optimized (Debian Slim) | General purpose, testing | ~900MB |
-| **NVIDIA** | `docker/Dockerfile.nvidia` | NVIDIA GPU support (CUDA) | NVIDIA GPUs | ~1.5GB |
-| **AMD** | `docker/Dockerfile.amd` | AMD GPU support (ROCm) | AMD GPUs | ~1.3GB |
-| **Intel** | `docker/Dockerfile.intel` | Intel GPU support (oneAPI) | Intel Arc GPUs | ~1.2GB |
+| Variant    | Dockerfile                 | Description                 | Target Hardware          | Size Estimate |
+| ---------- | -------------------------- | --------------------------- | ------------------------ | ------------- |
+| **CPU**    | `docker/Dockerfile.cpu`    | CPU-optimized (Debian Slim) | General purpose, testing | ~900MB        |
+| **NVIDIA** | `docker/Dockerfile.nvidia` | NVIDIA GPU support (CUDA)   | NVIDIA GPUs              | ~1.5GB        |
+| **AMD**    | `docker/Dockerfile.amd`    | AMD GPU support (ROCm)      | AMD GPUs                 | ~1.3GB        |
+| **Intel**  | `docker/Dockerfile.intel`  | Intel GPU support (oneAPI)  | Intel Arc GPUs           | ~1.2GB        |
 
 ### Build Triggers
 
 The workflow builds images automatically when:
 
 1. **Push to main/master branch** → Builds `main-*` and `latest-*` tags
-2. **Push tags (v*.*.*)** → Builds versioned tags (`1.2.3-*`, `1.2-*`, `1-*`)
+2. **Push tags (v*.*.\*)** → Builds versioned tags (`1.2.3-*`, `1.2-*`, `1-*`)
 3. **Pull requests** → Builds PR tags (`pr-123-*`) for testing
 
 ### Docker Image Tagging Strategy
@@ -104,6 +104,7 @@ strategy:
 ### Usage Examples
 
 #### Development Environment
+
 ```bash
 # Use CPU variant for development
 docker pull yourusername/autopwn:latest-cpu
@@ -111,6 +112,7 @@ docker run -p 3000:3000 yourusername/autopwn:latest-cpu
 ```
 
 #### Production with NVIDIA GPU
+
 ```bash
 # NVIDIA GPU production deployment
 docker pull yourusername/autopwn:latest-nvidia
@@ -118,6 +120,7 @@ docker run --gpus all -p 3000:3000 yourusername/autopwn:latest-nvidia
 ```
 
 #### Versioned Deployment
+
 ```bash
 # Deploy specific version
 docker pull yourusername/autopwn:1.2.3-nvidia
@@ -125,23 +128,25 @@ docker run --gpus all -p 3000:3000 yourusername/autopwn:1.2.3-nvidia
 ```
 
 #### Docker Compose
+
 ```yaml
 services:
   autopwn:
     image: yourusername/autopwn:latest-cpu
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - DATABASE_URL=postgresql://postgres:5432/autopwn
 ```
 
 For GPU deployments:
+
 ```yaml
 services:
   autopwn:
     image: yourusername/autopwn:latest-nvidia
     ports:
-      - "3000:3000"
+      - '3000:3000'
     deploy:
       resources:
         reservations:
@@ -161,6 +166,7 @@ If you were using the old single image setup:
 
 1. **No changes needed** for CPU deployments - default tags maintain compatibility
 2. **For GPU deployments**, switch to variant-specific tags:
+
    ```bash
    # Old way (no longer maintained)
    docker pull yourusername/autopwn:latest
@@ -201,12 +207,12 @@ services:
 
 ### Build Times
 
-| Variant | Build Time | Platforms |
-|---------|------------|-----------|
-| CPU | 3-5 minutes | linux/amd64,linux/arm64 |
-| NVIDIA | 5-8 minutes | linux/amd64 |
-| AMD | 6-10 minutes | linux/amd64 |
-| Intel | 5-8 minutes | linux/amd64 |
+| Variant | Build Time   | Platforms               |
+| ------- | ------------ | ----------------------- |
+| CPU     | 3-5 minutes  | linux/amd64,linux/arm64 |
+| NVIDIA  | 5-8 minutes  | linux/amd64             |
+| AMD     | 6-10 minutes | linux/amd64             |
+| Intel   | 5-8 minutes  | linux/amd64             |
 
 ### Benefits
 

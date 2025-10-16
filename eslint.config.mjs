@@ -50,7 +50,12 @@ const eslintConfig = [
   },
   {
     // Allow console in React components (for development debugging)
-    files: ['src/app/**/*.tsx', 'src/components/**/*.tsx', 'src/components/**/*.ts', 'src/hooks/**/*.ts'],
+    files: [
+      'src/app/**/*.tsx',
+      'src/components/**/*.tsx',
+      'src/components/**/*.ts',
+      'src/hooks/**/*.ts',
+    ],
     rules: {
       'no-console': 'warn',
     },

@@ -32,21 +32,21 @@ docker-compose -f docker-compose.intel.yml up -d   # Intel GPU
 
 All variants use Debian/Ubuntu with package manager installation for **faster builds** and **smaller images** (~900MB vs 1.7GB).
 
-| Variant | Description | Size | Build Time | Hardware |
-|---------|-------------|------|------------|----------|
-| **CPU** | Development & general use | ~900MB | 3-5 min | Any |
-| **NVIDIA** | GPU acceleration | ~1.5GB | 5-8 min | NVIDIA GPU |
-| **AMD** | GPU acceleration | ~1.3GB | 6-10 min | AMD GPU |
-| **Intel** | GPU acceleration | ~1.2GB | 5-8 min | Intel GPU |
+| Variant    | Description               | Size   | Build Time | Hardware   |
+| ---------- | ------------------------- | ------ | ---------- | ---------- |
+| **CPU**    | Development & general use | ~900MB | 3-5 min    | Any        |
+| **NVIDIA** | GPU acceleration          | ~1.5GB | 5-8 min    | NVIDIA GPU |
+| **AMD**    | GPU acceleration          | ~1.3GB | 6-10 min   | AMD GPU    |
+| **Intel**  | GPU acceleration          | ~1.2GB | 5-8 min    | Intel GPU  |
 
 ### Performance Comparison
 
-| GPU Type | Speed (vs CPU) | Typical Use Case |
-|----------|----------------|----------------|
-| **NVIDIA** | 10-100x faster | High-performance cracking |
-| **AMD** | 5-50x faster | Good performance cracking |
-| **Intel** | 2-20x faster | Moderate performance cracking |
-| **CPU** | Baseline | Testing, development |
+| GPU Type   | Speed (vs CPU) | Typical Use Case              |
+| ---------- | -------------- | ----------------------------- |
+| **NVIDIA** | 10-100x faster | High-performance cracking     |
+| **AMD**    | 5-50x faster   | Good performance cracking     |
+| **Intel**  | 2-20x faster   | Moderate performance cracking |
+| **CPU**    | Baseline       | Testing, development          |
 
 ## Building Variants
 
@@ -99,7 +99,7 @@ environment:
   - DATABASE_URL=postgresql://autopwn:YOUR_PASSWORD@postgres:5432/autopwn
   - BETTER_AUTH_SECRET=your-super-secret-key-32-chars-long
   - NODE_ENV=production
-  - LOG_LEVEL=INFO  # ERROR, WARN, INFO, DEBUG, VERBOSE
+  - LOG_LEVEL=INFO # ERROR, WARN, INFO, DEBUG, VERBOSE
   - NEXT_PUBLIC_APP_URL=http://your-domain.com
   - BETTER_AUTH_URL=http://your-domain.com
 ```
@@ -116,13 +116,13 @@ environment:
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection | ✅ |
-| `BETTER_AUTH_SECRET` | Auth secret (32+ chars) | ✅ |
-| `BETTER_AUTH_URL` | Base URL for auth | |
-| `NEXT_PUBLIC_APP_URL` | Public app URL | |
-| `LOG_LEVEL` | Logging verbosity: ERROR, WARN, INFO, DEBUG, VERBOSE | |
+| Variable              | Description                                          | Required |
+| --------------------- | ---------------------------------------------------- | -------- |
+| `DATABASE_URL`        | PostgreSQL connection                                | ✅       |
+| `BETTER_AUTH_SECRET`  | Auth secret (32+ chars)                              | ✅       |
+| `BETTER_AUTH_URL`     | Base URL for auth                                    |          |
+| `NEXT_PUBLIC_APP_URL` | Public app URL                                       |          |
+| `LOG_LEVEL`           | Logging verbosity: ERROR, WARN, INFO, DEBUG, VERBOSE |          |
 
 ### Logging Levels
 
@@ -135,6 +135,7 @@ environment:
 ## Installation Requirements
 
 ### NVIDIA GPU Support
+
 ```bash
 # Install NVIDIA Container Toolkit
 distribution=$(. /etc/os-release;echo $ID$VERSION)
@@ -146,6 +147,7 @@ sudo systemctl restart docker
 ```
 
 ### AMD GPU Support
+
 ```bash
 # Install ROCm drivers
 sudo apt-get update
@@ -155,6 +157,7 @@ sudo reboot
 ```
 
 ### Intel GPU Support
+
 ```bash
 # Install Intel oneAPI
 wget -qO - https://repositories.intel.com/gpu/intel-graphics-pub.key.asc | sudo apt-key add -
@@ -166,6 +169,7 @@ sudo apt-get install -y intel-opencl-icd intel-level-zero-gpu
 ## GPU Support Details
 
 ### NVIDIA GPU Variant
+
 - **Base**: `nvidia/cuda:12.0-runtime-ubuntu22.04`
 - **Features**: hcxtools + hashcat-nvidia + CUDA
 - **Requirements**: NVIDIA drivers, Docker with GPU support
@@ -181,6 +185,7 @@ sudo apt-get install -y intel-opencl-icd intel-level-zero-gpu
   ```
 
 ### AMD GPU Variant
+
 - **Base**: `ubuntu:22.04` + ROCm
 - **Features**: hcxtools + hashcat + ROCm + OpenCL
 - **Requirements**: AMD GPU, ROCm drivers
@@ -191,6 +196,7 @@ sudo apt-get install -y intel-opencl-icd intel-level-zero-gpu
   ```
 
 ### Intel GPU Variant
+
 - **Base**: `ubuntu:22.04` + Intel oneAPI
 - **Features**: hcxtools + hashcat + Intel oneAPI + OpenCL
 - **Requirements**: Intel GPU, oneAPI drivers
@@ -217,22 +223,25 @@ sudo apt-get install -y intel-opencl-icd intel-level-zero-gpu
 ## Migration from Current Dockerfile
 
 ### 1. Update docker-compose.yml
+
 ```yaml
 services:
   app:
     build:
       context: .
-      dockerfile: docker/Dockerfile.cpu  # Change this line
+      dockerfile: docker/Dockerfile.cpu # Change this line
     # ... rest of your config
 ```
 
 ### 2. Test CPU variant first
+
 ```bash
 docker build -f docker/Dockerfile.cpu -t autopwn:cpu .
 docker run -p 3000:3000 autopwn:cpu
 ```
 
 ### 3. Switch to GPU variant when ready
+
 ```bash
 # Example for NVIDIA
 docker build -f docker/Dockerfile.nvidia -t autopwn:nvidia .
@@ -243,6 +252,7 @@ docker build -f docker/Dockerfile.nvidia -t autopwn:nvidia .
 Images are tagged with variant suffixes when built via GitHub Actions:
 
 ### Variant-Specific Tags
+
 ```bash
 # Development builds
 yourusername/autopwn:main-cpu      # CPU variant (default)
@@ -257,7 +267,9 @@ yourusername/autopwn:latest-cpu    # CPU variant (recommended)
 ```
 
 ### Default Tags (Backward Compatibility)
+
 For backward compatibility, the CPU variant is also published without variant suffixes:
+
 ```bash
 yourusername/autopwn:latest        # → CPU variant
 yourusername/autopwn:1.2.3         # → CPU variant
