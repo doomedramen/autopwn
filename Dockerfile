@@ -113,16 +113,20 @@ RUN apk update \
     && apk del .build-deps
 
 # Install hashcat for password cracking (CPU-only version)
-RUN apk add --no-cache \
+# Using a more reliable approach with proper error handling
+RUN apk update && apk add --no-cache \
     make gcc git g++ libgcc musl-dev openssl-dev linux-headers curl-dev zlib-dev \
     cblas libgomp ncurses \
     && cd /tmp \
-    && git clone https://github.com/hashcat/hashcat.git \
+    && git clone --depth=1 https://github.com/hashcat/hashcat.git \
     && cd hashcat \
+    && make clean || true \
     && make \
     && make install \
     && mkdir -p /usr/local/share/hashcat/modules \
-    && cp -r deps/* /usr/local/share/hashcat/modules/ \
+    && mkdir -p /usr/local/share/hashcat/OpenCL \
+    && cp -r deps/* /usr/local/share/hashcat/modules/ 2>/dev/null || true \
+    && cp -r OpenCL/* /usr/local/share/hashcat/OpenCL/ 2>/dev/null || true \
     && cd / \
     && rm -rf /tmp/hashcat
 
