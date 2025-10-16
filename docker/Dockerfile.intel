@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Add Intel oneAPI repository
-RUN wget -qO - https://repositories.intel.com/gpu/intel-graphics-pub.key.asc | apt-key add - \
-    echo "deb [trusted=yes] https://repositories.intel.com/gpu/ubuntu jammy client" > /etc/apt/sources.list.d/intel-gpu-jammy.list \
+RUN wget -qO - https://repositories.intel.com/gpu/intel-graphics-pub.key.asc | gpg --dearmor -o /usr/share/keyrings/intel-graphics.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/intel-graphics.gpg] https://repositories.intel.com/gpu/ubuntu jammy client" > /etc/apt/sources.list.d/intel-gpu-jammy.list \
     && apt-get update
 
 # Install dependencies only when needed

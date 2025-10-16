@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ROCm repository and AMD GPU support
-RUN wget -qO - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
-    && echo "deb [arch=amd64] https://repo.radeon.com/rocm/apt/22.04 main" | tee /etc/apt/sources.list.d/rocm.list \
+RUN wget -qO - https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /usr/share/keyrings/rocm.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/22.04 main" | tee /etc/apt/sources.list.d/rocm.list \
     && apt-get update
 
 # Install dependencies only when needed
