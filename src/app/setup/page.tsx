@@ -45,7 +45,6 @@ export default function SetupPage() {
         setIsInitialized(false);
       }
     } catch {
-      console.error('Failed to check initialization status');
       setError('Failed to check system status');
     }
   };
@@ -68,15 +67,6 @@ export default function SetupPage() {
         setSuperUser(data.data);
         setIsInitialized(true);
         toast.success('System initialized successfully!');
-
-        // Show credentials in console as well
-        console.log('🔐 Initial Superuser Credentials:');
-        console.log(`   Email: ${data.data.email}`);
-        console.log(`   Password: ${data.data.password}`);
-        console.log(`   Username: ${data.data.username}`);
-        console.log(
-          '⚠️  Please save these credentials and change them after first login!'
-        );
       } else {
         setError(data.error || 'Initialization failed');
         toast.error(data.error || 'Initialization failed');

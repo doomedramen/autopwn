@@ -8,6 +8,7 @@ import {
   UPLOAD_CONFIGS,
   getUploadEndpoint,
 } from './types';
+import { logDebug, logError } from '@/lib/logger';
 
 export function useFileUpload(options: UseFileUploadOptions) {
   const [state, setState] = useState<FileUploadState>({
@@ -90,7 +91,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
               if (progress.stage === 'completed') {
                 // The progress endpoint should return the complete result when completed
                 // No need for additional API call
-                console.log(
+                logDebug(
                   'Upload completed for fileId:',
                   fileId,
                   'Progress:',
@@ -146,7 +147,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
             }
           }
         } catch (error) {
-          console.error('Error polling progress:', error);
+          logError('Error polling progress:', error);
           clearInterval(interval);
           progressIntervalsRef.current.delete(fileId);
           options.onError?.(fileId, 'Failed to track progress');
@@ -369,7 +370,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
         }));
       }
     } catch (error) {
-      console.error('Error cancelling upload:', error);
+      logError('Error cancelling upload:', error);
     }
   }, []);
 

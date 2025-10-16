@@ -9,6 +9,7 @@ import {
   ToolExecutionOptions,
   JobStatus,
 } from '@/types';
+import { logTool, logDebug, logError } from '@/lib/logger';
 
 export interface HashcatJob {
   id: string;
@@ -55,15 +56,15 @@ declare global {
 // Initialize global state if not already present
 if (!globalThis.hashcatActiveSessions) {
   globalThis.hashcatActiveSessions = new Map();
-  console.log('[hashcat] Initialized global hashcatActiveSessions');
+  logDebug('[hashcat] Initialized global hashcatActiveSessions');
 }
 if (!globalThis.hashcatSessionStatus) {
   globalThis.hashcatSessionStatus = new Map();
-  console.log('[hashcat] Initialized global hashcatSessionStatus');
+  logDebug('[hashcat] Initialized global hashcatSessionStatus');
 }
 if (!globalThis.hashcatSessionOutputBuffer) {
   globalThis.hashcatSessionOutputBuffer = new Map();
-  console.log('[hashcat] Initialized global hashcatSessionOutputBuffer');
+  logDebug('[hashcat] Initialized global hashcatSessionOutputBuffer');
 }
 
 export class HashcatWrapper {
@@ -86,7 +87,7 @@ export class HashcatWrapper {
   constructor(executablePath: string = 'hashcat') {
     this.executablePath = executablePath;
     this.instanceId = ++HashcatWrapper.instanceCount;
-    console.log(
+    logTool(
       `[hashcat] NEW INSTANCE CREATED! Instance #${this.instanceId}, Total instances: ${HashcatWrapper.instanceCount}`
     );
   }
@@ -223,7 +224,7 @@ export class HashcatWrapper {
       const args = this.buildCommandArgs(job, sessionName);
 
       // Start hashcat process
-      console.log(
+      logTool(
         `[hashcat #${this.instanceId}] Starting session ${sessionName} with args:`,
         args
       );
@@ -241,7 +242,7 @@ export class HashcatWrapper {
           spawnError.message.includes('ENOENT')
         ) {
           const errorMsg = `Hashcat binary not found. Please install hashcat on the system. Command: '${this.executablePath}'`;
-          console.error(`[hashcat] ${errorMsg}`);
+          logError(`[hashcat] ${errorMsg}`);
           job.status = 'failed';
           job.error = errorMsg;
           return {
@@ -256,7 +257,7 @@ export class HashcatWrapper {
       }
 
       // Log process PID
-      console.log(
+      logDebug(
         `[hashcat #${this.instanceId}] Spawned process with PID: ${child.pid}`
       );
 
@@ -275,14 +276,14 @@ export class HashcatWrapper {
         total: job.total || 0,
         currentDictionary: '',
       });
-      console.log(
+      logDebug(
         `[hashcat] Initialized cache for session: ${sessionName}, total cached sessions: ${this.sessionStatus.size}`
       );
 
       // Attach stdout listener to parse status updates in real-time
       child.stdout?.on('data', (data: Buffer) => {
         const output = data.toString();
-        console.log(
+        logDebug(
           `[hashcat] ${sessionName} stdout:`,
           output.substring(0, 200)
         );
@@ -293,7 +294,7 @@ export class HashcatWrapper {
       // Attach stderr listener (hashcat outputs status to stderr)
       child.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
-        console.log(
+        logDebug(
           `[hashcat] ${sessionName} stderr:`,
           output.substring(0, 200)
         );
@@ -303,7 +304,7 @@ export class HashcatWrapper {
 
       // Handle process completion
       child.on('exit', (code, signal) => {
-        console.log(
+        logDebug(
           `[hashcat] Session ${sessionName} exited with code ${code}, signal ${signal}`
         );
 
@@ -320,13 +321,13 @@ export class HashcatWrapper {
 
       // Handle process errors
       child.on('error', error => {
-        console.error(`[hashcat] Session ${sessionName} error:`, error);
+        logError(`[hashcat] Session ${sessionName} error:`, error);
 
         // Provide better error message for ENOENT
         let errorMessage = error.message;
         if (error.message.includes('ENOENT')) {
           errorMessage = `Hashcat binary not found. Please install hashcat on the system. Command: '${this.executablePath}'`;
-          console.error(`[hashcat] ${errorMessage}`);
+          logError(`[hashcat] ${errorMessage}`);
         }
 
         const currentStatus = this.sessionStatus.get(sessionName);
@@ -338,7 +339,7 @@ export class HashcatWrapper {
       });
 
       // Log when process is spawned successfully
-      console.log(
+      logDebug(
         `[hashcat] Session ${sessionName} process started successfully`
       );
 
@@ -378,10 +379,10 @@ export class HashcatWrapper {
     try {
       // Get cached status instead of querying hashcat externally
       const allSessions = Array.from(this.sessionStatus.keys());
-      console.log(
+      logDebug(
         `[hashcat #${this.instanceId}] getJobStatus called for: ${sessionName}`
       );
-      console.log(
+      logDebug(
         `[hashcat #${this.instanceId}] Cached sessions (${this.sessionStatus.size}):`,
         allSessions
       );
@@ -389,10 +390,10 @@ export class HashcatWrapper {
       const cachedStatus = this.sessionStatus.get(sessionName);
 
       if (!cachedStatus) {
-        console.error(
+        logError(
           `[hashcat] ERROR: No cache found for session: ${sessionName}`
         );
-        console.error(`[hashcat] Available sessions:`, allSessions);
+        logError(`[hashcat] Available sessions:`, allSessions);
         return {
           success: false,
           stdout: '',

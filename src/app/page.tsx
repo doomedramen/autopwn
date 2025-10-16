@@ -62,7 +62,7 @@ interface JobInfo {
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superuser';
-  const { setFace, setTemporaryFace, resetFace } = useLogo();
+  const { setFace, setTemporaryFace } = useLogo();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -89,7 +89,6 @@ export default function Home() {
       const data = await response.json();
       setIsSystemInitialized(data.initialized);
     } catch (error) {
-      console.error('Failed to check system initialization:', error);
       setIsSystemInitialized(false);
     }
   };
@@ -128,15 +127,7 @@ export default function Home() {
       const networksResponse = await fetch('/api/networks');
       if (networksResponse.ok) {
         const networksData = await networksResponse.json();
-        console.log('📡 Dashboard: Networks API response:', networksData);
-        console.log('📡 Dashboard: Setting networks:', networksData.data);
         setNetworks(networksData.data || []);
-      } else {
-        console.error(
-          '❌ Dashboard: Networks API failed:',
-          networksResponse.status,
-          networksResponse.statusText
-        );
       }
 
       // Load dictionaries
@@ -207,7 +198,6 @@ export default function Home() {
 
       setIsInitialLoad(false);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
       stopLoading('Failed to load data');
     } finally {
       if (showLoading) {
@@ -247,12 +237,7 @@ export default function Home() {
       .then(data => {
         if (data.success) {
           loadDashboardData();
-        } else {
-          console.error('Failed to create job:', data.error);
         }
-      })
-      .catch(error => {
-        console.error('Error creating job:', error);
       });
   };
 
@@ -308,7 +293,19 @@ export default function Home() {
     } else {
       setFace('FRIEND', 'Pretty fly 4 a Wi-Fi!');
     }
-  }, [jobs, networks, dictionaries, isInitialLoad, setFace, setTemporaryFace]);
+  }, [
+    jobs,
+    networks,
+    dictionaries,
+    isInitialLoad,
+    isSystemInitialized,
+    activeJobs,
+    completedJobs,
+    failedJobs.length,
+    networksWithHandshakes.length,
+    setFace,
+    setTemporaryFace,
+  ]);
 
   return (
     <div className="min-h-screen bg-background">

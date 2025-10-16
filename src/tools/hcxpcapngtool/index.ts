@@ -8,6 +8,7 @@ import {
   ToolResult,
   ToolExecutionOptions,
 } from '@/types';
+import { logTool, logDebug, logWarn } from '@/lib/logger';
 
 export interface HcxOptions {
   inputPcap: string;
@@ -194,7 +195,7 @@ export class HcxPcapNgTool {
         const hashStats = await fs.stat(hashFile);
         hasValidHashes = hashStats.size > 0;
       } catch (error) {
-        console.warn('Hash file not found or empty:', error);
+        logWarn('Hash file not found or empty:', error);
       }
 
       // Parse network information from stderr output, or extract from hash file
@@ -214,7 +215,7 @@ export class HcxPcapNgTool {
           .map(line => line.trim())
           .filter(line => line.length > 0);
       } catch (error) {
-        console.warn('Failed to read ESSID list file:', error);
+        logWarn('Failed to read ESSID list file:', error);
       }
 
       // Get file stats
@@ -335,7 +336,7 @@ export class HcxPcapNgTool {
         // Add input files LAST
         args.push(...resolvedFiles);
 
-        console.log(`Executing hcxpcapngtool with args:`, args);
+        logTool(`Executing hcxpcapngtool with args:`, args);
 
         const result = await this.execute(args.join(' '), {
           cwd: process.cwd(), // Use project root as working directory
@@ -524,10 +525,10 @@ export class HcxPcapNgTool {
   }> {
     return new Promise(resolve => {
       const args = command.split(' ');
-      console.log(
+      logDebug(
         `[hcxpcapngtool] Spawning: ${this.executablePath} ${args.join(' ')}`
       );
-      console.log(`[hcxpcapngtool] Working directory: ${options.cwd}`);
+      logDebug(`[hcxpcapngtool] Working directory: ${options.cwd}`);
 
       const child = spawn(this.executablePath, args, {
         cwd: options.cwd,
@@ -541,18 +542,18 @@ export class HcxPcapNgTool {
       child.stdout?.on('data', data => {
         const chunk = data.toString();
         stdout += chunk;
-        console.log(`[hcxpcapngtool] stdout:`, chunk.trim());
+        logDebug(`[hcxpcapngtool] stdout:`, chunk.trim());
       });
 
       child.stderr?.on('data', data => {
         const chunk = data.toString();
         stderr += chunk;
-        console.log(`[hcxpcapngtool] stderr:`, chunk.trim());
+        logDebug(`[hcxpcapngtool] stderr:`, chunk.trim());
       });
 
       const timeout = options.timeout || this.defaultTimeout;
       const timeoutId = setTimeout(() => {
-        console.log(
+        logDebug(
           `[hcxpcapngtool] Timeout after ${timeout}ms, killing process`
         );
         child.kill('SIGKILL');
@@ -566,9 +567,9 @@ export class HcxPcapNgTool {
 
       child.on('close', code => {
         clearTimeout(timeoutId);
-        console.log(`[hcxpcapngtool] Process closed with code: ${code}`);
-        console.log(`[hcxpcapngtool] Final stdout length: ${stdout.length}`);
-        console.log(`[hcxpcapngtool] Final stderr length: ${stderr.length}`);
+        logDebug(`[hcxpcapngtool] Process closed with code: ${code}`);
+        logDebug(`[hcxpcapngtool] Final stdout length: ${stdout.length}`);
+        logDebug(`[hcxpcapngtool] Final stderr length: ${stderr.length}`);
         resolve({
           success: code === 0,
           stdout,
@@ -579,7 +580,7 @@ export class HcxPcapNgTool {
 
       child.on('error', error => {
         clearTimeout(timeoutId);
-        console.log(`[hcxpcapngtool] Process error:`, error);
+        logDebug(`[hcxpcapngtool] Process error:`, error);
         resolve({
           success: false,
           stdout,
@@ -747,7 +748,7 @@ export class HcxPcapNgTool {
         }
       }
     } catch (error) {
-      console.warn('Failed to parse hash file for network extraction:', error);
+      logWarn('Failed to parse hash file for network extraction:', error);
     }
 
     return networks;
@@ -840,7 +841,7 @@ export class HcxPcapNgTool {
           const parsedData = JSON.parse(content);
           // Parse JSON format and add to networks array
           // Implementation depends on hcxpcapngtool JSON format
-          console.log(`Parsed JSON output from ${file}:`, parsedData);
+          logDebug(`Parsed JSON output from ${file}:`, parsedData);
         }
         // For .hccapx and .cap files, we'd need specialized parsers
         // This is a simplified implementation

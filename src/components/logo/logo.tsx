@@ -135,24 +135,6 @@ export function Logo({
     return 'transition-all duration-300 ease-in-out';
   };
 
-  // Get container size based on face content
-  const getContainerSize = () => {
-    // Use a fixed container size to prevent layout jumping
-    // Size should be wide enough to accommodate the widest faces
-    switch (size) {
-      case 'sm':
-        return 'w-16 h-12'; // Extra width for wider faces
-      case 'md':
-        return 'w-20 h-14'; // Extra width for wider faces
-      case 'lg':
-        return 'w-24 h-16'; // Extra width for wider faces
-      case 'xl':
-        return 'w-32 h-20'; // Extra width for wider faces
-      default:
-        return 'w-20 h-14';
-    }
-  };
-
   const faceContent = (
     <div
       className={cn(

@@ -34,6 +34,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useLogo } from '@/components/logo';
+import { logError } from '@/lib/logger';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -202,7 +203,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
   };
 
   const handleUploadError = (error: string) => {
-    console.error('Upload error:', error);
+    logError('Upload error:', error);
 
     // Show error toast notification
     toast.error(`❌ Upload failed: ${error}`);

@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { logInfo, logError, logDebug } from '@/lib/logger';
 
 /**
  * Database and file cleanup utility for e2e tests
@@ -9,7 +10,7 @@ import { join } from 'path';
  */
 
 export async function cleanUploadsDirectory() {
-  console.log('🗂️ Cleaning uploads directory...');
+  logInfo('🗂️ Cleaning uploads directory...');
 
   const uploadsDir = join(process.cwd(), 'uploads');
   const jobsDir = join(process.cwd(), 'jobs');
@@ -32,7 +33,7 @@ export async function cleanUploadsDirectory() {
         }
       } catch {
         // Directory doesn't exist, which is fine
-        console.log(`Directory ${dirPath} doesn't exist, skipping...`);
+        logDebug(`Directory ${dirPath} doesn't exist, skipping...`);
       }
     }
 
@@ -46,7 +47,7 @@ export async function cleanUploadsDirectory() {
       }
     } catch {
       // Directory doesn't exist, which is fine
-      console.log(`Directory ${jobsDir} doesn't exist, skipping...`);
+      logDebug(`Directory ${jobsDir} doesn't exist, skipping...`);
     }
 
     // Ensure directories exist
@@ -54,15 +55,15 @@ export async function cleanUploadsDirectory() {
     await fs.mkdir(join(uploadsDir, 'dictionary'), { recursive: true });
     await fs.mkdir(jobsDir, { recursive: true });
 
-    console.log('✅ Uploads and jobs directories cleaned successfully');
+    logInfo('✅ Uploads and jobs directories cleaned successfully');
   } catch (error) {
-    console.error('❌ Failed to clean directories:', error);
+    logError('❌ Failed to clean directories:', error);
     throw error;
   }
 }
 
 export async function cleanDatabase() {
-  console.log('🧹 Cleaning database for e2e test...');
+  logInfo('🧹 Cleaning database for e2e test...');
 
   try {
     // Delete all data in reverse order of dependencies
@@ -96,9 +97,9 @@ export async function cleanDatabase() {
           (error.message.includes('does not exist') ||
             error.message.includes('relation'))
         ) {
-          console.log(`Sequence ${seq} does not exist, skipping...`);
+          logDebug(`Sequence ${seq} does not exist, skipping...`);
         } else {
-          console.error(`Unexpected error resetting sequence ${seq}:`, error);
+          logError(`Unexpected error resetting sequence ${seq}:`, error);
           throw error;
         }
       }
@@ -108,9 +109,9 @@ export async function cleanDatabase() {
     await db.execute(sql`INSERT INTO users (id, name, email, created_at, updated_at)
       VALUES (gen_random_uuid(), 'default_user', 'default@example.com', NOW(), NOW())`);
 
-    console.log('✅ Database cleaned successfully and default user recreated');
+    logInfo('✅ Database cleaned successfully and default user recreated');
   } catch (error) {
-    console.error('❌ Failed to clean database:', error);
+    logError('❌ Failed to clean database:', error);
     throw error;
   }
 }

@@ -10,12 +10,7 @@ interface LogoProps {
   showReason?: boolean;
 }
 
-export function Logo({
-  size = 'md',
-  className = '',
-  simple,
-  showReason = false,
-}: LogoProps) {
+export function Logo({ size = 'md', className = '', simple }: LogoProps) {
   const [isContainerVisible, setIsContainerVisible] = useState(false);
   const [showFace, setShowFace] = useState(false);
 

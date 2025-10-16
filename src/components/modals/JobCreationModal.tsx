@@ -41,6 +41,7 @@ import {
   HardDrive,
 } from 'lucide-react';
 import { useLogo } from '@/components/logo';
+import { logError } from '@/lib/logger';
 
 interface NetworkInfo {
   essid: string;
@@ -176,7 +177,7 @@ export function JobCreationModal({
         }
       }
     } catch (error) {
-      console.error('Failed to load devices:', error);
+      logError('Failed to load devices:', error);
       setFace('ANGRY', "I'm mad at you!");
     } finally {
       setIsLoadingDevices(false);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { logError } from '@/lib/logger';
 
 interface CrackedPassword {
   id: string;
@@ -53,7 +54,7 @@ export function useNetworkPasswords(
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
-      console.error('Error fetching network passwords:', err);
+      logError('Error fetching network passwords:', err);
     } finally {
       setIsLoading(false);
     }
