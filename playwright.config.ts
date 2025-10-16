@@ -10,7 +10,14 @@ export default defineConfig({
   retries: 0, // No retries for faster feedback
   workers: 1, // Keep single worker for database consistency
   failOnFlakyTests: true, // Fail on flaky tests
-  reporter: "list",
+  reporter: [
+  ["list"],
+  ["playwright-coverage-reporter", {
+    outputPath: './coverage-report',
+    threshold: 80,
+    verbose: true
+  }]
+],
   use: {
     baseURL: process.env.BASE_URL || "http://localhost:3000",
     trace: "on-first-retry",
