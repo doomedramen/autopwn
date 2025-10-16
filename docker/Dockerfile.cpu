@@ -38,19 +38,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build arguments
+# Build arguments - only NODE_ENV needed now
 ARG NODE_ENV=production
-ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG BETTER_AUTH_SECRET=github-action-build-secret-32-chars-long
-ARG BETTER_AUTH_URL=http://localhost:3000
-ARG DATABASE_URL=postgresql://test:test@localhost:5432/test
 
 # Environment variables for build
 ENV NODE_ENV=${NODE_ENV}
-ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-ENV BETTER_AUTH_URL=${BETTER_AUTH_URL}
-ENV DATABASE_URL=${DATABASE_URL}
+ENV DATABASE_URL=postgresql://test:test@localhost:5432/test
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN \

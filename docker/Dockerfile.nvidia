@@ -1,5 +1,5 @@
 # AutoPWN - NVIDIA GPU Optimized Variant
-FROM nvidia/cuda:12.0-runtime-ubuntu22.04 AS base
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS base
 
 # Set environment variables to avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs npm \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies only when needed
@@ -47,19 +47,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build arguments
+# Build arguments - only NODE_ENV needed now
 ARG NODE_ENV=production
-ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG BETTER_AUTH_SECRET=github-action-build-secret-32-chars-long
-ARG BETTER_AUTH_URL=http://localhost:3000
-ARG DATABASE_URL=postgresql://test:test@localhost:5432/test
 
 # Environment variables for build
 ENV NODE_ENV=${NODE_ENV}
-ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-ENV BETTER_AUTH_URL=${BETTER_AUTH_URL}
-ENV DATABASE_URL=${DATABASE_URL}
+ENV DATABASE_URL=postgresql://test:test@localhost:5432/test
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN \
@@ -86,12 +79,12 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     sudo \
     hcxtools \
-    hashcat-nvidia \
+    hashcat \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Verify CUDA and hashcat GPU support
-RUN hashcat --version | grep -i cuda || (echo "CUDA hashcat not found" && exit 1)
+# Verify hashcat installation
+RUN hashcat --version || (echo "hashcat not found" && exit 1)
 
 # Create user with sudo access
 RUN useradd -m -u 1001 nextjs \
@@ -101,7 +94,6 @@ RUN useradd -m -u 1001 nextjs \
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/pnpm-lock.yaml* ./
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /usr/local/bin/pnpm /usr/local/bin/pnpm
 
 # Copy entrypoint script
 COPY --from=builder /app/docker/docker-entrypoint.sh ./docker/docker-entrypoint.sh
