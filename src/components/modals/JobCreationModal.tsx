@@ -40,6 +40,7 @@ import {
   Cpu,
   HardDrive,
 } from 'lucide-react';
+import { useLogo } from '@/components/logo';
 
 interface NetworkInfo {
   essid: string;
@@ -88,6 +89,7 @@ export function JobCreationModal({
   dictionaries,
   onCreateJob,
 }: JobCreationModalProps) {
+  const { setFace, setTemporaryFace } = useLogo();
   const [jobName, setJobName] = useState('');
   const [selectedNetworks, setSelectedNetworks] = useState<string[]>([]);
   const [selectedDictionaries, setSelectedDictionaries] = useState<string[]>(
@@ -107,6 +109,8 @@ export function JobCreationModal({
   // Reset form when modal opens and load devices
   useEffect(() => {
     if (isOpen) {
+      setFace('SMART', 'Reading last session logs ...');
+
       // Generate default job name with timestamp
       const timestamp = new Date()
         .toLocaleString('en-US', {
@@ -134,9 +138,12 @@ export function JobCreationModal({
 
       // Load available devices
       loadAvailableDevices();
+    } else {
+      // Reset face when modal closes
+      setFace('COOL', 'I pwn therefore I am.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, setFace]);
 
   // Load available devices from hashcat via API
   const loadAvailableDevices = async () => {
@@ -160,12 +167,17 @@ export function JobCreationModal({
           setSelectedDevices(
             gpuDevices.map((d: HashcatDeviceInfo) => d.deviceId)
           );
+          setTemporaryFace('GRATEFUL', 2000, "I'm living the life!");
         } else if (cpuDevices.length > 0) {
           setSelectedDevices([cpuDevices[0].deviceId]);
+          setTemporaryFace('BORED', 2000, "I'm extremely bored ...");
+        } else {
+          setFace('BROKEN', "I'm very sad ...");
         }
       }
     } catch (error) {
       console.error('Failed to load devices:', error);
+      setFace('ANGRY', "I'm mad at you!");
     } finally {
       setIsLoadingDevices(false);
     }
@@ -173,19 +185,24 @@ export function JobCreationModal({
 
   const handleCreateJob = () => {
     if (!jobName.trim()) {
+      setFace('SAD', "I'm sad");
       alert('Please enter a job name');
       return;
     }
 
     if (selectedNetworks.length === 0) {
+      setFace('SAD', "I'm sad");
       alert('Please select at least one network');
       return;
     }
 
     if (selectedDictionaries.length === 0) {
+      setFace('SAD', "I'm sad");
       alert('Please select at least one dictionary');
       return;
     }
+
+    setFace('EXCITED', 'No more mister Wi-Fi!!');
 
     const jobConfig = {
       name: jobName.trim(),
@@ -204,21 +221,53 @@ export function JobCreationModal({
     };
 
     onCreateJob?.(jobConfig);
+    setTemporaryFace('HAPPY', 3000, 'This is the best day of my life!');
     onClose();
   };
 
   const toggleNetwork = (bssid: string) => {
-    setSelectedNetworks(prev =>
-      prev.includes(bssid) ? prev.filter(id => id !== bssid) : [...prev, bssid]
-    );
+    setSelectedNetworks(prev => {
+      const newSelection = prev.includes(bssid)
+        ? prev.filter(id => id !== bssid)
+        : [...prev, bssid];
+
+      // Update face based on selection
+      if (newSelection.length > prev.length) {
+        // Network added
+        if (newSelection.length === 1) {
+          setTemporaryFace('HAPPY', 1500, 'Good friends are a blessing!');
+        } else if (newSelection.length === networksWithHandshakes.length) {
+          setTemporaryFace('GRATEFUL', 2000, 'I love my friends!');
+        } else {
+          setTemporaryFace('HAPPY', 1500, 'So many networks!!!');
+        }
+      }
+
+      return newSelection;
+    });
   };
 
   const toggleDictionary = (dictId: string) => {
-    setSelectedDictionaries(prev =>
-      prev.includes(dictId)
+    setSelectedDictionaries(prev => {
+      const newSelection = prev.includes(dictId)
         ? prev.filter(id => id !== dictId)
-        : [...prev, dictId]
-    );
+        : [...prev, dictId];
+
+      // Update face based on selection
+      if (newSelection.length > prev.length) {
+        // Dictionary added
+        const dict = dictionaries.find(d => d.id === dictId);
+        if (dict) {
+          if (dict.lineCount > 1000000) {
+            setTemporaryFace('MOTIVATED', 2000, "I'm living the life!");
+          } else {
+            setTemporaryFace('HAPPY', 1500, 'New day, new hunt, new pwns!');
+          }
+        }
+      }
+
+      return newSelection;
+    });
   };
 
   const toggleDevice = (deviceId: number) => {

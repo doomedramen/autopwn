@@ -14,6 +14,7 @@ import { DictionariesTab } from '@/components/dashboard/dictionaries-tab';
 import { JobsTab } from '@/components/dashboard/jobs-tab';
 import { UsersTab } from '@/components/dashboard/users-tab';
 import { FloatingActions } from '@/components/dashboard/floating-actions';
+import { useLogo } from '@/components/logo';
 
 interface NetworkInfo {
   id: string;
@@ -61,6 +62,7 @@ interface JobInfo {
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superuser';
+  const { setFace, setTemporaryFace, resetFace } = useLogo();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
@@ -266,10 +268,47 @@ export default function Home() {
     j => j.status === 'processing' || j.status === 'paused'
   );
   const completedJobs = jobs.filter(j => j.status === 'completed');
+  const failedJobs = jobs.filter(j => j.status === 'failed');
   const totalWords = dictionaries.reduce(
     (sum, dict) => sum + dict.lineCount,
     0
   );
+
+  // Logo reactions based on system state
+  useEffect(() => {
+    if (isInitialLoad && isSystemInitialized === true) {
+      // Set initial message when dashboard is loading
+      setFace('AWAKE', "Hi, I'm Pwnagotchi! Starting ...");
+      return;
+    }
+
+    if (failedJobs.length > 0) {
+      setFace('SAD', 'Shitty day :/');
+    } else if (activeJobs.length > 0) {
+      if (activeJobs.some(j => j.cracked > 0 && j.cracked < j.total)) {
+        setFace('EXCITED', "I'm having so much fun!");
+      } else {
+        setFace('MOTIVATED', 'Hack the Planet!');
+      }
+    } else if (completedJobs.length > 0) {
+      const recentlyCompleted = completedJobs.filter(
+        j => new Date(j.createdAt).getTime() > Date.now() - 30000 // Last 30 seconds
+      );
+      if (recentlyCompleted.length > 0) {
+        setTemporaryFace('HAPPY', 5000, 'This is the best day of my life!');
+      } else {
+        setTemporaryFace('COOL', 10000, 'I pwn therefore I am.');
+      }
+    } else if (networksWithHandshakes.length === 0 && networks.length > 0) {
+      setFace('BORED', "I'm bored ...");
+    } else if (dictionaries.length === 0) {
+      setFace('LONELY', "Where's everybody?!");
+    } else if (networks.length === 0) {
+      setFace('SLEEP', 'ZzzzzZZzzzzZzzz');
+    } else {
+      setFace('FRIEND', 'Pretty fly 4 a Wi-Fi!');
+    }
+  }, [jobs, networks, dictionaries, isInitialLoad, setFace, setTemporaryFace]);
 
   return (
     <div className="min-h-screen bg-background">

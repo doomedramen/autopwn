@@ -154,10 +154,7 @@ export default function ChangePasswordPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <UniversalHeader
-          title="AutoPWN"
-          subtitle="WiFi Network Analysis Platform"
-        />
+        <UniversalHeader title="AutoPWN" />
         <div className="flex items-center justify-center p-4 min-h-[calc(100vh-80px)]">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
@@ -173,10 +170,7 @@ export default function ChangePasswordPage() {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-background">
-        <UniversalHeader
-          title="AutoPWN"
-          subtitle="WiFi Network Analysis Platform"
-        />
+        <UniversalHeader title="AutoPWN" />
         <div className="flex items-center justify-center p-4 min-h-[calc(100vh-80px)]">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
@@ -236,10 +230,7 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <UniversalHeader
-        title="AutoPWN"
-        subtitle="WiFi Network Analysis Platform"
-      />
+      <UniversalHeader title="AutoPWN" />
       <div className="flex items-center justify-center p-4 min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-2xl">
           <div className="text-center mb-8">

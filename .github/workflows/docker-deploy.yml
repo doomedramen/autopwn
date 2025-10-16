@@ -193,7 +193,13 @@ jobs:
           VARIANTS_JSON="$VARIANTS_JSON]"
           SECURITY_VARIANTS_JSON="$SECURITY_VARIANTS_JSON]"
 
+          # Ensure we always have at least the CPU variant for security scanning
+          if [ "$SECURITY_VARIANTS_JSON" = "[]" ]; then
+            SECURITY_VARIANTS_JSON='[{"name": "cpu"}]'
+          fi
+
           echo "Generated variants matrix: $VARIANTS_JSON"
+          echo "Generated security variants matrix: $SECURITY_VARIANTS_JSON"
           echo "variants=$VARIANTS_JSON" >> $GITHUB_OUTPUT
           echo "security-variants=$SECURITY_VARIANTS_JSON" >> $GITHUB_OUTPUT
 

@@ -129,6 +129,10 @@
     animation: fadeIn 0.5s ease-in-out;
   }
 
+  .animate-fade-in-slow {
+    animation: fadeInSlow 0.3s ease-in-out;
+  }
+
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
   }
@@ -150,6 +154,15 @@
 }
 
 @keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInSlow {
   from {
     opacity: 0;
   }
@@ -212,6 +225,15 @@
 /* Hover lift effect */
 .hover-lift {
   @apply transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
+}
+
+/* Logo hover effect */
+.logo-hover-effect {
+  transition: transform 0.1s ease-in-out !important;
+}
+
+.logo-hover-effect:hover {
+  transform: scale(1.1) !important;
 }
 
 /* Glowing effect */

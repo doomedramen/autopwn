@@ -4,7 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeSwitcher } from '@/components/theme-switcher';
-import { Logo } from '@/components/ui/Logo';
+import { Logo } from '@/components/logo';
+import { useLogo } from '@/components/logo';
 import { Shield, Wifi } from 'lucide-react';
 
 interface UniversalHeaderProps {
@@ -13,7 +14,6 @@ interface UniversalHeaderProps {
   onCreateJobClick?: () => void;
   disabledJobButton?: boolean;
   title?: string;
-  subtitle?: string;
 }
 
 export function UniversalHeader({
@@ -22,8 +22,8 @@ export function UniversalHeader({
   onCreateJobClick,
   disabledJobButton = false,
   title = 'AutoPWN',
-  subtitle = 'WiFi Network Analysis Platform',
 }: UniversalHeaderProps) {
+  const { state } = useLogo();
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -34,14 +34,21 @@ export function UniversalHeader({
             className="flex items-center space-x-3 sm:space-x-4 group"
           >
             <div className="flex items-center space-x-2 sm:space-x-3">
-              <Logo size="md" className="text-primary" />
-              <div className="hidden sm:block">
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <Logo size="md" className="text-primary" withBackground={true} />
+              <div className="block">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                   {title}
                 </h1>
-                {subtitle && (
-                  <p className="text-xs sm:text-sm text-muted-foreground hidden lg:block">
-                    {subtitle}
+                {state.reason && (
+                  <p
+                    className="text-xs text-muted-foreground animate-fade-in block"
+                    style={{
+                      fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+                      letterSpacing: '0.05em',
+                    }}
+                    title={state.reason}
+                  >
+                    {state.reason}
                   </p>
                 )}
               </div>

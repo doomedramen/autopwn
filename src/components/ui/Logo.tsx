@@ -1,35 +1,66 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Logo as NewLogo } from '@/components/logo';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   simple?: boolean;
+  showReason?: boolean;
 }
 
-export function Logo({ size = 'md', className = '', simple }: LogoProps) {
-  const sizeClasses = {
-    sm: 'text-lg p-1.5',
-    md: 'text-2xl p-2',
-    lg: 'text-4xl p-2',
+export function Logo({
+  size = 'md',
+  className = '',
+  simple,
+  showReason = false,
+}: LogoProps) {
+  const [isContainerVisible, setIsContainerVisible] = useState(false);
+  const [showFace, setShowFace] = useState(false);
+
+  // Coordinate the fade-in sequence
+  useEffect(() => {
+    // Container fades in immediately
+    setIsContainerVisible(true);
+
+    // Face fades in after 200ms delay
+    const faceTimer = setTimeout(() => {
+      setShowFace(true);
+    }, 200);
+
+    return () => clearTimeout(faceTimer);
+  }, []);
+
+  // Map old sizes to new sizes
+  const sizeMap = {
+    sm: 'sm' as const,
+    md: 'md' as const,
+    lg: 'lg' as const,
   };
 
   if (simple) {
     return (
-      <span
-        className={`font-mono font-bold select-none cursor-default ${sizeClasses[size]} ${className}`}
-      >
-        ⌐■_■
-      </span>
+      <NewLogo size={sizeMap[size]} className={className} animate={false} />
     );
   }
 
   return (
     <div
-      className={`rounded-lg bg-primary/10 hover:bg-primary/20 transition-all duration-200 hover:scale-110 cursor-default ${sizeClasses[size]} ${className}`}
+      className={`rounded-lg bg-primary/10 hover:bg-primary/20 transition-all duration-300 ease-in-out hover:scale-110 cursor-default p-2 ${className} ${
+        isContainerVisible ? 'opacity-100' : 'opacity-0'
+      }`}
+      style={{
+        transition:
+          'opacity 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.2s ease-in-out',
+      }}
     >
-      <span className="font-mono font-bold select-none">⌐■_■</span>
+      <NewLogo
+        size={sizeMap[size]}
+        animate={showFace}
+        // Override the initial load behavior since we're handling it here
+        delayInitialLoad={true}
+      />
     </div>
   );
 }

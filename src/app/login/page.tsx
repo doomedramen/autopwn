@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/Logo';
+import { useLogo } from '@/components/logo';
 import { useEffect } from 'react';
 
 function LoginForm() {
@@ -19,6 +20,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
   const { data: session, isPending } = useSession();
+  const { setFace, setTemporaryFace } = useLogo();
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -29,14 +31,21 @@ function LoginForm() {
   useEffect(() => {
     if (session && !isPending) {
       toast.success('Login successful!');
+      setTemporaryFace('HAPPY', 3000, 'I love my friends!');
       router.push(redirect);
     }
-  }, [session, isPending, router, redirect]);
+  }, [session, isPending, router, redirect, setTemporaryFace]);
+
+  // Set initial logo state for login page
+  useEffect(() => {
+    setFace('AWAKE', "Hi, I'm Pwnagotchi! Starting ...");
+  }, [setFace]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setFace('INTENSE', 'Reading last session logs ...');
 
     try {
       await signIn.email({
@@ -52,6 +61,7 @@ function LoginForm() {
         error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       toast.error(errorMessage);
+      setFace('SAD', "I'm mad at you!");
       setIsLoading(false);
     }
   };
@@ -105,6 +115,8 @@ function LoginForm() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  onFocus={() => setFace('SLEEP', 'Zzzzz')}
+                  onBlur={() => setFace('AWAKE', 'Ready to login')}
                   required
                   disabled={isLoading}
                   data-testid="password-input"

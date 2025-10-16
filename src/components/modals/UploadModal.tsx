@@ -33,6 +33,7 @@ import {
   AlertCircle,
   Info,
 } from 'lucide-react';
+import { useLogo } from '@/components/logo';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
     overallProgress: 0,
   });
   const [showProgress, setShowProgress] = useState(false);
+  const { setFace, setTemporaryFace } = useLogo();
 
   const handleFileSelect = () => {
     // Files are automatically uploaded by FileUpload component
@@ -57,12 +59,61 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
 
   const handleUploadStart = () => {
     setShowProgress(true);
+    // Set uploading face based on upload type
+    if (activeTab === 'pcap') {
+      setFace('INTENSE', 'My crime is that of curiosity ...');
+    } else {
+      setFace('UPLOAD', 'Generating keys, do not turn off ...');
+    }
   };
 
   const handleUploadComplete = (results: UploadResponse[]) => {
     // Update the upload state to reflect completion
     const successfulUploads = results.filter(r => r.success);
     const failedUploads = results.filter(r => !r.success);
+
+    // Logo reactions for upload completion
+    if (failedUploads.length > 0 && successfulUploads.length === 0) {
+      setFace('BROKEN', "I'm mad at you!");
+    } else if (successfulUploads.length > 0) {
+      if (activeTab === 'pcap') {
+        const totalNetworks = successfulUploads.reduce((sum, result) => {
+          const networks =
+            (result.data?.networks as Array<{ hasHandshake: boolean }>) || [];
+          return sum + networks.length;
+        }, 0);
+        const networksWithHandshakes = successfulUploads.reduce(
+          (sum, result) => {
+            const networks =
+              (result.data?.networks as Array<{ hasHandshake: boolean }>) || [];
+            return sum + networks.filter(n => n.hasHandshake).length;
+          },
+          0
+        );
+
+        if (networksWithHandshakes > 0) {
+          setTemporaryFace('GRATEFUL', 4000, `So many networks!!!`);
+        } else if (totalNetworks > 0) {
+          setTemporaryFace('SMART', 3000, `Let\'s go for a walk!`);
+        } else {
+          setTemporaryFace('AWAKE', 2000, 'Good friends are a blessing!');
+        }
+      } else if (activeTab === 'dictionary') {
+        const totalLines = successfulUploads.reduce((sum, result) => {
+          const metadata =
+            (result.data?.dictionary as { lineCount?: number }) || {};
+          return sum + (metadata.lineCount || 0);
+        }, 0);
+
+        if (totalLines > 1000000) {
+          setTemporaryFace('MOTIVATED', 4000, "I'm living the life!");
+        } else if (totalLines > 0) {
+          setTemporaryFace('HAPPY', 3000, 'New day, new hunt, new pwns!');
+        } else {
+          setTemporaryFace('AWAKE', 2000, 'Pretty fly 4 a Wi-Fi!');
+        }
+      }
+    }
 
     setUploadState(prev => ({
       ...prev,
@@ -155,6 +206,9 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
 
     // Show error toast notification
     toast.error(`❌ Upload failed: ${error}`);
+
+    // Logo reaction for upload error
+    setFace('ANGRY', 'Leave me alone ...');
   };
 
   const handleClose = () => {

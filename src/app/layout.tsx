@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { JobMonitorProvider } from '@/components/job-monitor-provider';
 import { AuthProvider } from '@/components/auth-provider';
+import { LogoProvider } from '@/components/logo/logo-context';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -50,11 +51,13 @@ export default function RootLayout({
       >
         <ThemeProvider defaultTheme="system">
           <AuthProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <JobMonitorProvider />
-              {children}
-              <Toaster />
-            </div>
+            <LogoProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <JobMonitorProvider />
+                {children}
+                <Toaster />
+              </div>
+            </LogoProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
