@@ -163,6 +163,7 @@ env:
 ```
 
 **Use cases:**
+
 - `cpu` - For development, testing, or when GPU hardware is unavailable
 - `cpu,nvidia` - When you have NVIDIA GPU infrastructure
 - `cpu,amd` - When you have AMD GPU infrastructure

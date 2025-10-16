@@ -1,7 +1,15 @@
 pre-commit:
   run_serial:
-    - name: format-fix
-      run: pnpm format:write
+    - name: format-check-and-fix
+      run: |
+        if ! pnpm format:check > /dev/null 2>&1; then
+          echo "❌ Formatting issues found. Running prettier to fix..."
+          pnpm format:write
+          echo "❌ Formatting was fixed. Please review the changes and try again."
+          exit 1
+        else
+          echo "✅ Code formatting is correct"
+        fi
     - name: lint-fix
       run: pnpm lint:fix
     - name: lint-check
