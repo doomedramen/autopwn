@@ -102,6 +102,7 @@ export function JobCreationModal({
   );
   const [selectedDevices, setSelectedDevices] = useState<number[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+  const [deviceWarning, setDeviceWarning] = useState<string | null>(null);
 
   // Reset form when modal opens and load devices
   useEffect(() => {
@@ -129,6 +130,7 @@ export function JobCreationModal({
       setGpuTempAbort(false);
       setGpuTempAbortTemp(false);
       setSelectedDevices([]);
+      setDeviceWarning(null);
 
       // Load available devices
       loadAvailableDevices();
@@ -144,6 +146,8 @@ export function JobCreationModal({
       const result = await response.json();
       if (result.success && result.data) {
         setAvailableDevices(result.data);
+        setDeviceWarning(result.warning || null);
+
         // Auto-select GPU devices if available, otherwise CPU
         const gpuDevices = result.data.filter(
           (d: HashcatDeviceInfo) => d.type === 'gpu'
@@ -431,6 +435,14 @@ export function JobCreationModal({
                     </div>
                   </div>
                 )}
+                {deviceWarning && (
+                  <div className="flex items-center space-x-2 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                      {deviceWarning}
+                    </span>
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground">
                   Select which hardware devices to use for cracking. GPU devices
                   are recommended for best performance.
@@ -515,7 +527,7 @@ export function JobCreationModal({
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-64 overflow-y-auto">
+            <CardContent className={networksWithHandshakes.length > 3 ? "max-h-64 overflow-y-auto" : ""}>
               {networksWithHandshakes.length > 0 ? (
                 <div className="grid gap-3">
                   {networksWithHandshakes.map(network => (
@@ -598,7 +610,7 @@ export function JobCreationModal({
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-64 overflow-y-auto">
+            <CardContent className={dictionaries.length > 3 ? "max-h-64 overflow-y-auto" : ""}>
               {dictionaries.length > 0 ? (
                 <div className="grid gap-3">
                   {dictionaries.map(dictionary => (
