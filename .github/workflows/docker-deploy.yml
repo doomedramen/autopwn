@@ -20,7 +20,7 @@ env:
   NODE_VERSION: '20'
   # Control which variants to build (comma-separated: cpu,nvidia,amd,intel)
   # Set to 'cpu' to only build CPU variant, or 'cpu,nvidia' for CPU+NVIDIA, etc.
-  BUILD_VARIANTS: 'cpu,nvidia,amd,intel'
+  BUILD_VARIANTS: 'cpu'
 
 jobs:
   build:
