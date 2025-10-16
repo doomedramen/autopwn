@@ -1,0 +1,13 @@
+echo "🏗️ Running pre-push checks..."
+
+# Check if pnpm is available
+if ! command -v pnpm &> /dev/null; then
+    echo "❌ pnpm is not installed. Please install pnpm first."
+    exit 1
+fi
+
+# Run build to ensure everything compiles correctly
+echo "🔨 Building application..."
+pnpm build
+
+echo "✅ All pre-push checks passed!"
