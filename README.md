@@ -28,26 +28,31 @@ The Docker Compose setup includes:
 # Clone and setup
 git clone <repository-url>
 cd autopwn
+
+# Generate secure random secrets (save these!)
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)"
+
+# Option 1: Use secrets directly in command
+POSTGRES_PASSWORD=$(openssl rand -base64 32) \
+BETTER_AUTH_SECRET=$(openssl rand -base64 32) \
+  docker-compose -f docker-compose.cpu.yml up -d
+
+# Option 2: Save to .env file
 cp .env.docker.example .env
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> .env
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> .env
+docker-compose -f docker-compose.cpu.yml up -d
 
-# Edit .env with your configuration
-# Required: BETTER_AUTH_SECRET (generate with: openssl rand -base64 32)
-# Required: Change POSTGRES_PASSWORD from default
-# Optional: Set LOG_LEVEL (INFO for production, DEBUG for development)
-# Required: Update APP_URL to your domain/IP
+# Or use other variants:
+# docker-compose -f docker-compose.nvidia.yml up -d  # NVIDIA GPU
+# docker-compose -f docker-compose.amd.yml up -d     # AMD GPU
+# docker-compose -f docker-compose.intel.yml up -d   # Intel GPU
 
-# Choose your variant and start:
-docker-compose -f docker-compose.cpu.yml up -d      # CPU (recommended for development)
-docker-compose -f docker-compose.nvidia.yml up -d  # NVIDIA GPU
-docker-compose -f docker-compose.amd.yml up -d     # AMD GPU
-docker-compose -f docker-compose.intel.yml up -d   # Intel GPU
-
-# Access at http://localhost:3000
-# Initial credentials (hardcoded for first-time setup)
-# Email: superuser@autopwn.local
-# Username: superuser
-# Password: TestPassword123!
-# NOTE: Change these immediately after first login!
+# Access at http://localhost:3000/setup
+# The system will generate random superuser credentials
+# SAVE THESE CREDENTIALS - they are shown only once!
+# You will be required to change the password on first login
 ```
 
 ### Local Development (for testing/development only)
@@ -190,12 +195,47 @@ This helps reduce build times and resource usage when you don't need all hardwar
 
 ## 🚨 Production Security Checklist
 
-- [ ] Change `BETTER_AUTH_SECRET` to secure random value
-- [ ] Update default PostgreSQL password
-- [ ] Change default superuser credentials (superuser@autopwn.local / TestPassword123!)
+**CRITICAL - Complete ALL items before production deployment:**
+
+### Required Security Configuration
+
+- [ ] Set `BETTER_AUTH_SECRET` to secure random 32+ char value (`openssl rand -base64 32`)
+- [ ] Set `POSTGRES_PASSWORD` to strong random password
+- [ ] Change randomly-generated superuser password on first login
 - [ ] Set `NODE_ENV=production`
-- [ ] Enable HTTPS (reverse proxy recommended)
-- [ ] Regularly update dependencies
+- [ ] Verify `.env` file is NOT committed to version control
+- [ ] Enable HTTPS via reverse proxy (nginx, caddy, or traefik)
+
+### Network Security
+
+- [ ] Configure firewall rules (only allow necessary ports)
+- [ ] Use a reverse proxy with SSL/TLS certificates
+- [ ] Enable fail2ban or similar intrusion prevention
+- [ ] Restrict database access to localhost only
+
+### Application Security
+
+- [ ] Review and update CORS settings for your domain
+- [ ] Enable rate limiting for production (see `src/lib/rate-limit.ts`)
+- [ ] Set up automated backups for PostgreSQL database
+- [ ] Configure log aggregation and monitoring
+- [ ] Set up security alerts for failed login attempts
+
+### Ongoing Maintenance
+
+- [ ] Regularly update dependencies (`pnpm update`)
+- [ ] Monitor security advisories for dependencies
+- [ ] Review access logs periodically
+- [ ] Rotate secrets periodically (BETTER_AUTH_SECRET, DB password)
+- [ ] Keep Docker images updated
+
+### Optional Enhancements
+
+- [ ] Integrate with Redis/Upstash for distributed rate limiting
+- [ ] Set up automated security scanning (Snyk, Dependabot)
+- [ ] Configure Content Security Policy (CSP) headers
+- [ ] Implement IP allow listing for admin access
+- [ ] Set up 2FA for superuser accounts (future feature)
 
 ## 📚 Usage
 

@@ -215,10 +215,22 @@ export class HashcatWrapper {
         await fs.access(dict);
       }
 
-      // Generate session name if not provided
-      const sessionName =
+      // Generate and validate session name
+      let sessionName =
         job.session ||
         `${job.name.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+
+      // Strict validation: only alphanumeric, underscore, hyphen
+      if (!/^[a-zA-Z0-9_-]+$/.test(sessionName)) {
+        throw new Error(
+          'Invalid session name: only alphanumeric characters, underscores, and hyphens are allowed'
+        );
+      }
+
+      // Enforce maximum length to prevent buffer overflow attacks
+      if (sessionName.length > 128) {
+        sessionName = sessionName.substring(0, 128);
+      }
 
       // Build command arguments
       const args = this.buildCommandArgs(job, sessionName);

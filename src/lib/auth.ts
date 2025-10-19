@@ -119,10 +119,13 @@ export async function createSuperUserIfNotExists() {
     return existingSuperUser;
   }
 
-  // Generate random credentials for initial superuser
-  // Always use predictable credentials to make testing easier
-  // In production, this should be changed to use random credentials
-  const randomPassword = 'TestPassword123!';
+  // Generate secure random credentials for initial superuser
+  // In test environments (Playwright), use predictable credentials
+  const isTestEnvironment = !!process.env.PLAYWRIGHT;
+
+  const randomPassword = isTestEnvironment
+    ? 'TestPassword123!'
+    : generateSecurePassword();
   const randomEmail = `superuser@autopwn.local`;
   const username = `superuser`;
 
@@ -131,20 +134,20 @@ export async function createSuperUserIfNotExists() {
     password: randomPassword,
     username,
     role: 'superuser',
-    requirePasswordChange: !process.env.PLAYWRIGHT, // Don't require password change in tests
+    requirePasswordChange: !isTestEnvironment, // Always require password change in production
   });
 
   logInfo('Initial Superuser Created:', {
     email: randomEmail,
-    password: randomPassword,
     username: username,
-    warning: 'Please change these credentials after first login!',
+    passwordLength: randomPassword.length,
+    warning:
+      'CRITICAL: Save these credentials! They will only be shown once during setup.',
   });
 
   return { ...superUser, plainPassword: randomPassword };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateSecurePassword(): string {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';

@@ -1,3 +1,21 @@
+# ⚠️ SECURITY WARNING ⚠️
+# Before starting, you MUST set the following environment variables:
+# - POSTGRES_PASSWORD: Secure password for PostgreSQL (Required)
+# - BETTER_AUTH_SECRET: Secure secret for authentication, min 32 chars (Required)
+#
+# Quick Start - Generate secrets and start:
+#   POSTGRES_PASSWORD=$(openssl rand -base64 32) \
+#   BETTER_AUTH_SECRET=$(openssl rand -base64 32) \
+#   docker-compose -f docker-compose.cpu.yml up -d
+#
+# Or save to .env file:
+#   cp .env.docker.example .env
+#   echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> .env
+#   echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> .env
+#   docker-compose -f docker-compose.cpu.yml up -d
+#
+# DO NOT commit secrets to version control!
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -5,7 +23,7 @@ services:
     environment:
       - POSTGRES_DB=autopwn
       - POSTGRES_USER=autopwn
-      - POSTGRES_PASSWORD=change-this-password-in-production
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set - see docker-compose.cpu.yml header}
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
@@ -23,8 +41,8 @@ services:
     image: ${DOCKER_IMAGE:-doomedramen/autopwn:latest-cpu}
     container_name: autopwn-app
     environment:
-      - DATABASE_URL=postgresql://autopwn:change-this-password-in-production@postgres:5432/autopwn
-      - BETTER_AUTH_SECRET=change-this-in-production-use-a-secure-secret
+      - DATABASE_URL=postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set and min 32 chars - generate with: openssl rand -base64 32}
       - NODE_ENV=production
       - LOG_LEVEL=INFO
       - PUID=1000

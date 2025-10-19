@@ -120,15 +120,40 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check if there's a session token
-  const sessionToken = request.cookies.get('better-auth.session_token')?.value;
+  // Validate session using better-auth
+  try {
+    const { auth } = await import('@/lib/auth');
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
 
-  // If no session, redirect to login
-  if (!sessionToken) {
+    // If no valid session, redirect to login
+    if (!session?.user) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      const redirectResponse = NextResponse.redirect(loginUrl);
+      // Copy CORS headers
+      redirectResponse.headers.set('Access-Control-Allow-Origin', origin);
+      redirectResponse.headers.set(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, DELETE, OPTIONS'
+      );
+      redirectResponse.headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Cookie'
+      );
+      redirectResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+      return redirectResponse;
+    }
+
+    // Session is valid, allow request to proceed
+    return response;
+  } catch (error) {
+    // On auth error, log and redirect to login for safety
+    logError('Session validation error in middleware:', error);
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     const redirectResponse = NextResponse.redirect(loginUrl);
-    // Copy CORS headers
     redirectResponse.headers.set('Access-Control-Allow-Origin', origin);
     redirectResponse.headers.set(
       'Access-Control-Allow-Methods',
@@ -141,10 +166,6 @@ export async function middleware(request: NextRequest) {
     redirectResponse.headers.set('Access-Control-Allow-Credentials', 'true');
     return redirectResponse;
   }
-
-  // For authenticated requests, allow them to proceed
-  // Individual pages will handle their own authentication checks
-  return response;
 }
 
 export const config = {

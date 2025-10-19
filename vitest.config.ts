@@ -1,16 +1,24 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  plugins: [react()],
   test: {
     globals: true,
-    environment: 'node',
+    // Use different environments based on test file location
+    environment: 'jsdom', // Default to jsdom for React components
+    environmentMatchGlobs: [
+      // Use node environment for unit tests
+      ['src/tests/unit/**', 'node'],
+      // Use jsdom for component tests
+      ['src/tests/components/**', 'jsdom'],
+    ],
     include: ['src/tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'src/tests/e2e/**/*'],
-    // Add test suites for different purposes
-    testNamePattern: undefined, // Run all tests by default
+    setupFiles: ['./src/tests/setup.ts'],
     coverage: {
-      provider: 'v8', // Use v8 provider for faster coverage
+      provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/**',

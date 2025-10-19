@@ -78,86 +78,59 @@ export async function POST(request: NextRequest) {
       const metadata =
         (result.data?.processingResult as Record<string, unknown>) || {};
 
-      // Check for authenticated user first
+      // Require authenticated user
       const session = await auth.api.getSession({
         headers: request.headers,
       });
 
-      let userRecord;
-      if (session?.user?.id) {
-        // Use authenticated user
-        userRecord = await db.query.users.findFirst({
-          where: eq(users.id, session.user.id),
-        });
-
-        // Check if user profile exists, create if missing (for test environments)
-        if (userRecord) {
-          logDebug('Found authenticated user:', userRecord.id);
-          const userProfile = await db.query.userProfiles.findFirst({
-            where: eq(userProfiles.userId, userRecord.id),
-          });
-
-          logDebug('User profile exists:', !!userProfile);
-          if (userProfile) {
-            logDebug('User profile ID:', userProfile.id);
-            logDebug('User profile userId:', userProfile.userId);
-          }
-          if (!userProfile) {
-            logDebug('Creating missing user profile for:', userRecord.id);
-            await db.insert(userProfiles).values({
-              userId: userRecord.id,
-              username:
-                userRecord.name || userRecord.email?.split('@')[0] || 'unknown',
-              role: 'user',
-              isActive: true,
-              isEmailVerified: true,
-              requirePasswordChange: false,
-            });
-            logDebug('User profile created successfully');
-          }
-        }
+      if (!session?.user?.id) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
       }
 
+      // Get authenticated user
+      const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+      });
+
       if (!userRecord) {
-        // Fallback to default user for test environments or unauthenticated requests
-        userRecord = await db.query.users.findFirst({
-          where: eq(users.name, 'default_user'),
-        });
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
 
-        if (!userRecord) {
-          [userRecord] = await db
-            .insert(users)
-            .values({
-              name: 'default_user',
-              email: 'default@autopwn.local',
-            })
-            .returning();
+      // Ensure user profile exists
+      let userProfile = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.userId, userRecord.id),
+      });
 
-          // Create corresponding user profile for the default user
-          await db.insert(userProfiles).values({
+      // Create profile if missing (defensive programming for legacy data)
+      if (!userProfile) {
+        logDebug('Creating missing user profile for:', userRecord.id);
+        [userProfile] = await db
+          .insert(userProfiles)
+          .values({
             userId: userRecord.id,
-            username: 'default_user',
+            username:
+              userRecord.name || userRecord.email?.split('@')[0] || 'unknown',
             role: 'user',
             isActive: true,
             isEmailVerified: true,
             requirePasswordChange: false,
-          });
-        }
+          })
+          .returning();
+        logDebug('User profile created successfully');
       }
 
-      // Save upload record to database
-      // Get the user profile ID (uploads table references userProfiles.id, not users.id)
-      const userProfile = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.userId, userRecord.id),
-      });
-
-      if (!userProfile) {
-        logError('User profile not found for user:', userRecord.id);
-        throw new Error(`User profile not found for user: ${userRecord.id}`);
+      // Check if user is active
+      if (!userProfile.isActive) {
+        return NextResponse.json(
+          { error: 'Account is deactivated' },
+          { status: 403 }
+        );
       }
 
       logDebug('Creating upload record with userProfileId:', userProfile.id);
-      logDebug('User profile ID type:', typeof userProfile.id);
       const [uploadRecord] = await db
         .insert(uploads)
         .values({
