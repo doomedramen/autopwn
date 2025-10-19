@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Wifi } from 'lucide-react';
 
+// Force dynamic rendering to prevent HTML import errors during build
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   output: 'standalone',
 
   // Disable static generation for error pages to prevent HTML import issues
-  trailingSlash: false,
   generateEtags: false,
   poweredByHeader: false,
 
@@ -19,6 +18,19 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+  },
+
+  // Custom webpack configuration to prevent HTML import issues
+  webpack: (config, { isServer }) => {
+    // Prevent importing HTML components during build
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'next/document': false,
+        'next/head': false,
+      };
+    }
+    return config;
   },
 
   // Add runtime configuration for API URLs
