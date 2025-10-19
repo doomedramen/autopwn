@@ -101,7 +101,11 @@ async function processCaptureJob(job: Job<CaptureProcessingJobData>) {
  *
  * hc22000 format: WPA*TYPE*PMKID/MIC*MAC_AP*MAC_CLIENT*ESSID*ANONCE*EAPOL*MESSAGEPAIR
  *
- * Each line represents a network/handshake
+ * Each line represents a network/handshake.
+ * We save each line to its own file so users can select which networks to crack.
+ * When a job is created, the hashcat worker will merge selected networks back into
+ * a single file - this is the most efficient way to use hashcat (one dictionary pass
+ * for all networks, rather than running the dictionary N times for N networks).
  */
 async function extractNetworks(
   captureId: string,

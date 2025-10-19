@@ -13,8 +13,24 @@ import { logger } from '../lib/logger';
 /**
  * Hashcat Worker
  *
- * Executes hashcat password cracking jobs
- * Monitors progress and extracts cracked passwords
+ * Executes hashcat password cracking jobs using the most efficient method.
+ *
+ * EFFICIENT PIPELINE (Best Practice):
+ * 1. User uploads multiple PCAPs
+ * 2. Each PCAP converted to hc22000 (may contain multiple networks)
+ * 3. Networks extracted and stored individually (for UI selection)
+ * 4. User creates job and selects which networks to crack
+ * 5. Worker merges selected networks into ONE hc22000 file
+ * 6. Hashcat runs ONCE: hashcat -m 22000 merged.hc22000 wordlist.txt
+ * 7. Results parsed and matched back to individual networks
+ *
+ * Why this is efficient:
+ * - Hashcat processes the wordlist ONCE for all hashes
+ * - 10 networks + 1GB wordlist = 1GB processed (not 10GB!)
+ * - GPU utilization is maximized when cracking multiple hashes
+ * - Dramatically faster than running hashcat per-network
+ *
+ * This follows the official hcxtools + hashcat best practices.
  */
 
 const log = logger.child({ module: 'worker:hashcat' });
@@ -56,8 +72,17 @@ async function hashcatJob(job: Job<HashcatJobData>) {
     }
 
     // Merge all selected network hc22000 files into one file
-    // Each network has one line in hc22000 format
-    // This is the optimal way to run hashcat against multiple networks
+    // Each network = one line in hc22000 format
+    //
+    // This is the MOST EFFICIENT way to use hashcat:
+    // Best practice: hashcat -m 22000 merged.hc22000 wordlist.txt
+    //
+    // Why? Hashcat will iterate through the wordlist ONCE and test all hashes.
+    // Alternative (inefficient): Run hashcat N times for N networks = N dictionary passes
+    //
+    // Example: 10 networks + 1GB wordlist
+    // Efficient:   1 hashcat run  = 1GB processed
+    // Inefficient: 10 hashcat runs = 10GB processed (10x slower!)
     const combinedHashFile = path.join(STORAGE_DIRS.results, `${jobId}_hashes.hc22000`);
     const hashLines: string[] = [];
 
@@ -74,7 +99,7 @@ async function hashcatJob(job: Job<HashcatJobData>) {
 
     log.info(
       { jobId: jobId, networkCount: hashLines.length },
-      'Merged network hc22000 files for hashcat'
+      'Merged network hc22000 files for hashcat (efficient: one dictionary pass for all networks)'
     );
 
     // Combine all dictionaries into one (or use separately based on attack mode)
