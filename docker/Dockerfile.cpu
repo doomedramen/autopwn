@@ -45,8 +45,7 @@ ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 ENV DATABASE_URL=postgresql://test:test@localhost:5432/test
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV BETTER_AUTH_SECRET=dummy-secret-for-build-only-change-in-production
-ENV NEXT_PUBLIC_APP_URL=http://localhost:3000
+ENV SKIP_ENV_VALIDATION=true
 
 RUN \
   if [ -f pnpm-lock.yaml ]; then \
