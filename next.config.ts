@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker
   output: 'standalone',
 
+  // Disable static generation for error pages to prevent HTML import issues
+  trailingSlash: false,
+  generateEtags: false,
+  poweredByHeader: false,
+
+  // Skip static generation for specific routes
+  skipTrailingSlashRedirect: true,
+
   // Configure experimental features
   experimental: {
     // Limit JSON payload size to prevent DoS attacks
