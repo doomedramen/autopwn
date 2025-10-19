@@ -1,6 +1,10 @@
 import Fastify from 'fastify';
+import fastifyCookie from '@fastify/cookie';
+import fastifyCors from '@fastify/cors';
 import { env } from './config';
 import { logger } from './lib/logger';
+import { closeDatabase } from './db';
+import { authRoutes } from './routes/auth';
 
 /**
  * Autopwn Backend Server
@@ -19,15 +23,45 @@ const fastify = Fastify({
 });
 
 /**
- * Health check endpoint
+ * Register plugins
  */
-fastify.get('/health', async () => {
-  return {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    env: env.NODE_ENV,
-  };
-});
+async function registerPlugins() {
+  // Cookie support (required for session management)
+  await fastify.register(fastifyCookie, {
+    secret: env.SESSION_SECRET,
+  });
+
+  // CORS support
+  await fastify.register(fastifyCors, {
+    origin: env.CORS_ORIGIN,
+    credentials: true,
+  });
+}
+
+/**
+ * Register routes
+ */
+async function registerRoutes() {
+  // Authentication routes
+  await fastify.register(authRoutes);
+
+  // Health check endpoint
+  fastify.get('/health', async () => {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      env: env.NODE_ENV,
+    };
+  });
+}
+
+/**
+ * Initialize server
+ */
+async function initialize() {
+  await registerPlugins();
+  await registerRoutes();
+}
 
 /**
  * Start server
@@ -44,6 +78,10 @@ async function start() {
       },
     });
 
+    // Initialize plugins and routes
+    await initialize();
+
+    // Start listening
     await fastify.listen({
       host: env.HOST,
       port: env.PORT,
@@ -63,6 +101,7 @@ async function shutdown() {
   logger.info('Shutting down gracefully...');
   try {
     await fastify.close();
+    await closeDatabase();
     logger.info('Server closed');
     process.exit(0);
   } catch (error) {
