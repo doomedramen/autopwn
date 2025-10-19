@@ -41,10 +41,35 @@ services:
     image: ${DOCKER_IMAGE:-doomedramen/autopwn:latest-cpu}
     container_name: autopwn-app
     environment:
-      - DATABASE_URL=postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set and min 32 chars - generate with: openssl rand -base64 32}
+      # Production environment
       - NODE_ENV=production
-      - LOG_LEVEL=INFO
+
+      # Database
+      - DATABASE_URL=postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn
+
+      # Authentication (REQUIRED)
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set and min 32 chars - generate with: openssl rand -base64 32}
+
+      # Application URLs
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+
+      # Production logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Password Policy
+      - MIN_PASSWORD_LENGTH=${MIN_PASSWORD_LENGTH:-8}
+      - REQUIRE_PASSWORD_UPPERCASE=${REQUIRE_PASSWORD_UPPERCASE:-true}
+      - REQUIRE_PASSWORD_LOWERCASE=${REQUIRE_PASSWORD_LOWERCASE:-true}
+      - REQUIRE_PASSWORD_NUMBERS=${REQUIRE_PASSWORD_NUMBERS:-true}
+      - REQUIRE_PASSWORD_SYMBOLS=${REQUIRE_PASSWORD_SYMBOLS:-true}
+
+      # Security
+      - ACCOUNT_LOCKOUT_ATTEMPTS=${ACCOUNT_LOCKOUT_ATTEMPTS:-5}
+      - ACCOUNT_LOCKOUT_DURATION=${ACCOUNT_LOCKOUT_DURATION:-15}
+      - SESSION_TIMEOUT=${SESSION_TIMEOUT:-24}
+
+      # System
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
