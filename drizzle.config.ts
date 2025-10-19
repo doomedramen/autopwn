@@ -1,13 +1,8 @@
 import { defineConfig } from 'drizzle-kit';
 import 'dotenv-flow/config';
 
-// Handle both development (TypeScript) and production (JavaScript) environments
-const isProduction = process.env.NODE_ENV === 'production';
-
 export default defineConfig({
-  schema: isProduction
-    ? './dist/lib/db/schema.js'  // Production: compiled JavaScript
-    : './src/lib/db/schema.ts',  // Development: TypeScript source
+  schema: './src/lib/db/schema.ts',  // Use TypeScript schema in all environments
   out: './src/lib/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {

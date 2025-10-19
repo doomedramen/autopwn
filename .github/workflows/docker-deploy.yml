@@ -68,6 +68,8 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: 'postgresql://test:test@localhost:5432/test?connect_timeout=10&statement_timeout=10'
+          BETTER_AUTH_SECRET: 'github-action-build-secret-32-chars-long'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
 
   test:
     name: Run All Tests
@@ -266,6 +268,8 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NODE_ENV=production
+            BETTER_AUTH_SECRET=github-action-build-secret-32-chars-long
+            NEXT_PUBLIC_APP_URL=http://localhost:3000
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
@@ -327,6 +331,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             NODE_ENV=production
+            BETTER_AUTH_SECRET=github-action-build-secret-32-chars-long
+            NEXT_PUBLIC_APP_URL=http://localhost:3000
 
   security-scan:
     name: Security Scan (${{ matrix.variant.name }})

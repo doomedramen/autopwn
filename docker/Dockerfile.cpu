@@ -96,7 +96,6 @@ COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
 # Copy database schema for production
-COPY --from=builder /app/dist/lib/db/schema.js ./dist/lib/db/schema.js 2>/dev/null || true
 COPY --from=builder /app/src/lib/db/schema.ts ./src/lib/db/schema.ts
 
 COPY --from=builder /app/public ./public
