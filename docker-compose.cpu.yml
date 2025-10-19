@@ -46,7 +46,7 @@ services:
       # Production environment
       NODE_ENV: production
 
-      # Database
+      # Database (Docker Compose will handle URL encoding)
       DATABASE_URL: postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn
 
       # Authentication (REQUIRED)
