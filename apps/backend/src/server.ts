@@ -1,10 +1,14 @@
 import Fastify from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
+import fastifyMultipart from '@fastify/multipart';
 import { env } from './config';
 import { logger } from './lib/logger';
 import { closeDatabase } from './db';
+import { initializeStorage } from './lib/storage';
+import { initializeQueues, closeQueues } from './lib/queue';
 import { authRoutes } from './routes/auth';
+import { captureRoutes } from './routes/captures';
 
 /**
  * Autopwn Backend Server
@@ -36,6 +40,14 @@ async function registerPlugins() {
     origin: env.CORS_ORIGIN,
     credentials: true,
   });
+
+  // Multipart support (required for file uploads)
+  await fastify.register(fastifyMultipart, {
+    limits: {
+      fileSize: env.MAX_PCAP_SIZE,
+      files: 1, // Only allow 1 file per upload
+    },
+  });
 }
 
 /**
@@ -44,6 +56,9 @@ async function registerPlugins() {
 async function registerRoutes() {
   // Authentication routes
   await fastify.register(authRoutes);
+
+  // Capture routes
+  await fastify.register(captureRoutes);
 
   // Health check endpoint
   fastify.get('/health', async () => {
@@ -59,6 +74,13 @@ async function registerRoutes() {
  * Initialize server
  */
 async function initialize() {
+  // Initialize storage directories
+  await initializeStorage();
+
+  // Initialize job queues
+  await initializeQueues();
+
+  // Register plugins and routes
   await registerPlugins();
   await registerRoutes();
 }
@@ -101,6 +123,7 @@ async function shutdown() {
   logger.info('Shutting down gracefully...');
   try {
     await fastify.close();
+    await closeQueues();
     await closeDatabase();
     logger.info('Server closed');
     process.exit(0);
