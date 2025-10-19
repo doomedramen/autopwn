@@ -55,16 +55,27 @@ async function hashcatJob(job: Job<HashcatJobData>) {
       throw new Error('No dictionaries found');
     }
 
-    // Combine all network hc22000 files into one
+    // Merge all selected network hc22000 files into one file
+    // Each network has one line in hc22000 format
+    // This is the optimal way to run hashcat against multiple networks
     const combinedHashFile = path.join(STORAGE_DIRS.results, `${jobId}_hashes.hc22000`);
     const hashLines: string[] = [];
 
     for (const network of networkRecords) {
       const content = await fs.readFile(network.hc22000FilePath, 'utf-8');
-      hashLines.push(content.trim());
+      const trimmed = content.trim();
+      if (trimmed) {
+        hashLines.push(trimmed);
+      }
     }
 
-    await fs.writeFile(combinedHashFile, hashLines.join('\n'), 'utf-8');
+    // Write merged hc22000 file (one line per network)
+    await fs.writeFile(combinedHashFile, hashLines.join('\n') + '\n', 'utf-8');
+
+    log.info(
+      { jobId: jobId, networkCount: hashLines.length },
+      'Merged network hc22000 files for hashcat'
+    );
 
     // Combine all dictionaries into one (or use separately based on attack mode)
     // For simplicity, we'll combine them

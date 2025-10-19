@@ -1,0 +1,1 @@
+ALTER TABLE "captures" ADD COLUMN "hc22000FilePath" text;

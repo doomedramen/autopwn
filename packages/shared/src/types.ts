@@ -19,7 +19,8 @@ export interface Capture {
   userId: string;
   filename: string;
   originalFilename: string;
-  filePath: string;
+  filePath: string; // Original PCAP file
+  hc22000FilePath: string | null; // Converted hc22000 file
   fileSize: number;
   status: CaptureStatus;
   errorMessage: string | null;

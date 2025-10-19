@@ -37,14 +37,15 @@ async function processCaptureJob(job: Job<CaptureProcessingJobData>) {
       .where(eq(captures.id, captureId));
 
     // Generate output filename for hc22000 format
+    // Keep original PCAP at filePath, store converted hc22000 separately
     const outputDir = STORAGE_DIRS.processed;
     const outputFilename = `${captureId}.hc22000`;
-    const outputPath = path.join(outputDir, outputFilename);
+    const hc22000Path = path.join(outputDir, outputFilename);
 
     // Run hcxpcapngtool
     // -o: output file
-    // Input: PCAP file
-    const command = `${env.HCXPCAPNGTOOL_BINARY_PATH} -o "${outputPath}" "${filePath}"`;
+    // Input: PCAP file (kept at original location)
+    const command = `${env.HCXPCAPNGTOOL_BINARY_PATH} -o "${hc22000Path}" "${filePath}"`;
 
     log.debug({ command, captureId }, 'Running hcxpcapngtool');
 
@@ -56,21 +57,23 @@ async function processCaptureJob(job: Job<CaptureProcessingJobData>) {
 
     // Check if output file was created
     try {
-      await fs.access(outputPath);
+      await fs.access(hc22000Path);
     } catch {
       throw new Error('hcxpcapngtool did not produce output file - no handshakes found');
     }
 
     // Parse hc22000 file to extract networks
-    const networkCount = await extractNetworks(captureId, userId, outputPath);
+    const networkCount = await extractNetworks(captureId, userId, hc22000Path);
 
     // Update capture status to completed
+    // Store both original PCAP path and converted hc22000 path
     await db
       .update(captures)
       .set({
         status: 'completed',
         processedAt: new Date(),
         networkCount,
+        hc22000FilePath: hc22000Path,
       })
       .where(eq(captures.id, captureId));
 

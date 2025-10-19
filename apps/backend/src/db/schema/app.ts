@@ -16,7 +16,8 @@ export const captures = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     filename: text('filename').notNull(),
     originalFilename: text('originalFilename').notNull(),
-    filePath: text('filePath').notNull(),
+    filePath: text('filePath').notNull(), // Original PCAP file path
+    hc22000FilePath: text('hc22000FilePath'), // Converted hc22000 file path
     fileSize: integer('fileSize').notNull(),
     status: text('status', {
       enum: ['pending', 'processing', 'completed', 'failed'],
