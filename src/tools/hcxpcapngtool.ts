@@ -43,8 +43,7 @@ export class HcxPcapNgTool {
    */
   async extractHandshakes(
     pcapFilePaths: string[],
-    outputFile: string,
-    _options: { outputFormat?: string } = {}
+    outputFile: string
   ): Promise<ProcessPcapResult> {
     try {
       // Check if hcxpcapngtool is available

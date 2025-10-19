@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Wifi, Zap, Users } from 'lucide-react';
 import { useLoading } from '@/components/loading';
@@ -60,6 +61,7 @@ interface JobInfo {
 }
 
 export default function Home() {
+  const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'superuser';
   const { setFace, setTemporaryFace } = useLogo();
@@ -88,7 +90,7 @@ export default function Home() {
       const response = await fetch('/api/init');
       const data = await response.json();
       setIsSystemInitialized(data.initialized);
-    } catch (error) {
+    } catch {
       setIsSystemInitialized(false);
     }
   };
@@ -101,9 +103,9 @@ export default function Home() {
   // Redirect to setup if system is not initialized
   useEffect(() => {
     if (isSystemInitialized === false && !authLoading) {
-      window.location.href = '/setup';
+      router.replace('/setup');
     }
-  }, [isSystemInitialized, authLoading]);
+  }, [isSystemInitialized, authLoading, router]);
 
   // Load data on component mount
   useEffect(() => {
@@ -197,7 +199,7 @@ export default function Home() {
       }
 
       setIsInitialLoad(false);
-    } catch (error) {
+    } catch {
       stopLoading('Failed to load data');
     } finally {
       if (showLoading) {

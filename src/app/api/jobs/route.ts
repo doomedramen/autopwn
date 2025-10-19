@@ -197,8 +197,7 @@ export async function POST(request: NextRequest) {
     // Use hcxpcapngtool to process multiple PCAP files and output one consolidated .hc22000 file
     const extractResult = await hcxTool.extractHandshakes(
       pcapFilePaths, // Pass array of PCAP files
-      consolidatedHashFile,
-      { outputFormat: 'hc22000' }
+      consolidatedHashFile
     );
 
     // Log error details if extraction failed

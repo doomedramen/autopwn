@@ -92,11 +92,11 @@ export default function ChangePasswordPage() {
             router.push('/');
             // If router.push doesn't work, use fallback
             setTimeout(() => {
-              window.location.href = '/';
+              router.replace('/');
             }, 1000);
-          } catch (error) {
-            // Fallback: force page reload to go to root
-            window.location.href = '/';
+          } catch {
+            // Fallback: force redirect to root
+            router.replace('/');
           }
         }, 2000);
       } else {
@@ -202,11 +202,11 @@ export default function ChangePasswordPage() {
                           router.push('/');
                           // Fallback immediate redirect if router doesn't work
                           setTimeout(() => {
-                            window.location.href = '/';
+                            router.replace('/');
                           }, 100);
-                        } catch (error) {
+                        } catch {
                           // Force redirect
-                          window.location.href = '/';
+                          router.replace('/');
                         }
                       }}
                       className="w-full"

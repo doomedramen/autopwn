@@ -40,14 +40,28 @@ export const auth = betterAuth({
   },
   advanced: {
     database: {
-      generateId: () => crypto.randomUUID(),
+      generateId: () => {
+        // Use crypto.randomUUID on server, fallback on client
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+        // Fallback implementation
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      },
     },
   },
+  // Runtime-only configuration - use lazy evaluation
+  secret:
+    process.env.BETTER_AUTH_SECRET || 'default-secret-change-in-production',
   // Modern Next.js 15+ configuration - use dynamic baseURL
   baseURL:
     process.env.NODE_ENV === 'production'
-      ? '' // Use relative URLs in production - works with any domain
-      : 'http://localhost:3000', // Only for local development
+      ? process.env.NEXT_PUBLIC_APP_URL || ''
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 });
 
 export type Session = typeof auth.$Infer.Session;
