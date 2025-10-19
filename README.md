@@ -47,7 +47,7 @@ autopwn is a self-hosted web platform designed for Pwnagotchi users to manage an
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/autopwn.git
+git clone https://github.com/DoomedRamen/autopwn.git
 cd autopwn
 
 # Copy environment template
@@ -152,7 +152,7 @@ Contributions are welcome! Please read [DEVELOPMENT.md](./docs/DEVELOPMENT.md) b
 
 ## Support
 
-For issues, questions, or feature requests, please use the [GitHub Issues](https://github.com/yourusername/autopwn/issues) page.
+For issues, questions, or feature requests, please use the [GitHub Issues](https://github.com/DoomedRamen/autopwn/issues) page.
 
 ## Acknowledgments
 
