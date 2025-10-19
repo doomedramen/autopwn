@@ -1,26 +1,9 @@
 #!/bin/sh
 
 # Extract database connection info from DATABASE_URL
-# Note: DATABASE_URL may need URL encoding fixes
 DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
 DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
 DB_USER=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
-
-# Fix URL encoding issues in DATABASE_URL if needed
-# Node.js handles URL encoding properly, let's use it
-FIXED_DATABASE_URL=$(node -e "
-const url = process.env.DATABASE_URL;
-if (url && url.includes('/')) {
-  const urlObj = new URL(url);
-  console.log(urlObj.toString());
-} else {
-  console.log(url);
-}")
-)
-if [ -n "$FIXED_DATABASE_URL" ] && [ "$FIXED_DATABASE_URL" != "$DATABASE_URL" ]; then
-  export DATABASE_URL="$FIXED_DATABASE_URL"
-  echo "Fixed URL encoding in DATABASE_URL"
-fi
 
 # Wait for database to be ready
 echo "Waiting for database to be ready at $DB_HOST:$DB_PORT..."
