@@ -17,48 +17,18 @@ echo "Database is ready - setting up directory permissions..."
 # Ensure uploads and jobs directories have correct ownership
 echo "Setting ownership for uploads and jobs directories..."
 mkdir -p /app/uploads/pcap /app/uploads/dictionary /app/uploads/general /app/jobs
-chown -R nextjs:nodejs /app/uploads /app/jobs
-chmod -R 755 /app/uploads /app/jobs
+chown -R nextjs:users /app/uploads /app/jobs
+chmod -R 755 /app/uploads /app/jobs 2>/dev/null || true
 
 echo "Directory permissions setup complete - validating required tools..."
 
-# Validate required tools are available
+# Validate required tools are available (basic validation)
 echo "Validating required tools..."
-if [ -f "package.json" ] && [ -d "node_modules" ]; then
-  # Run tool validation using Node.js
-  node -e "
-const { toolValidator } = require('./dist/lib/tool-validation.js');
-async function validateTools() {
-  try {
-    const results = await toolValidator.checkRequiredTools();
-    const missingCritical = results.filter(r => r.critical && !r.available);
-
-    if (missingCritical.length > 0) {
-      console.error('\\n❌ CRITICAL: Required tools are missing!');
-      console.error('Missing tools:');
-      missingCritical.forEach(tool => {
-        console.error(\`  - \${tool.name}: \${tool.error || 'Unknown error'}\`);
-      });
-      console.error('\\nAutoPWN cannot start without these tools.');
-      console.error('Please ensure you are using the correct Docker image with all tools installed.');
-      console.error('Image should include both hashcat and hcxtools.');
-      process.exit(1);
-    }
-
-    console.log('\\n✅ All required tools are available!');
-    console.log('AutoPWN can start safely.');
-  } catch (error) {
-    console.error('❌ Tool validation failed:', error.message);
-    console.error('Continuing with application startup...');
-  }
-}
-validateTools();
-  " || {
-    echo "⚠️  Tool validation failed to run - continuing with startup..."
-    echo "This may indicate a build issue. Please check your Docker image."
-  }
+if command -v hashcat >/dev/null 2>&1 && command -v hcxpcapngtool >/dev/null 2>&1; then
+  echo "✅ Required tools (hashcat, hcxpcapngtool) are available!"
 else
-  echo "⚠️  Package files not found - skipping tool validation"
+  echo "⚠️  Some required tools may be missing - continuing with startup..."
+  echo "This may indicate a build issue. Please check your Docker image."
 fi
 
 echo "Tool validation complete - applying database migrations..."

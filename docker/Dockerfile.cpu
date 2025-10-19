@@ -77,7 +77,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Create user with sudo access (required for some hashcat operations)
-RUN useradd -m -u 1001 nextjs \
+RUN useradd -m -u 1001 -g users nextjs \
     && echo "nextjs ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Copy package files and pnpm
@@ -95,20 +95,24 @@ COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 # Copy drizzle migration files
 COPY --from=builder /app/src/lib/db/migrations ./src/lib/db/migrations
 
+# Copy database schema for production
+COPY --from=builder /app/dist/lib/db/schema.js ./dist/lib/db/schema.js 2>/dev/null || true
+COPY --from=builder /app/src/lib/db/schema.ts ./src/lib/db/schema.ts
+
 COPY --from=builder /app/public ./public
 
 # Create and set permissions for uploads and jobs directories
 RUN mkdir -p /app/uploads/pcap /app/uploads/dictionary /app/uploads/general /app/jobs
-RUN chown -R nextjs:nextjs /app/uploads /app/jobs
+RUN chown -R nextjs:users /app/uploads /app/jobs
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
-RUN chown nextjs:nextjs .next
+RUN chown nextjs:users .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:users /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:users /app/.next/static ./.next/static
 
 # Make entrypoint script executable
 RUN chmod +x docker/docker-entrypoint.sh
