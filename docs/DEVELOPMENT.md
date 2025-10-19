@@ -3,6 +3,7 @@
 Contributing to autopwn and local development setup.
 
 ## Table of Contents
+- [Critical: Runtime Configuration Philosophy](#critical-runtime-configuration-philosophy)
 - [Getting Started](#getting-started)
 - [Development Environment](#development-environment)
 - [Project Structure](#project-structure)
@@ -12,6 +13,123 @@ Contributing to autopwn and local development setup.
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [Troubleshooting](#troubleshooting)
+
+## Critical: Runtime Configuration Philosophy
+
+**⚠️ IMPORTANT: autopwn must be deployable via Docker Compose without building.**
+
+### Core Principle
+
+**ALL backend configuration MUST be provided via environment variables at runtime.** This is non-negotiable.
+
+### Why This Matters
+
+End users should be able to:
+```bash
+# 1. Pull pre-built images
+docker pull ghcr.io/doomedramen/autopwn-backend:latest
+
+# 2. Create docker-compose.yml and .env file
+cp .env.example .env
+nano .env  # Edit configuration
+
+# 3. Start application
+docker compose up -d
+
+# NO BUILDING REQUIRED!
+```
+
+### Developer Rules
+
+**✅ ALWAYS:**
+- Read configuration from `process.env`
+- Provide sensible defaults for optional settings
+- Validate required environment variables on startup
+- Document all environment variables in `.env.example`
+
+**❌ NEVER:**
+- Hardcode configuration values
+- Use config files that can't be overridden by env vars
+- Require users to rebuild Docker images to change settings
+- Bake secrets or user-specific config into Docker images
+
+### Example: Correct Configuration Pattern
+
+```typescript
+// src/config/index.ts
+export const config = {
+  // Required - fail fast if missing
+  database: {
+    url: process.env.DATABASE_URL!,
+  },
+  session: {
+    secret: process.env.SESSION_SECRET!,
+  },
+
+  // Optional - with defaults
+  hashcat: {
+    maxConcurrentJobs: parseInt(process.env.HASHCAT_MAX_CONCURRENT_JOBS || '2'),
+    defaultWorkload: parseInt(process.env.HASHCAT_DEFAULT_WORKLOAD || '3'),
+    jobTimeout: parseInt(process.env.HASHCAT_JOB_TIMEOUT || '86400'),
+  },
+
+  // Feature flags
+  features: {
+    bullBoardEnabled: process.env.BULL_BOARD_ENABLED === 'true',
+    rateLimitEnabled: process.env.RATE_LIMIT_ENABLED === 'true',
+  },
+};
+
+// Validate on startup
+export function validateConfig() {
+  const required = ['DATABASE_URL', 'REDIS_URL', 'SESSION_SECRET'];
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:', missing);
+    console.error('Please check your .env file or docker-compose.yml');
+    process.exit(1);
+  }
+
+  console.log('✅ Configuration validated successfully');
+}
+```
+
+### What Goes Where
+
+**Runtime Config (environment variables):**
+- Database URLs, credentials
+- Redis connection strings
+- API keys and secrets
+- File size limits
+- Concurrency settings
+- Feature toggles
+- Logging levels
+
+**Build-time Only (baked into image):**
+- Node.js version
+- System packages (hashcat, hcxtools)
+- npm dependencies
+- Application code
+- Static assets
+
+### Testing Your Code
+
+Before submitting a PR, test that configuration works at runtime:
+
+```bash
+# Build once
+docker build -t test-backend -f docker/backend.Dockerfile .
+
+# Test with different configs (no rebuild!)
+docker run -e HASHCAT_MAX_CONCURRENT_JOBS=1 test-backend
+docker run -e HASHCAT_MAX_CONCURRENT_JOBS=10 test-backend
+docker run -e LOG_LEVEL=debug test-backend
+
+# Should work without rebuilding!
+```
+
+**See [DEPLOYMENT.md](./DEPLOYMENT.md#critical-runtime-configuration) for complete guidelines.**
 
 ## Getting Started
 
@@ -507,6 +625,589 @@ export function CaptureList({ userId }: { userId: string }) {
   // ...
 }
 ```
+
+### Next.js Best Practices
+
+**CRITICAL: Following Next.js best practices is essential for performance, SEO, and maintainability.**
+
+#### App Router Structure
+
+**Use route groups for organization:**
+```
+app/
+├── (auth)/              # Auth pages (no /auth in URL)
+│   ├── login/
+│   └── layout.tsx
+├── (dashboard)/         # Dashboard pages (no /dashboard in URL)
+│   ├── captures/
+│   ├── jobs/
+│   └── layout.tsx
+└── admin/              # Admin pages (/admin in URL)
+    ├── users/
+    └── layout.tsx
+```
+
+**Leverage layouts for shared UI:**
+```typescript
+// app/(dashboard)/layout.tsx
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-screen">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    </div>
+  );
+}
+```
+
+#### Server vs Client Components
+
+**Default to Server Components:**
+```typescript
+// app/captures/page.tsx (Server Component by default)
+import { getCapturesForUser } from '@/lib/api';
+
+export default async function CapturesPage() {
+  const captures = await getCapturesForUser(); // Fetch on server
+
+  return <CaptureList captures={captures} />;
+}
+```
+
+**Use 'use client' only when necessary:**
+```typescript
+// components/capture-upload.tsx (needs interactivity)
+'use client';
+
+import { useState } from 'react';
+
+export function CaptureUpload() {
+  const [file, setFile] = useState<File | null>(null);
+  // Interactive component requires client-side
+  return <form>...</form>;
+}
+```
+
+**When to use 'use client':**
+- Event handlers (onClick, onChange, etc.)
+- State management (useState, useReducer)
+- Effects (useEffect, useLayoutEffect)
+- Browser-only APIs (localStorage, window, etc.)
+- Custom hooks that use client features
+
+**When to avoid 'use client':**
+- Data fetching (use Server Components)
+- Static content rendering
+- SEO-critical pages
+- Heavy computations (do on server)
+
+#### Data Fetching Best Practices
+
+**Fetch data on the server:**
+```typescript
+// Good - Server Component
+export default async function JobsPage() {
+  const jobs = await fetch('http://localhost:4000/api/v1/jobs', {
+    cache: 'no-store', // Dynamic data
+  }).then(res => res.json());
+
+  return <JobList jobs={jobs} />;
+}
+
+// Avoid - Client-side fetching for initial render
+'use client';
+export default function JobsPage() {
+  const [jobs, setJobs] = useState([]);
+  useEffect(() => {
+    fetch('/api/jobs').then(res => res.json()).then(setJobs);
+  }, []);
+  return <JobList jobs={jobs} />;
+}
+```
+
+**Use proper caching strategies:**
+```typescript
+// Static data (revalidate periodically)
+const dictionaries = await fetch('http://localhost:4000/api/v1/dictionaries', {
+  next: { revalidate: 3600 }, // Revalidate every hour
+});
+
+// Dynamic data (always fresh)
+const jobs = await fetch('http://localhost:4000/api/v1/jobs', {
+  cache: 'no-store',
+});
+
+// Static data (never revalidate until redeploy)
+const config = await fetch('http://localhost:4000/api/v1/config', {
+  cache: 'force-cache',
+});
+```
+
+#### Loading and Error States
+
+**Use loading.tsx for loading states:**
+```typescript
+// app/captures/loading.tsx
+export default function Loading() {
+  return <CaptureListSkeleton />;
+}
+```
+
+**Use error.tsx for error boundaries:**
+```typescript
+// app/captures/error.tsx
+'use client';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+#### Metadata and SEO
+
+**Use generateMetadata for dynamic metadata:**
+```typescript
+// app/captures/[id]/page.tsx
+import { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const capture = await fetchCapture(params.id);
+
+  return {
+    title: `${capture.filename} - autopwn`,
+    description: `View capture details for ${capture.filename}`,
+  };
+}
+```
+
+**Set static metadata in layouts:**
+```typescript
+// app/layout.tsx
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | autopwn',
+    default: 'autopwn - WiFi Handshake Cracking',
+  },
+  description: 'Automate WiFi handshake cracking with autopwn',
+};
+```
+
+#### Image Optimization
+
+**Always use next/image:**
+```typescript
+import Image from 'next/image';
+
+// Good
+<Image
+  src="/logo.png"
+  alt="autopwn logo"
+  width={200}
+  height={50}
+  priority // For above-the-fold images
+/>
+
+// Avoid
+<img src="/logo.png" alt="autopwn logo" />
+```
+
+#### Font Optimization
+
+**Use next/font:**
+```typescript
+// app/layout.tsx
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className={inter.className}>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+#### Route Handlers (API Routes)
+
+**Use Route Handlers sparingly:**
+```typescript
+// app/api/upload/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+
+  // Forward to backend
+  const response = await fetch('http://localhost:4000/api/v1/captures/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return NextResponse.json(await response.json());
+}
+```
+
+**Prefer Server Actions for mutations:**
+```typescript
+// app/actions/capture.ts
+'use server';
+
+export async function uploadCapture(formData: FormData) {
+  const response = await fetch('http://localhost:4000/api/v1/captures/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return response.json();
+}
+
+// Component
+'use client';
+import { uploadCapture } from '@/app/actions/capture';
+
+export function UploadForm() {
+  return (
+    <form action={uploadCapture}>
+      <input type="file" name="file" />
+      <button type="submit">Upload</button>
+    </form>
+  );
+}
+```
+
+#### Performance Best Practices
+
+**Code splitting with dynamic imports:**
+```typescript
+import dynamic from 'next/dynamic';
+
+// Lazy load heavy components
+const JobMonitor = dynamic(() => import('@/components/job-monitor'), {
+  loading: () => <Skeleton />,
+  ssr: false, // Only render on client if needed
+});
+```
+
+**Optimize bundle size:**
+```typescript
+// Good - Import only what you need
+import { format } from 'date-fns';
+
+// Avoid - Imports entire library
+import * as dateFns from 'date-fns';
+```
+
+**Use Suspense boundaries:**
+```typescript
+import { Suspense } from 'react';
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Jobs</h1>
+      <Suspense fallback={<JobListSkeleton />}>
+        <JobList />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+#### Preferred Page Structure Pattern
+
+**IMPORTANT: Use the page.tsx + content.tsx pattern for optimal server/client separation.**
+
+This pattern takes full advantage of Next.js Server and Client Components:
+
+**File Structure:**
+```
+app/
+├── captures/
+│   ├── page.tsx           # Server Component - SSR data fetching
+│   ├── content.tsx         # Client Component - interactivity
+│   └── loading.tsx         # Loading state
+├── jobs/
+│   ├── page.tsx           # Server Component
+│   ├── content.tsx         # Client Component
+│   └── loading.tsx
+└── dictionaries/
+    ├── page.tsx           # Server Component
+    ├── content.tsx         # Client Component
+    └── loading.tsx
+```
+
+**page.tsx (Server Component):**
+```typescript
+// app/captures/page.tsx
+import { CapturesContent } from './content';
+import { getCaptures } from '@/lib/api';
+
+export default async function CapturesPage() {
+  // Fetch data on server (SSR)
+  const initialCaptures = await getCaptures();
+
+  // Pass data to client component
+  return <CapturesContent initialData={initialCaptures} />;
+}
+```
+
+**content.tsx (Client Component):**
+```typescript
+// app/captures/content.tsx
+'use client';
+
+import { useState } from 'react';
+import { Capture } from '@autopwn/shared';
+import { CaptureList } from '@/components/captures/capture-list';
+import { UploadDialog } from '@/components/captures/upload-dialog';
+
+interface CapturesContentProps {
+  initialData: Capture[];
+}
+
+export function CapturesContent({ initialData }: CapturesContentProps) {
+  const [captures, setCaptures] = useState(initialData);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+
+  const handleUploadSuccess = (newCapture: Capture) => {
+    setCaptures([newCapture, ...captures]);
+    setIsUploadOpen(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Captures</h1>
+        <button onClick={() => setIsUploadOpen(true)}>
+          Upload PCAP
+        </button>
+      </div>
+
+      <CaptureList captures={captures} />
+
+      <UploadDialog
+        open={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
+    </div>
+  );
+}
+```
+
+**Why This Pattern?**
+
+1. **✅ Optimal Performance:**
+   - Server Component handles data fetching (no client-side waterfall)
+   - Initial HTML includes data (faster First Contentful Paint)
+   - Smaller JavaScript bundle (Server Component code not shipped)
+
+2. **✅ Clear Separation:**
+   - `page.tsx` = Data fetching, SSR, SEO
+   - `content.tsx` = Interactivity, state, events
+   - Easy to understand at a glance
+
+3. **✅ Better SEO:**
+   - Initial data rendered on server
+   - Search engines see full content
+   - Metadata can use actual data
+
+4. **✅ Progressive Enhancement:**
+   - Page works with JavaScript disabled (shows initial data)
+   - Interactivity enhances the experience
+   - Graceful degradation
+
+5. **✅ Type Safety:**
+   - Props clearly define data contract
+   - TypeScript ensures consistency
+   - Easy to refactor
+
+**Example: Jobs Page with Dynamic Data**
+
+```typescript
+// app/jobs/page.tsx
+import { JobsContent } from './content';
+import { getJobs, getNetworks, getDictionaries } from '@/lib/api';
+
+export default async function JobsPage() {
+  // Fetch all required data in parallel on server
+  const [jobs, networks, dictionaries] = await Promise.all([
+    getJobs(),
+    getNetworks(),
+    getDictionaries(),
+  ]);
+
+  return (
+    <JobsContent
+      initialJobs={jobs}
+      networks={networks}
+      dictionaries={dictionaries}
+    />
+  );
+}
+```
+
+```typescript
+// app/jobs/content.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Job, Network, Dictionary } from '@autopwn/shared';
+import { JobList } from '@/components/jobs/job-list';
+import { CreateJobDialog } from '@/components/jobs/create-job-dialog';
+
+interface JobsContentProps {
+  initialJobs: Job[];
+  networks: Network[];
+  dictionaries: Dictionary[];
+}
+
+export function JobsContent({
+  initialJobs,
+  networks,
+  dictionaries,
+}: JobsContentProps) {
+  const [jobs, setJobs] = useState(initialJobs);
+
+  // Poll for job updates (client-side only)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const updated = await fetch('/api/jobs').then(r => r.json());
+      setJobs(updated.data);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div>
+      <JobList jobs={jobs} />
+      <CreateJobDialog networks={networks} dictionaries={dictionaries} />
+    </div>
+  );
+}
+```
+
+**When to Deviate from This Pattern:**
+
+- ❌ **Don't use for static pages** (about, docs, etc.) - just use Server Component
+- ❌ **Don't use if no interactivity needed** - Server Component is sufficient
+- ✅ **Do use for dashboard pages** with data + interactions
+- ✅ **Do use for list pages** with filtering, sorting, actions
+- ✅ **Do use for form-heavy pages** with real-time updates
+
+**Benefits Summary:**
+
+| Aspect | Traditional SPA | Server Component Only | page.tsx + content.tsx |
+|--------|----------------|----------------------|------------------------|
+| Initial Load | ❌ Slow | ✅ Fast | ✅ Fast |
+| Interactivity | ✅ Full | ❌ Limited | ✅ Full |
+| SEO | ❌ Poor | ✅ Excellent | ✅ Excellent |
+| Bundle Size | ❌ Large | ✅ Small | ✅ Optimized |
+| Maintainability | ⚠️ Medium | ✅ Good | ✅ Excellent |
+
+**This pattern is preferred for all interactive pages in autopwn.**
+
+#### Common Pitfalls to Avoid
+
+**❌ Don't fetch data in client components for initial render:**
+```typescript
+// Bad
+'use client';
+export default function Page() {
+  const [data, setData] = useState([]);
+  useEffect(() => {
+    fetch('/api/data').then(res => res.json()).then(setData);
+  }, []);
+}
+
+// Good - Use Server Component
+export default async function Page() {
+  const data = await fetch('/api/data').then(res => res.json());
+  return <DataList data={data} />;
+}
+```
+
+**❌ Don't use 'use client' at the top level unnecessarily:**
+```typescript
+// Bad - Makes entire page tree client-side
+'use client';
+export default function Layout({ children }) {
+  return <div>{children}</div>;
+}
+
+// Good - Keep layouts as Server Components
+export default function Layout({ children }) {
+  return <div>{children}</div>;
+}
+```
+
+**❌ Don't import server-only code in client components:**
+```typescript
+// Bad - Database code in client component
+'use client';
+import { db } from '@/lib/db'; // Error!
+
+// Good - Separate server and client concerns
+// Server Component handles data, passes to Client Component
+```
+
+**❌ Don't use useEffect for data fetching on initial load:**
+```typescript
+// Bad
+useEffect(() => {
+  fetchData().then(setData);
+}, []);
+
+// Good - Use Server Component or React Query for client-side
+```
+
+#### Environment Variables
+
+**Use NEXT_PUBLIC_ prefix for client-side variables:**
+```bash
+# .env
+NEXT_PUBLIC_API_URL=http://localhost:4000  # Available in browser
+DATABASE_URL=postgresql://...              # Server-only
+```
+
+```typescript
+// Client Component
+const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Works
+
+// Server Component
+const dbUrl = process.env.DATABASE_URL; // Works
+```
+
+#### Why These Practices Matter
+
+1. **Performance**: Server Components reduce JavaScript bundle size
+2. **SEO**: Server-side rendering improves search engine visibility
+3. **User Experience**: Faster initial page loads and better perceived performance
+4. **Maintainability**: Clear separation of client/server concerns
+5. **Security**: Sensitive code stays on the server
+6. **Scalability**: Better caching and reduced server load
+
+**📖 Resources:**
+- [Next.js App Router Docs](https://nextjs.org/docs/app)
+- [Server Components](https://nextjs.org/docs/app/building-your-application/rendering/server-components)
+- [Data Fetching Patterns](https://nextjs.org/docs/app/building-your-application/data-fetching)
 
 ### Fastify
 

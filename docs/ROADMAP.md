@@ -86,10 +86,16 @@ This document outlines the planned features and improvements for autopwn.
 - [ ] Account lockout after failed attempts
 - [ ] Session management (view/revoke active sessions)
 
+**v0.8.0 - API Key Authentication:**
+- [ ] API key generation in web interface
+- [ ] API key management (create, revoke, list)
+- [ ] API key scopes/permissions
+- [ ] API endpoint for PCAP upload with API key auth
+- [ ] Pwnagotchi auto-upload plugin (Python script)
+
 **v1.5.0 - Enterprise Auth:**
 - [ ] SSO (SAML, OAuth)
 - [ ] LDAP/Active Directory integration
-- [ ] API key generation for programmatic access
 - [ ] Fine-grained permissions (custom roles)
 
 ---
@@ -116,6 +122,78 @@ This document outlines the planned features and improvements for autopwn.
 - [ ] Automatic cleanup of old files
 - [ ] Storage usage quotas per user
 - [ ] Compression for storage efficiency
+
+---
+
+### 🤖 Pwnagotchi Integration
+
+**Current:**
+- Manual PCAP upload via web interface
+
+**Planned:**
+
+**v0.8.0 - Auto-Upload Plugin:**
+- [ ] API key authentication system
+- [ ] API endpoint for programmatic PCAP upload
+- [ ] Python plugin for Pwnagotchi auto-upload
+- [ ] Plugin configuration (URL, API key)
+- [ ] Automatic upload when WiFi available
+- [ ] Upload retry on failure
+- [ ] Upload status notifications
+- [ ] Batch upload support
+
+**v1.3.0 - Enhanced Integration:**
+- [ ] Pwnagotchi device registration
+- [ ] Device-specific statistics
+- [ ] Remote job triggering from web interface
+- [ ] Job result notifications to Pwnagotchi
+- [ ] Device health monitoring
+- [ ] Multiple device support per user
+
+**Why This Matters:**
+
+The Pwnagotchi auto-upload plugin eliminates manual file transfer, creating a seamless workflow:
+1. Pwnagotchi captures handshakes in the field
+2. When WiFi is available, automatically uploads to autopwn
+3. User receives notification of new captures
+4. User can immediately create cracking jobs from web interface
+5. Results available without any manual file handling
+
+**Implementation Details:**
+
+**API Endpoint:**
+```
+POST /api/v1/captures/upload-via-api
+Authorization: Bearer <api-key>
+Content-Type: multipart/form-data
+
+{
+  "file": <pcap-file>,
+  "device_id": "pwnagotchi-01" (optional),
+  "metadata": {
+    "captured_at": "2025-01-19T12:00:00Z",
+    "location": "lat,lng" (optional)
+  }
+}
+```
+
+**Python Plugin:**
+Location: `apps/pwnagotchi-plugin/autopwn_uploader.py`
+
+Features:
+- Single-file Python script
+- Configurable URL and API key
+- Automatic PCAP detection
+- Upload queue for reliability
+- Retry logic with exponential backoff
+- Progress feedback
+- Minimal dependencies (requests library only)
+
+**User Workflow:**
+1. Generate API key in autopwn web interface
+2. Install plugin on Pwnagotchi
+3. Configure plugin with autopwn URL and API key
+4. Plugin auto-uploads new handshakes when online
 
 ---
 

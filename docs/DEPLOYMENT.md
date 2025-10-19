@@ -3,6 +3,7 @@
 Production deployment guide for autopwn.
 
 ## Table of Contents
+- [Critical: Runtime Configuration](#critical-runtime-configuration)
 - [Production Considerations](#production-considerations)
 - [Docker Deployment](#docker-deployment)
 - [Environment Configuration](#environment-configuration)
@@ -13,6 +14,282 @@ Production deployment guide for autopwn.
 - [Scaling](#scaling)
 - [Security Hardening](#security-hardening)
 - [Updates and Maintenance](#updates-and-maintenance)
+
+## Critical: Runtime Configuration
+
+**⚠️ IMPORTANT: autopwn is designed for easy deployment with Docker Compose.**
+
+### Runtime Environment Variables
+
+**ALL configuration must be provided via environment variables at runtime.** Configuration is **NEVER** baked into the Docker images. This allows users to:
+
+1. ✅ Deploy with a single `docker-compose.yml` file
+2. ✅ Update configuration without rebuilding images
+3. ✅ Use the same Docker images across different environments
+4. ✅ Store sensitive values (passwords, secrets) outside the image
+5. ✅ Easily upgrade by pulling new images
+
+### How It Works
+
+```yaml
+# docker-compose.yml
+services:
+  backend:
+    image: ghcr.io/doomedramen/autopwn-backend:latest  # Pre-built image
+    environment:
+      # ALL config provided at runtime
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - HASHCAT_MAX_CONCURRENT_JOBS=${HASHCAT_MAX_CONCURRENT_JOBS}
+      # ... all other env vars
+```
+
+**The backend reads environment variables at startup** - no rebuild required!
+
+### Developer Guidelines
+
+**Backend developers MUST follow these rules:**
+
+#### ✅ DO: Read config from environment variables
+
+```typescript
+// config/index.ts
+export const config = {
+  database: {
+    url: process.env.DATABASE_URL!,
+    poolMin: parseInt(process.env.DATABASE_POOL_MIN || '2'),
+    poolMax: parseInt(process.env.DATABASE_POOL_MAX || '10'),
+  },
+  session: {
+    secret: process.env.SESSION_SECRET!,
+    maxAge: parseInt(process.env.SESSION_MAX_AGE || '604800'),
+  },
+  hashcat: {
+    maxConcurrentJobs: parseInt(process.env.HASHCAT_MAX_CONCURRENT_JOBS || '2'),
+    defaultWorkload: parseInt(process.env.HASHCAT_DEFAULT_WORKLOAD || '3'),
+  },
+  // ... all configuration from env vars
+};
+
+// Validate required vars at startup
+if (!config.database.url) {
+  throw new Error('DATABASE_URL is required');
+}
+if (!config.session.secret) {
+  throw new Error('SESSION_SECRET is required');
+}
+```
+
+#### ✅ DO: Provide sensible defaults
+
+```typescript
+// Good - Provides default, can be overridden
+const maxConcurrentJobs = parseInt(
+  process.env.HASHCAT_MAX_CONCURRENT_JOBS || '2'
+);
+
+// Good - For optional features
+const bullBoardEnabled = process.env.BULL_BOARD_ENABLED === 'true';
+```
+
+#### ✅ DO: Validate on startup
+
+```typescript
+// src/server.ts
+import { config } from './config';
+
+// Validate required configuration before starting server
+function validateConfig() {
+  const required = [
+    'DATABASE_URL',
+    'REDIS_URL',
+    'SESSION_SECRET',
+  ];
+
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error('Missing required environment variables:', missing);
+    process.exit(1);
+  }
+}
+
+validateConfig();
+
+// Start server
+const server = await app.listen({ port: config.port, host: '0.0.0.0' });
+```
+
+#### ❌ DON'T: Hardcode configuration
+
+```typescript
+// Bad - Hardcoded values
+const maxConcurrentJobs = 2;
+const sessionSecret = 'my-secret-key';
+const databaseUrl = 'postgresql://localhost:5432/autopwn';
+
+// Bad - Config file that can't be overridden
+import config from './config.json';
+```
+
+#### ❌ DON'T: Require rebuilding for config changes
+
+```typescript
+// Bad - Requires rebuild to change
+const config = {
+  maxJobs: 2,  // Can't change without rebuilding
+};
+
+// Good - Runtime configurable
+const config = {
+  maxJobs: parseInt(process.env.HASHCAT_MAX_CONCURRENT_JOBS || '2'),
+};
+```
+
+#### ❌ DON'T: Use build-time variables for runtime config
+
+```dockerfile
+# Bad - Bakes config into image
+ARG MAX_CONCURRENT_JOBS=2
+ENV HASHCAT_MAX_CONCURRENT_JOBS=${MAX_CONCURRENT_JOBS}
+
+# Good - Config provided at runtime via docker-compose
+# (No ENV in Dockerfile for user configuration)
+```
+
+### Frontend Considerations
+
+**Frontend env vars have special handling:**
+
+```typescript
+// Next.js variables prefixed with NEXT_PUBLIC_ are bundled at BUILD time
+// These should be for static configuration only
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// For runtime config in frontend, use Server Components or API routes
+export default async function Page() {
+  const config = await fetch('http://backend:4000/api/v1/config');
+  // Use backend as source of truth
+}
+```
+
+**IMPORTANT:** Frontend Docker images may need to be rebuilt if `NEXT_PUBLIC_*` variables change, BUT backend config should always be runtime-only.
+
+### Configuration Categories
+
+**Runtime-configurable (via environment variables):**
+- ✅ Database credentials and connection settings
+- ✅ Redis connection settings
+- ✅ Session secrets and security settings
+- ✅ File size limits and storage paths
+- ✅ Hashcat job settings (concurrency, timeout, workload)
+- ✅ Rate limiting and performance tuning
+- ✅ Feature flags (enable/disable features)
+- ✅ Logging levels and output formats
+- ✅ External service URLs (if any)
+
+**Build-time only (acceptable to bake into image):**
+- ✅ Installed system packages
+- ✅ Node.js version
+- ✅ Application code
+- ✅ Dependencies (npm packages)
+- ✅ Static assets
+
+### Dockerfile Best Practices
+
+```dockerfile
+# backend.Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache hashcat hcxtools
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy application code
+COPY dist ./dist
+
+# DO NOT set user-facing ENV variables here
+# Users will provide them via docker-compose.yml
+
+# Expose port
+EXPOSE 4000
+
+# Start application
+CMD ["node", "dist/server.js"]
+```
+
+### docker-compose.yml Template
+
+```yaml
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/doomedramen/autopwn-backend:latest
+    restart: unless-stopped
+    environment:
+      # ALL configuration via environment variables
+      # Users can customize without rebuilding
+      - NODE_ENV=${NODE_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - HASHCAT_MAX_CONCURRENT_JOBS=${HASHCAT_MAX_CONCURRENT_JOBS:-2}
+      - MAX_PCAP_SIZE=${MAX_PCAP_SIZE:-524288000}
+      # ... all other config
+    volumes:
+      - ./data:/data
+    depends_on:
+      - db
+      - redis
+```
+
+### User Experience
+
+**End users should be able to:**
+
+1. Download `docker-compose.yml` and `.env.example`
+2. Copy `.env.example` to `.env`
+3. Edit `.env` with their settings
+4. Run `docker compose up -d`
+5. Application runs with their configuration
+
+**No building required!**
+
+### Testing Runtime Configuration
+
+**Developers should test that:**
+
+```bash
+# 1. Build image once
+docker build -t autopwn-backend .
+
+# 2. Test with different configs (no rebuild)
+docker run -e DATABASE_URL=postgresql://test1 autopwn-backend
+docker run -e DATABASE_URL=postgresql://test2 autopwn-backend
+docker run -e HASHCAT_MAX_CONCURRENT_JOBS=5 autopwn-backend
+
+# Config changes should work without rebuilding!
+```
+
+### Why This Matters
+
+1. **User Experience**: Users can deploy without Docker/build knowledge
+2. **Security**: Secrets never committed to images or repositories
+3. **Flexibility**: Same image works in dev, staging, production
+4. **Updates**: Users can upgrade by pulling new images
+5. **Portability**: Easy to migrate between hosts
+6. **Best Practice**: Follows 12-factor app methodology
+
+**📖 Resources:**
+- [12-Factor App: Config](https://12factor.net/config)
+- [Docker Environment Variables](https://docs.docker.com/compose/environment-variables/)
+- [Node.js Environment Variables](https://nodejs.org/en/learn/command-line/how-to-read-environment-variables-from-nodejs)
 
 ## Production Considerations
 

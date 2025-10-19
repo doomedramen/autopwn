@@ -166,3 +166,20 @@ export interface AuditLog {
   userAgent: string | null;
   createdAt: Date;
 }
+
+// API Key types (for Pwnagotchi integration - v0.8.0+)
+export interface ApiKey {
+  id: string;
+  userId: string;
+  name: string;
+  keyPrefix: string; // First 8 chars for identification (e.g., "autopwn_")
+  keyHash: string; // bcrypt hash of full key
+  scopes: string[]; // ['upload:captures', 'read:results', etc.]
+  createdAt: Date;
+  lastUsedAt: Date | null;
+  expiresAt: Date | null;
+}
+
+export interface ApiKeyWithPlaintext extends ApiKey {
+  plaintext: string; // Only returned on creation, never stored
+}
