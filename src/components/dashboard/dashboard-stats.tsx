@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wifi, BookOpen, Activity, Zap } from 'lucide-react';
 import { LoadingOverlay } from '@/components/loading';
+import { formatNumber } from '@/lib/utils/format-number';
 
 interface DashboardStatsProps {
   networksCount: number;
@@ -95,7 +96,7 @@ export function DashboardStats({
             </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {(totalWordsCount / 1000000).toFixed(1)}M words
+                {formatNumber(totalWordsCount)}
               </p>
               <div className="text-xs text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-full">
                 {dictionariesCount > 0 ? 'Ready' : 'None'}

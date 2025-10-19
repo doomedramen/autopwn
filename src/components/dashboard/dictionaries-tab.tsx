@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { formatFileSize } from '@/lib/utils/file-size';
+import { formatNumber } from '@/lib/utils/format-number';
 import {
   Card,
   CardContent,
@@ -69,7 +70,7 @@ export function DictionariesTab({
                 <ItemContent>
                   <ItemTitle>{dictionary.name}</ItemTitle>
                   <ItemDescription>
-                    {dictionary.lineCount.toLocaleString()} words •{' '}
+                    {formatNumber(dictionary.lineCount)} •{' '}
                     {formatFileSize(dictionary.size)}
                     {dictionary.isCompressed && ' • Compressed'}
                     <br />
