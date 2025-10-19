@@ -71,32 +71,38 @@ function LoginForm() {
     setFace('INTENSE', 'Reading last session logs ...');
 
     try {
-      const result = await signIn.email({
+      const { error } = await signIn.email({
         email,
         password,
         callbackURL: redirect,
       });
 
       // Check if sign-in failed
-      if (result?.error) {
-        let errorMessage = result.error.message || 'Login failed';
+      if (error) {
+        let errorMessage: string;
 
-        // Provide more user-friendly error messages
-        if (errorMessage.toLowerCase().includes('user not found')) {
-          errorMessage = 'No account found with this email address';
-        } else if (errorMessage.toLowerCase().includes('invalid password')) {
-          errorMessage = 'Incorrect password. Please try again';
-        } else if (
-          errorMessage.toLowerCase().includes('too many') ||
-          errorMessage.toLowerCase().includes('rate limit')
-        ) {
-          errorMessage = 'Too many login attempts. Please try again later';
-        } else if (
-          errorMessage.toLowerCase().includes('database') ||
-          errorMessage.toLowerCase().includes('connection')
-        ) {
+        // SECURITY: Use generic messages for authentication failures to prevent account enumeration
+        // Never reveal whether an email exists or if the password was wrong
+        if (error.status === 401 || error.status === 403) {
+          // Authentication or authorization failed
+          if (
+            error.message?.toLowerCase().includes('too many') ||
+            error.message?.toLowerCase().includes('rate limit')
+          ) {
+            errorMessage = 'Too many login attempts. Please try again later';
+          } else if (error.message?.toLowerCase().includes('verify')) {
+            errorMessage = 'Please verify your email address before signing in';
+          } else {
+            // Generic message for wrong credentials (could be wrong email OR wrong password)
+            errorMessage = 'Invalid email or password';
+          }
+        } else if (error.status === 500 || error.status === 503) {
+          // Server/database errors
           errorMessage =
             'Service temporarily unavailable. Please try again in a moment';
+        } else {
+          // Other errors - show a generic message
+          errorMessage = error.message || 'Unable to sign in. Please try again';
         }
 
         setError(errorMessage);
@@ -118,17 +124,21 @@ function LoginForm() {
         setIsLoading(false);
       }, 10000); // 10 second timeout
     } catch (error: unknown) {
-      let errorMessage =
-        error instanceof Error ? error.message : 'Login failed';
+      // Network or unexpected errors
+      let errorMessage: string;
 
-      // Provide user-friendly error messages for network/server errors
-      if (errorMessage.toLowerCase().includes('fetch')) {
-        errorMessage =
-          'Cannot connect to server. Please check your connection and try again';
-      } else if (errorMessage.toLowerCase().includes('network')) {
-        errorMessage = 'Network error. Please check your connection';
-      } else if (errorMessage.toLowerCase().includes('timeout')) {
-        errorMessage = 'Request timed out. Please try again';
+      if (error instanceof Error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('fetch') || msg.includes('network')) {
+          errorMessage =
+            'Cannot connect to server. Please check your connection and try again';
+        } else if (msg.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again';
+        } else {
+          errorMessage = 'An unexpected error occurred. Please try again';
+        }
+      } else {
+        errorMessage = 'An unexpected error occurred. Please try again';
       }
 
       setError(errorMessage);
