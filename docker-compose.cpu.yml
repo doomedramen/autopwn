@@ -21,18 +21,20 @@ services:
     image: postgres:15-alpine
     container_name: autopwn-postgres
     environment:
-      - POSTGRES_DB=autopwn
-      - POSTGRES_USER=autopwn
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set - see docker-compose.cpu.yml header}
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
+      POSTGRES_DB: autopwn
+      POSTGRES_USER: autopwn
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PUID: '1000'
+      PGID: '1000'
+      TZ: Etc/UTC
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U autopwn']
+      test:
+        - CMD-SHELL
+        - pg_isready -U autopwn
       interval: 10s
       timeout: 5s
       retries: 10
@@ -42,37 +44,37 @@ services:
     container_name: autopwn-app
     environment:
       # Production environment
-      - NODE_ENV=production
+      NODE_ENV: production
 
       # Database
-      - DATABASE_URL=postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn
+      DATABASE_URL: postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn
 
       # Authentication (REQUIRED)
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set and min 32 chars - generate with: openssl rand -base64 32}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
 
       # Application URLs
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
 
       # Production logging
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
       # Password Policy
-      - MIN_PASSWORD_LENGTH=${MIN_PASSWORD_LENGTH:-8}
-      - REQUIRE_PASSWORD_UPPERCASE=${REQUIRE_PASSWORD_UPPERCASE:-true}
-      - REQUIRE_PASSWORD_LOWERCASE=${REQUIRE_PASSWORD_LOWERCASE:-true}
-      - REQUIRE_PASSWORD_NUMBERS=${REQUIRE_PASSWORD_NUMBERS:-true}
-      - REQUIRE_PASSWORD_SYMBOLS=${REQUIRE_PASSWORD_SYMBOLS:-true}
+      MIN_PASSWORD_LENGTH: ${MIN_PASSWORD_LENGTH:-8}
+      REQUIRE_PASSWORD_UPPERCASE: ${REQUIRE_PASSWORD_UPPERCASE:-true}
+      REQUIRE_PASSWORD_LOWERCASE: ${REQUIRE_PASSWORD_LOWERCASE:-true}
+      REQUIRE_PASSWORD_NUMBERS: ${REQUIRE_PASSWORD_NUMBERS:-true}
+      REQUIRE_PASSWORD_SYMBOLS: ${REQUIRE_PASSWORD_SYMBOLS:-true}
 
       # Security
-      - ACCOUNT_LOCKOUT_ATTEMPTS=${ACCOUNT_LOCKOUT_ATTEMPTS:-5}
-      - ACCOUNT_LOCKOUT_DURATION=${ACCOUNT_LOCKOUT_DURATION:-15}
-      - SESSION_TIMEOUT=${SESSION_TIMEOUT:-24}
+      ACCOUNT_LOCKOUT_ATTEMPTS: ${ACCOUNT_LOCKOUT_ATTEMPTS:-5}
+      ACCOUNT_LOCKOUT_DURATION: ${ACCOUNT_LOCKOUT_DURATION:-15}
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-24}
 
       # System
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
+      PUID: '1000'
+      PGID: '1000'
+      TZ: Etc/UTC
     volumes:
       - ./uploads_data:/app/uploads
       - ./jobs_data:/app/jobs
@@ -83,7 +85,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/auth/status']
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/api/auth/status
       interval: 30s
       timeout: 10s
       retries: 3
