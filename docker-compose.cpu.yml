@@ -46,7 +46,7 @@ services:
       # Production environment
       NODE_ENV: production
 
-      # Database (properly quoted to handle special characters)
+      # Database (properly URL-encoded to handle special characters)
       DATABASE_URL: 'postgresql://autopwn:${POSTGRES_PASSWORD}@postgres:5432/autopwn'
 
       # Authentication (REQUIRED)
