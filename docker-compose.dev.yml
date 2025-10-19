@@ -31,6 +31,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.cpu
+      no_cache: true # Force clean builds to prevent HTML import errors
       args:
         - NODE_ENV=development
         - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
