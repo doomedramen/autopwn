@@ -65,18 +65,31 @@ echo "Tool validation complete - applying database migrations..."
 
 # Run database migrations using Drizzle
 if [ -f "package.json" ] && [ -d "node_modules" ]; then
-  echo "Running Drizzle database migrations..."
-  # Use npm instead of pnpm to avoid corepack issues in Docker
-  npm run db:migrate || {
-    echo "Migration failed, trying schema push (might be a fresh database)..."
-    npm run db:push || {
-      echo "Both migration and push failed, continuing anyway (schema might already be up to date)"
-    }
-  }
+  echo "Running Drizzle database schema push..."
+  # Use db:push instead of db:migrate for Docker - it's more reliable
+  # db:push will sync the schema from TypeScript to the database
+  if npm run db:push 2>&1 | tee /tmp/db-push.log; then
+    echo "✅ Database schema synchronized successfully"
+  else
+    echo "❌ Database schema push failed!"
+    echo "Last 20 lines of output:"
+    tail -20 /tmp/db-push.log
+    echo ""
+    echo "Checking if tables already exist..."
+    # Try to query a basic table to see if schema exists
+    if node -e "const { db } = require('./dist/lib/db/index.js'); db.query.users.findFirst().then(() => { console.log('Schema appears to exist'); process.exit(0); }).catch(() => { console.log('Schema does not exist'); process.exit(1); });" 2>/dev/null; then
+      echo "✅ Database schema appears to already exist - continuing..."
+    else
+      echo "❌ CRITICAL: Database schema does not exist and push failed!"
+      echo "Cannot start application without database schema."
+      echo "Please check your DATABASE_URL and database permissions."
+      exit 1
+    fi
+  fi
 
-  echo "Database migrations completed - starting application..."
+  echo "Database setup completed - starting application..."
 else
-  echo "Package files not found, skipping database migrations - starting application..."
+  echo "⚠️  Package files not found, skipping database migrations - starting application..."
 fi
 
 # Start the application
