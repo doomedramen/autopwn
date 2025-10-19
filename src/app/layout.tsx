@@ -2,10 +2,20 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/sonner';
+import dynamic from 'next/dynamic';
 import { JobMonitorProvider } from '@/components/job-monitor-provider';
 import { AuthProvider } from '@/components/auth-provider';
 import { LogoProvider } from '@/components/logo/logo-context';
+
+// Dynamically import Toaster to prevent SSR issues with next-themes
+const Toaster = dynamic(
+  () =>
+    import('@/components/ui/sonner').then(mod => ({ default: mod.Toaster })),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
