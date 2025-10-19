@@ -1,5 +1,0 @@
-packages:
-  - '.'
-
-ignoredBuiltDependencies:
-  - playwright-coverage-reporter
