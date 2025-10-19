@@ -7,12 +7,13 @@ import { JobMonitorProvider } from '@/components/job-monitor-provider';
 import { AuthProvider } from '@/components/auth-provider';
 import { LogoProvider } from '@/components/logo/logo-context';
 
-// Dynamically import Toaster to prevent SSR issues with next-themes
+// Dynamically import Toaster wrapper to prevent SSR issues
 const Toaster = dynamic(
   () =>
-    import('@/components/ui/sonner').then(mod => ({ default: mod.Toaster })),
+    import('@/components/ui/toaster-wrapper').then(mod => ({
+      default: mod.Toaster,
+    })),
   {
-    ssr: false,
     loading: () => null,
   }
 );
