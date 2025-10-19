@@ -182,12 +182,20 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
 
     if (failedUploads.length > 0) {
       const errors = failedUploads
-        .map(r => r.error || r.message || 'Unknown error')
+        .map(r => getErrorMessage(r.error || r.message || 'Unknown error'))
         .filter(Boolean);
       if (errors.length > 0) {
-        toast.error(
-          `❌ ${failedUploads.length} file(s) failed to upload: ${errors.slice(0, 2).join(', ')}${errors.length > 2 ? ` and ${errors.length - 2} more` : ''}`
-        );
+        // Show first unique error message
+        const uniqueErrors = [...new Set(errors)];
+        if (uniqueErrors.length === 1) {
+          toast.error(
+            `❌ ${failedUploads.length} file(s) failed: ${uniqueErrors[0]}`
+          );
+        } else {
+          toast.error(
+            `❌ ${failedUploads.length} file(s) failed to upload. Please check the file formats and try again`
+          );
+        }
       }
     }
 
@@ -202,11 +210,46 @@ export function UploadModal({ isOpen, onClose, onComplete }: UploadModalProps) {
     }
   };
 
+  // Map error codes to user-friendly messages
+  const getErrorMessage = (error: string): string => {
+    const ERROR_MESSAGES: Record<string, string> = {
+      PROCESSING_FAILED:
+        'Unable to process file. Please check the file format and try again',
+      UPLOAD_FAILED:
+        'Upload failed. Please check your connection and try again',
+      FILE_TOO_LARGE: 'File is too large. Please use a smaller file',
+      INVALID_FILE_TYPE: 'Invalid file type. Please check the allowed formats',
+      AUTHENTICATION_REQUIRED: 'Please sign in to upload files',
+      ACCOUNT_DEACTIVATED: 'Your account has been deactivated',
+      NO_NETWORKS_FOUND:
+        'No WiFi networks detected in this capture file. Please upload a file containing WiFi traffic',
+      INSUFFICIENT_PERMISSIONS: 'You do not have permission to upload files',
+    };
+
+    // Check if error contains a known error code
+    for (const [code, message] of Object.entries(ERROR_MESSAGES)) {
+      if (error.toUpperCase().includes(code)) {
+        return message;
+      }
+    }
+
+    // If it's a very generic error, return a helpful default
+    if (error.toLowerCase().includes('network') || error.includes('fetch')) {
+      return 'Network error. Please check your connection and try again';
+    }
+
+    // Return the error as-is if it's already a user-friendly message
+    // (backend now returns safe messages)
+    return error;
+  };
+
   const handleUploadError = (error: string) => {
     logError('Upload error:', error);
 
+    const userMessage = getErrorMessage(error);
+
     // Show error toast notification
-    toast.error(`❌ Upload failed: ${error}`);
+    toast.error(`❌ ${userMessage}`);
 
     // Logo reaction for upload error
     setFace('ANGRY', 'Leave me alone ...');

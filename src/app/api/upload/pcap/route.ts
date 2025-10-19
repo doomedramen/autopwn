@@ -176,24 +176,38 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
+      // SECURITY: Log detailed errors server-side only, return generic message to user
+      logError('PCAP processing failed:', {
+        fileId,
+        stderr: result.stderr,
+        fileName: file.name,
+      });
+
       return NextResponse.json(
         {
           success: false,
-          error: 'Upload failed',
-          message: result.stderr,
+          error: 'PROCESSING_FAILED',
+          message:
+            'Unable to process PCAP file. Please ensure it contains valid WiFi capture data',
           fileId,
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
   } catch (error) {
-    logError('PCAP upload error:', error);
+    // SECURITY: Log detailed errors server-side only, never expose internal details to users
+    logError('PCAP upload error:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'UPLOAD_FAILED',
+        message:
+          'Unable to upload file. Please try again or contact support if the problem persists',
       },
       { status: 500 }
     );

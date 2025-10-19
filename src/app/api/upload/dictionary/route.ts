@@ -171,29 +171,38 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
+      // SECURITY: Log detailed errors server-side only, return generic message to user
+      logError('Dictionary processing failed:', {
+        fileId,
+        stderr: result.stderr,
+        fileName: file.name,
+      });
+
       return NextResponse.json(
         {
           success: false,
-          error: 'Dictionary upload failed',
-          message: result.stderr,
+          error: 'PROCESSING_FAILED',
+          message:
+            'Unable to process dictionary file. Please ensure it contains valid password list data',
           fileId,
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
   } catch (error) {
-    logError('Dictionary upload error:', error);
-    logError(
-      'Error stack:',
-      error instanceof Error ? error.stack : 'No stack trace'
-    );
+    // SECURITY: Log detailed errors server-side only, never expose internal details to users
+    logError('Dictionary upload error:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack',
+        error: 'UPLOAD_FAILED',
+        message:
+          'Unable to upload file. Please try again or contact support if the problem persists',
       },
       { status: 500 }
     );
