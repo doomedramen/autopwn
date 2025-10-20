@@ -23,16 +23,11 @@ export function AvatarDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="flex items-center space-x-2 cursor-pointer">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              A
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium hidden sm:block">
-            Admin
-          </span>
-        </div>
+        <Avatar className="h-8 w-8 cursor-pointer">
+          <AvatarFallback className="bg-primary text-primary-foreground">
+            A
+          </AvatarFallback>
+        </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">

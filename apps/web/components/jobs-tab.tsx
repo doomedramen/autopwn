@@ -3,6 +3,7 @@
 import { useJobs } from '@/lib/mock-api-hooks';
 import { formatDate, formatDuration, getStatusColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
+import { CreateJobModal } from '@/components/create-job-modal';
 import {
   Play,
   Pause,
@@ -81,12 +82,15 @@ export function JobsTab({ className }: JobsTabProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-start font-mono">
-        <Button disabled className="font-mono text-sm">
-          <Package className="h-4 w-4 mr-2" />
-          create job
-        </Button>
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between font-mono">
+        <div></div>
+        <CreateJobModal>
+          <Button className="font-mono text-sm">
+            <Package className="h-4 w-4 mr-2" />
+            create job
+          </Button>
+        </CreateJobModal>
       </div>
 
       {/* Jobs List */}
@@ -106,7 +110,7 @@ export function JobsTab({ className }: JobsTabProps) {
             </p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden m-6">
+          <div className="border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-muted/50">

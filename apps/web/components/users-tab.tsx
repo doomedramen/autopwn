@@ -66,8 +66,9 @@ export function UsersTab({ className }: UsersTabProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-start font-mono">
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between font-mono">
+        <div></div>
         <Button disabled className="font-mono text-sm">
           <UserPlus className="h-4 w-4 mr-2" />
           create user
@@ -91,7 +92,7 @@ export function UsersTab({ className }: UsersTabProps) {
             </p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden m-6">
+          <div className="border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-muted/50">

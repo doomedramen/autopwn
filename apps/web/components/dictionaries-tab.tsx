@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useDictionaries } from '@/lib/mock-api-hooks';
 import { formatDate, formatFileSize, getStatusColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
+import { UploadModal } from '@/components/upload-modal';
+import { DictionaryGeneratorModal } from '@/components/dictionary-generator-modal';
 import {
   BookOpen,
   FileText,
-  Upload,
   Package,
   CheckCircle,
   XCircle,
@@ -70,15 +71,20 @@ export function DictionariesTab({ className }: DictionariesTabProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-start font-mono">
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between font-mono">
+        <div></div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled className="font-mono text-sm">
-            Upload Dictionary (Coming Soon)
-          </Button>
-          <Button disabled className="font-mono text-sm">
-            Generate Dictionary (Coming Soon)
-          </Button>
+          <UploadModal defaultTab="dictionary">
+            <Button variant="outline" className="font-mono text-sm">
+              Upload Dictionary
+            </Button>
+          </UploadModal>
+          <DictionaryGeneratorModal>
+            <Button className="font-mono text-sm">
+              Generate Dictionary
+            </Button>
+          </DictionaryGeneratorModal>
         </div>
       </div>
 
@@ -99,7 +105,7 @@ export function DictionariesTab({ className }: DictionariesTabProps) {
             </p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden m-6">
+          <div className="border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-muted/50">

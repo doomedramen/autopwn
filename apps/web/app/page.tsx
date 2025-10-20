@@ -1,26 +1,46 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthSession } from '@/lib/mock-api-hooks';
+import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/mock-api-hooks';
 import { NetworksTab } from '@/components/networks-tab';
 import { DictionariesTab } from '@/components/dictionaries-tab';
 import { JobsTab } from '@/components/jobs-tab';
 import { UsersTab } from '@/components/users-tab';
+import { AdminTab } from '@/components/admin-tab';
+import { StatsCards } from '@/components/stats-cards';
+import { Button } from '@workspace/ui/components/button';
+import { CreateJobModal } from '@/components/create-job-modal';
+import { UploadModal } from '@/components/upload-modal';
 import {
   Radar,
   BookOpen,
   Package,
   Users,
-  Skull
+  Skull,
+  Upload,
+  Plus,
+  Shield
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AvatarDropdown } from '@/components/avatar-dropdown';
 
-type TabType = 'networks' | 'dictionaries' | 'jobs' | 'users';
+type TabType = 'networks' | 'dictionaries' | 'jobs' | 'users' | 'admin';
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState<TabType>('networks');
   const { data: authData, isLoading, error } = useAuthSession();
+
+  // Fetch data for tab counts
+  const { data: networksData } = useNetworks();
+  const { data: dictionariesData } = useDictionaries();
+  const { data: jobsData } = useJobs();
+  const { data: usersData } = useUsers();
+
+  // Get counts for tabs
+  const networksCount = networksData?.data?.length || 0;
+  const dictionariesCount = dictionariesData?.data?.length || 0;
+  const jobsCount = jobsData?.data?.length || 0;
+  const usersCount = usersData?.data?.length || 0;
 
   if (error && !isLoading) {
     // Redirect to login if not authenticated
@@ -39,6 +59,9 @@ export default function Page() {
     );
   }
 
+  // Check if user is admin
+  const isAdmin = authData?.user?.role === 'admin';
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'networks':
@@ -49,6 +72,8 @@ export default function Page() {
         return <JobsTab />;
       case 'users':
         return <UsersTab />;
+      case 'admin':
+        return <AdminTab />;
       default:
         return <NetworksTab />;
     }
@@ -64,6 +89,8 @@ export default function Page() {
         return <Package className="h-4 w-4" />;
       case 'users':
         return <Users className="h-4 w-4" />;
+      case 'admin':
+        return <Shield className="h-4 w-4" />;
       default:
         return <Radar className="h-4 w-4" />;
     }
@@ -86,7 +113,19 @@ export default function Page() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <UploadModal>
+                <Button variant="outline" size="sm" className="font-mono text-xs">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Files
+                </Button>
+              </UploadModal>
+              <CreateJobModal>
+                <Button variant="outline" size="sm" className="font-mono text-xs">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Jobs
+                </Button>
+              </CreateJobModal>
               <ThemeToggle />
               <AvatarDropdown />
             </div>
@@ -94,15 +133,21 @@ export default function Page() {
         </div>
       </header>
 
+      {/* Stats Cards */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <StatsCards />
+      </div>
+
       {/* Tab Navigation */}
       <div className="border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8" aria-label="Tabs">
             {[
-              { id: 'networks', name: 'Networks' },
-              { id: 'dictionaries', name: 'Dictionaries' },
-              { id: 'jobs', name: 'Jobs' },
-              { id: 'users', name: 'Users' },
+              { id: 'networks', name: 'Networks', count: networksCount },
+              { id: 'dictionaries', name: 'Dictionaries', count: dictionariesCount },
+              { id: 'jobs', name: 'Jobs', count: jobsCount },
+              { id: 'users', name: 'Users', count: usersCount },
+              ...(isAdmin ? [{ id: 'admin', name: 'Admin', count: 0 }] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -115,6 +160,9 @@ export default function Page() {
               >
                 {getTabIcon(tab.id)}
                 <span>{tab.name}</span>
+                <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                  {tab.count}
+                </span>
               </button>
             ))}
           </nav>
