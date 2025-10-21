@@ -48,7 +48,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       debug: process.env.NODE_ENV === 'development',
     });
 
-    
+  
     // Add XHR Upload plugin
     uppy.use(XHRUpload, {
       endpoint: `/api/upload?type=${type}`,

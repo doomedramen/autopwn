@@ -7,7 +7,7 @@ export interface ApiError {
 }
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -17,7 +17,7 @@ export const apiClient = axios.create({
 // Request interceptor to add auth token if available
 apiClient.interceptors.request.use(
   (config) => {
-    // Add any auth token logic here if needed
+    // Add auth token from Better Auth session if available
     return config;
   },
   (error) => Promise.reject(error)
@@ -25,20 +25,37 @@ apiClient.interceptors.request.use(
 
 // Response interceptor for consistent error handling
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Our backend returns { success: boolean, data?: any, error?: string }
+    if (response.data && typeof response.data === 'object') {
+      if (!response.data.success && response.data.error) {
+        throw new Error(response.data.error);
+      }
+    }
+    return response;
+  },
   (error: AxiosError<ApiError>) => {
+    // Handle auth errors
+    if (error.response?.status === 401) {
+      // Redirect to login for auth errors
+      window.location.href = '/auth/sign-in';
+    }
+
     // Handle different types of errors
     if (error.response) {
       // Server responded with error status
-      console.error('API Error:', error.response.data?.message || error.message);
+      const message = error.response.data?.error || error.response.data?.message || error.message;
+      console.error('API Error:', message);
+      throw new Error(message);
     } else if (error.request) {
       // Request was made but no response received
       console.error('Network Error: No response received');
+      throw new Error('Network error. Please check your connection.');
     } else {
       // Something else happened
       console.error('Error:', error.message);
+      throw new Error(error.message);
     }
-    return Promise.reject(error);
   }
 );
 

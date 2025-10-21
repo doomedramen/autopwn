@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/mock-api-hooks';
+import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/mock-auth';
 import { NetworksTab } from '@/components/networks-tab';
 import { DictionariesTab } from '@/components/dictionaries-tab';
 import { JobsTab } from '@/components/jobs-tab';

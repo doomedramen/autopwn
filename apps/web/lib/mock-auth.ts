@@ -1,53 +1,103 @@
-// Mock authentication for demo purposes
+// Real authentication using Better Auth backend
+import { auth } from './auth'
+import {
+  useLogin as realUseLogin,
+  useLogout as realUseLogout,
+  useAuthSession as realUseAuthSession,
+  useNetworks as realUseNetworks,
+  useNetwork as realUseNetwork,
+  useCreateNetwork as realUseCreateNetwork,
+  useUpdateNetwork as realUseUpdateNetwork,
+  useDeleteNetwork as realUseDeleteNetwork,
+  useDictionaries as realUseDictionaries,
+  useDictionary as realUseDictionary,
+  useCreateDictionary as realUseCreateDictionary,
+  useUpdateDictionary as realUseUpdateDictionary,
+  useDeleteDictionary as realUseDeleteDictionary,
+  useJobs as realUseJobs,
+  useJob as realUseJob,
+  useCreateJob as realUseCreateJob,
+  useUpdateJob as realUseUpdateJob,
+  useDeleteJob as realUseDeleteJob,
+  useQueueStats as realUseQueueStats,
+  useStartCrackingJob as realUseStartCrackingJob,
+  useGenerateDictionary as realUseGenerateDictionary,
+  useCancelJob as realUseCancelJob,
+  useRetryJob as realUseRetryJob,
+  useStartCleanup as realUseStartCleanup,
+  useUsers as realUseUsers,
+  useUser as realUseUser,
+  useCreateUser as realUseCreateUser,
+  useUpdateUser as realUseUpdateUser,
+  useDeleteUser as realUseDeleteUser,
+  useFileUploadConfig as realUseFileUploadConfig,
+  usePresignUpload as realUsePresignUpload,
+  useUploadStatus as realUseUploadStatus,
+  useCompleteUpload as realUseCompleteUpload,
+  useDeleteUploadedFile as realUseDeleteUploadedFile,
+  useHealthCheck as realUseHealthCheck
+} from './api-hooks'
+
+// Keep demo credentials for development/testing
 export const DEMO_CREDENTIALS = {
   email: 'admin@autopwn.local',
   password: 'admin123',
 };
 
-export const mockUser = {
-  id: '1',
-  email: DEMO_CREDENTIALS.email,
-  role: 'admin' as const,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
+// Export real authentication functions
+export const mockLogin = auth.signIn;
+export const mockLogout = auth.signOut;
+export const mockGetSession = auth.getSession;
 
-export function mockLogin(email: string, password: string) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (email === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password) {
-        resolve({
-          user: mockUser,
-          message: 'Login successful',
-        });
-      } else {
-        reject(new Error('Invalid credentials'));
-      }
-    }, 1000); // Simulate network delay
-  });
+// Export additional auth functions
+export const { signUp, getProfile, updateProfile, changePassword } = auth;
+
+// Helper function to check if user is authenticated
+export async function isAuthenticated() {
+  try {
+    await auth.getSession();
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
-export function mockLogout() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ message: 'Logout successful' });
-    }, 500);
-  });
-}
+// Export real API hooks (replacing mock ones)
+export const useLogin = realUseLogin;
+export const useLogout = realUseLogout;
+export const useAuthSession = realUseAuthSession;
+export const useNetworks = realUseNetworks;
+export const useNetwork = realUseNetwork;
+export const useCreateNetwork = realUseCreateNetwork;
+export const useUpdateNetwork = realUseUpdateNetwork;
+export const useDeleteNetwork = realUseDeleteNetwork;
+export const useDictionaries = realUseDictionaries;
+export const useDictionary = realUseDictionary;
+export const useCreateDictionary = realUseCreateDictionary;
+export const useUpdateDictionary = realUseUpdateDictionary;
+export const useDeleteDictionary = realUseDeleteDictionary;
+export const useJobs = realUseJobs;
+export const useJob = realUseJob;
+export const useCreateJob = realUseCreateJob;
+export const useUpdateJob = realUseUpdateJob;
+export const useDeleteJob = realUseDeleteJob;
+export const useQueueStats = realUseQueueStats;
+export const useStartCrackingJob = realUseStartCrackingJob;
+export const useGenerateDictionary = realUseGenerateDictionary;
+export const useCancelJob = realUseCancelJob;
+export const useRetryJob = realUseRetryJob;
+export const useStartCleanup = realUseStartCleanup;
+export const useUsers = realUseUsers;
+export const useUser = realUseUser;
+export const useCreateUser = realUseCreateUser;
+export const useUpdateUser = realUseUpdateUser;
+export const useDeleteUser = realUseDeleteUser;
+export const useFileUploadConfig = realUseFileUploadConfig;
+export const usePresignUpload = realUsePresignUpload;
+export const useUploadStatus = realUseUploadStatus;
+export const useCompleteUpload = realUseCompleteUpload;
+export const useDeleteUploadedFile = realUseDeleteUploadedFile;
+export const useHealthCheck = realUseHealthCheck;
 
-export function mockGetSession() {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Check if there's a "session" in localStorage
-      const session = localStorage.getItem('autopwn_session');
-      if (session) {
-        resolve({
-          user: mockUser,
-          message: 'Session valid',
-        });
-      } else {
-        reject(new Error('No active session'));
-      }
-    }, 100);
-  });
-}
+// Export auth utilities
+export { auth };

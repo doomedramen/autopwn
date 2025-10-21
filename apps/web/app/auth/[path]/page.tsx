@@ -1,5 +1,6 @@
 import { AuthView } from "@daveyplate/better-auth-ui"
 import { authViewPaths } from "@daveyplate/better-auth-ui/server"
+import { redirect } from "next/navigation"
 
 export const dynamicParams = false
 
@@ -13,6 +14,11 @@ export default async function AuthPage({
   params: Promise<{ path: string }>
 }) {
   const { path } = await params
+
+  // Redirect sign-up attempts to sign-in since public sign-up is disabled
+  if (path === "sign-up") {
+    redirect("/auth/sign-in")
+  }
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -37,9 +43,7 @@ export default async function AuthPage({
         </div>
 
         {/* Auth View */}
-        <div className="bg-card rounded-lg shadow-lg p-6 border">
-          <AuthView path={path} />
-        </div>
+        <AuthView path={path} />
       </div>
     </main>
   )
