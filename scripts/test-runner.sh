@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e  # Exit on error
+set -ex  # Exit on error and print commands
 
 # Colors for output
 RED='\033[0;31m'
