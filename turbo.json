@@ -5,7 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -16,6 +16,60 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "test:build": {
+      "dependsOn": ["^test:build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env.test"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": ["NODE_ENV"]
+    },
+    "test:dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV"]
+    },
+    "test:migrate": {
+      "cache": false,
+      "env": ["NODE_ENV", "DATABASE_URL"]
+    },
+    "test:db:push": {
+      "cache": false,
+      "env": ["NODE_ENV", "DATABASE_URL"]
+    },
+    "test:seed": {
+      "cache": false,
+      "env": ["NODE_ENV", "DATABASE_URL"]
+    },
+    "test:e2e": {
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "env": ["NODE_ENV", "BASE_URL", "API_URL", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"]
+    },
+    "test:e2e:ui": {
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "env": ["NODE_ENV", "BASE_URL", "API_URL", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"]
+    },
+    "test:e2e:debug": {
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "env": ["NODE_ENV", "BASE_URL", "API_URL", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"]
+    },
+    "test:e2e:headed": {
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "env": ["NODE_ENV", "BASE_URL", "API_URL", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"]
+    },
+    "test:e2e:chromium": {
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "env": ["NODE_ENV", "BASE_URL", "API_URL", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"]
+    },
+    "test:e2e:install": {
+      "cache": false
+    },
+    "test:e2e:report": {
+      "cache": false
     }
   }
 }

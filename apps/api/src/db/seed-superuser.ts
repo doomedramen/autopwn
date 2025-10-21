@@ -11,9 +11,18 @@ function generatePassword(length: number = 16): string {
   return password
 }
 
+// Get password based on environment - fixed for test, random for others
+function getPasswordForEnvironment(): string {
+  if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
+    // Use a consistent, known password for testing
+    return 'autopwn-test-password';
+  }
+  return generatePassword();
+}
+
 export async function createSuperUser() {
   const email = 'admin@autopwn.local'
-  const password = generatePassword()
+  const password = getPasswordForEnvironment();
 
   try {
     // Check if superuser already exists
@@ -23,7 +32,13 @@ export async function createSuperUser() {
     if (existingSuperUser) {
       console.log('✅ Superuser already exists:')
       console.log(`   Email: ${email}`)
-      console.log('   Password: [Use existing password]')
+      
+      // Only show the actual password in test environments for debugging purposes
+      if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
+        console.log(`   Password: ${password} (test environment)`)
+      } else {
+        console.log('   Password: [Use existing password]')
+      }
       return
     }
 
@@ -42,7 +57,14 @@ export async function createSuperUser() {
     console.log('🎉 Superuser created successfully!')
     console.log('=====================================')
     console.log(`📧 Email: ${email}`)
-    console.log(`🔑 Password: ${password}`)
+    
+    // Only show the actual password in test environments for security
+    if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
+      console.log(`🔑 Password: ${password} (test environment)`)
+    } else {
+      console.log(`🔑 Password: [Password hidden in non-test environment]`)
+    }
+    
     console.log('=====================================')
     console.log('⚠️  Save these credentials securely!')
     console.log('🔗 Login at: http://localhost:3002/auth/sign-in')
@@ -52,9 +74,9 @@ export async function createSuperUser() {
   }
 }
 
-// Function to create additional users (admin only)
+// Function to create additional users (admin only) 
 export async function createUser(email: string, role: 'user' | 'admin' = 'user') {
-  const password = generatePassword()
+  const password = getPasswordForEnvironment();
 
   try {
     const result = await authClient.admin.createUser({
@@ -69,7 +91,14 @@ export async function createUser(email: string, role: 'user' | 'admin' = 'user')
 
     console.log(`✅ User created successfully!`)
     console.log(`📧 Email: ${email}`)
-    console.log(`🔑 Password: ${password}`)
+    
+    // Only show the actual password in test environments for security
+    if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
+      console.log(`🔑 Password: ${password} (test environment)`)
+    } else {
+      console.log('🔑 Password: [Password hidden in non-test environment]')
+    }
+    
     console.log(`👤 Role: ${role}`)
 
     return { email, password, role }

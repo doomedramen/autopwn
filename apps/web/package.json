@@ -9,7 +9,16 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "NODE_ENV=test playwright test",
+    "test:e2e:ui": "NODE_ENV=test playwright test --ui",
+    "test:e2e:debug": "NODE_ENV=test playwright test --debug",
+    "test:e2e:headed": "NODE_ENV=test playwright test --headed",
+    "test:e2e:chromium": "NODE_ENV=test playwright test --project=chromium",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "test:e2e:report": "playwright show-report",
+    "test:build": "NODE_ENV=test next build",
+    "test:dev": "NODE_ENV=test next dev --turbopack"
   },
   "dependencies": {
     "@daveyplate/better-auth-ui": "^3.2.6",
@@ -40,11 +49,14 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/node": "^20.19.9",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@workspace/eslint-config": "workspace:^",
     "@workspace/typescript-config": "workspace:*",
+    "dotenv-cli": "^7.4.2",
+    "playwright": "^1.56.1",
     "typescript": "^5.9.2"
   }
 }

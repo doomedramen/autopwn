@@ -40,6 +40,8 @@ autopwn is a self-hosted web platform designed for Pwnagotchi users to manage an
 
 ### Prerequisites
 - Docker and Docker Compose
+- Node.js >= 20 (for development)
+- pnpm (for development)
 - At least 4GB RAM (8GB+ recommended)
 - CPU with good single-thread performance
 
@@ -61,6 +63,100 @@ docker compose up -d
 ```
 
 Visit `http://localhost:3000` and log in with the default superuser credentials (displayed in logs on first run).
+
+## Development
+
+### Setting up for Development
+
+1. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+
+2. Start development services:
+   ```bash
+   docker compose -f docker-compose.dev.yml up -d
+   ```
+
+3. Run the development servers:
+   ```bash
+   pnpm dev
+   ```
+
+### Testing
+
+The project uses Playwright for end-to-end testing with a comprehensive test infrastructure. All tests run with `NODE_ENV=test` to ensure consistent, reproducible behavior.
+
+**Development Workflow (Recommended for iterative testing):**
+
+```bash
+# 1. Install Playwright browsers (one-time setup)
+pnpm test:e2e:install
+
+# 2. Start test infrastructure
+pnpm test:infra:up
+
+# 3. Run tests (fast, run many times)
+pnpm test
+
+# 4. Stop infrastructure when done
+pnpm test:infra:down
+```
+
+**One-off / CI Testing (Full automation):**
+
+```bash
+# 1. Install Playwright browsers (one-time setup)
+pnpm test:e2e:install
+
+# 2. Run complete test suite with automatic setup/cleanup
+pnpm test:full
+```
+
+This automatically handles:
+- ✅ Fresh Docker infrastructure (PostgreSQL + Redis)
+- ✅ Database migrations and seeding
+- ✅ E2E test execution
+- ✅ Automatic cleanup (containers + volumes)
+
+**Advanced Test Commands:**
+
+```bash
+# Run tests in CI mode (preserve infrastructure on failure)
+pnpm test:ci
+
+# Run tests without cleanup (for debugging)
+pnpm test:no-cleanup
+
+# Run with UI for debugging
+pnpm test:e2e:ui
+
+# Run in debug mode (step through tests)
+pnpm test:e2e:debug
+
+# View test report
+pnpm test:e2e:report
+```
+
+**Cleanup Commands:**
+
+```bash
+# Clean up test infrastructure (containers + volumes)
+pnpm test:cleanup
+
+# Clean up ALL old test volumes (interactive)
+pnpm test:cleanup:volumes
+```
+
+**Test Environment Details:**
+
+- Uses dedicated `.env.test` file with isolated test configurations
+- Test database (autopwn_test) on port 5433
+- Test Redis instance on port 6380
+- Superuser credentials: `admin@autopwn.local` / `autopwn-test-password`
+- All tests automatically run with `NODE_ENV=test` via turbo + pnpm pipeline
+
+For complete testing documentation, see [docs/TESTING.md](./docs/TESTING.md)
 
 ## Documentation
 

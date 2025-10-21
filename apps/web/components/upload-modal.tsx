@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Uppy from '@uppy/core';
 import XHRUpload from '@uppy/xhr-upload';
+import Dashboard from '@uppy/dashboard';
+import { DragDrop } from '@uppy/react';
 import {
   Dialog,
   DialogContent,
@@ -48,7 +50,16 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       debug: process.env.NODE_ENV === 'development',
     });
 
-  
+    // Add Dashboard plugin for better UI
+    uppy.use(Dashboard, {
+      inline: false, // Will be used with React component
+      target: type === 'pcap' ? '#pcap-dashboard' : '#dictionary-dashboard',
+      width: '100%',
+      height: 400,
+      plugins: ['FileInput', 'DragDrop', 'ProgressBar', 'StatusBar'],
+      proudlyHostedByUppy: false,
+    });
+
     // Add XHR Upload plugin
     uppy.use(XHRUpload, {
       endpoint: `/api/upload?type=${type}`,
@@ -127,74 +138,6 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
     };
   }, [open, initializeUppy]);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: UploadType) => {
-    const files = Array.from(event.target.files || []);
-
-    if (files.length > 0) {
-      const uppy = uppyInstances[type];
-      if (uppy) {
-        files.forEach(file => {
-          try {
-            uppy.addFile({
-              name: file.name,
-              type: file.type,
-              data: file,
-              source: 'Local',
-              isRemote: false,
-            });
-          } catch (error) {
-            console.error('Error adding file to Uppy:', error);
-          }
-        });
-      }
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const handleDragEnter = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const handleDragLeave = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const handleDrop = (event: React.DragEvent, type: UploadType) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const files = Array.from(event.dataTransfer.files);
-    const validFiles = files.filter(file => {
-      const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      return type === 'pcap' ? extension === '.pcap' : extension === '.txt';
-    });
-
-    if (validFiles.length > 0) {
-      const uppy = uppyInstances[type];
-      if (uppy) {
-        validFiles.forEach(file => {
-          try {
-            uppy.addFile({
-              name: file.name,
-              type: file.type,
-              data: file,
-              source: 'Drag & Drop',
-              isRemote: false,
-            });
-          } catch (error) {
-            console.error('Error adding file to Uppy:', error);
-          }
-        });
-      }
-    }
-  };
-
   const handleUpload = (type: UploadType) => {
     const uppy = uppyInstances[type];
     if (uppy) {
@@ -266,32 +209,24 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
           <p className="text-sm text-muted-foreground font-mono">{description}</p>
         </div>
 
-        {/* Custom Drag and Drop Area */}
-        <div
-          className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors min-h-[200px] cursor-pointer"
-          onDragOver={handleDragOver}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, type)}
-          onClick={() => document.getElementById(`file-input-${type}`)?.click()}
-        >
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <div className="space-y-2">
-            <p className="text-lg font-medium font-mono">
-              Drop files here or click to browse
-            </p>
-            <p className="text-sm text-muted-foreground font-mono">
-              {type === 'pcap' ? 'PCAP files only' : 'TXT files only'} up to 100MB
-            </p>
+        {/* Uppy Dashboard */}
+        <div className="border rounded-lg p-4">
+          <div id={type === 'pcap' ? 'pcap-dashboard' : 'dictionary-dashboard'}>
+            {uppy && (
+              <DragDrop
+                uppy={uppy}
+                locale={{
+                  strings: {
+                    // Text to show on the droppable area.
+                    // `%{browse}` is replaced with a link that opens the system file selection dialog.
+                    dropHereOr: 'Drop files here or %{browse}',
+                    // Used as the label for the link that opens the system file selection dialog.
+                    browse: 'browse',
+                  },
+                }}
+              />
+            )}
           </div>
-          <input
-            id={`file-input-${type}`}
-            type="file"
-            multiple
-            accept={type === 'pcap' ? '.pcap' : '.txt'}
-            onChange={(e) => handleFileSelect(e, type)}
-            className="hidden"
-          />
         </div>
 
         {/* Selected Files */}
@@ -301,8 +236,8 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
               Selected Files ({files.length})
             </h4>
             <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
-              {files.map((file, index) => (
-                <div key={file.id || index} className="flex items-center justify-between p-3">
+              {files.map((file) => (
+                <div key={file.id} className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <div className="min-w-0 flex-1">
