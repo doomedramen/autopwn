@@ -8,6 +8,8 @@ export const authClient = betterAuth({
   database: new Pool({
     connectionString: env.DATABASE_URL,
     ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000, // 10 seconds timeout
+    idleTimeoutMillis: 30000,       // 30 seconds idle timeout
   }),
 
   // Email and password authentication

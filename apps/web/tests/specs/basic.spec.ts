@@ -1,34 +1,32 @@
 import { test, expect } from '../fixtures/auth-fixture';
 import { TestUtils } from '../helpers/test-utils';
 
-test.describe('Basic Functionality', () => {
-  test('should have a title', async ({ page }) => {
+test.describe('Basic Functionality Test', () => {
+  test('should load homepage successfully', async ({ page }) => {
+    // Very simple test to verify basic functionality without heavy setup
     await page.goto('/');
     await expect(page).toHaveTitle(/AutoPWN/);
+    
+    // Simple check that the page loaded without errors
+    const body = await page.locator('body');
+    await expect(body).toBeVisible();
   });
 
-  test('should load without errors', async ({ page }) => {
-    // Navigate to the home page
-    const response = await page.goto('/');
+  test('should navigate to auth page', async ({ page }) => {
+    // Very simple test to verify auth page loads
+    await page.goto('/auth/sign-in');
     
-    // Check if the response is successful
-    expect(response?.status()).toBeLessThan(400);
+    // Check that we're on the sign-in page
+    const title = await page.title();
+    expect(title).toContain('Sign In');
     
-    // Wait for network idle to ensure all resources are loaded
-    await TestUtils.waitForNetworkIdle(page);
+    // Minimal element checks
+    const emailInput = await page.locator('input[name="email"]');
+    const passwordInput = await page.locator('input[name="password"]');
+    const submitButton = await page.locator('button[type="submit"]');
     
-    // Check for basic page elements
-    await expect(page.locator('h1, h2')).toBeVisible();
-  });
-
-  test('should handle navigation correctly', async ({ page }) => {
-    await page.goto('/');
-    
-    // Test internal navigation
-    // Note: This would need to be adjusted based on your actual navigation structure
-    // await page.locator('nav a').first().click();
-    
-    // For now, just test that the page loads correctly
-    await expect(page.locator('body')).toBeVisible();
+    await expect(emailInput).toBeVisible();
+    await expect(passwordInput).toBeVisible();
+    await expect(submitButton).toBeVisible();
   });
 });

@@ -13,6 +13,7 @@ import { queueManagementRoutes } from './routes/queue-management'
 import { checkQueueHealth } from './lib/queue'
 import { checkWorkerHealth, closeWorkers } from './workers'
 import { createSuperUser } from './db/seed-superuser'
+import { runMigrations } from './db/migrate'
 
 const app = new Hono()
 
@@ -94,13 +95,24 @@ process.on('SIGTERM', async () => {
   process.exit(0)
 })
 
+
+
 // Initialize superuser before starting server
 async function startServer() {
   console.log('🔧 Initializing AutoPWN API Server...')
   console.log('📊 Health check: http://localhost:${port}/health')
   console.log('🔄 Background workers initialized')
 
-  // Create superuser
+  // Run database migrations first
+  try {
+    await runMigrations();
+    console.log('✅ Database migrations completed');
+  } catch (error) {
+    console.error('❌ Failed to run database migrations:', error);
+    process.exit(1);
+  }
+
+  // Create superuser after migrations
   await initializeSuperUser()
 
   console.log(`🚀 AutoPWN API Server starting on port ${port}`)

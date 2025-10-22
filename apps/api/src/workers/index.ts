@@ -21,6 +21,13 @@ const redisConnection = new Redis({
   maxRetriesPerRequest: null,
   retryDelayOnFailover: 100,
   lazyConnect: true,
+  retryStrategy: (times) => {
+    // Exponential backoff: start with 100ms, double each time, max 30 seconds
+    const delay = Math.min(100 * Math.pow(2, times - 1), 30000);
+    return delay;
+  },
+  connectTimeout: 30000, // 30 seconds
+  commandTimeout: 10000, // 10 seconds
 })
 
 // PCAP Processing Worker
