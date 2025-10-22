@@ -1,7 +1,7 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { db } from '@/db'
-import { jobs, jobResults, networks } from '@/db/schema'
+import { db } from '../db'
+import { jobs, jobResults, networks } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -158,7 +158,7 @@ export async function runHashcatAttack({
   }
 }
 
-function buildHashcatCommand({
+export function buildHashcatCommand({
   attackMode,
   handshakePath,
   dictionaryPath,
@@ -234,7 +234,7 @@ async function executeHashcat(command: string, jobId: string) {
   }
 }
 
-async function parseHashcatOutput(result: any, jobId: string) {
+export async function parseHashcatOutput(result: any, jobId: string) {
   const workDir = path.join(process.cwd(), 'temp', 'hashcat', jobId)
   const outputFile = path.join(workDir, 'hashcat_output.txt')
 
@@ -297,7 +297,7 @@ export async function checkHashcatAvailability() {
   } catch (error) {
     return {
       available: false,
-      error: error instanceof Error ? error.message : 'Hashcat not found'
+      error: error instanceof Error ? error.message : 'hashcat: command not found'
     }
   }
 }

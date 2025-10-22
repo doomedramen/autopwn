@@ -26,12 +26,13 @@
     "emitDecoratorMetadata": true,
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["*"],
+      "@/*": ["./*"],
+      "@/test/*": ["test/*"],
       "@/types/*": ["types/*"],
       "@/lib/*": ["lib/*"],
       "@/config/*": ["config/*"],
       "@/db/*": ["db/*"],
-      "@/jobs/*": ["jobs/*"]
+      "@/workers/*": ["workers/*"]
     }
   },
   "include": [

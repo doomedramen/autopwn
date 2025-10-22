@@ -23,6 +23,11 @@
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
       "env": ["NODE_ENV"]
     },
+    "test:integration:real": {
+      "cache": false,
+      "outputs": ["test-results/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL", "HASHCAT_PATH", "HCX_PCAPNGTOOL_PATH", "TEST_WITH_REAL_TOOLS"]
+    },
     "test:dev": {
       "cache": false,
       "persistent": true,
@@ -39,6 +44,47 @@
     "test:seed": {
       "cache": false,
       "env": ["NODE_ENV", "DATABASE_URL"]
+    },
+    "test": {
+      "dependsOn": ["^test"],
+      "cache": false,
+      "outputs": ["coverage/**", "test-results/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "test:unit": {
+      "cache": false,
+      "outputs": ["coverage/**", "test-results/**"],
+      "env": ["NODE_ENV"]
+    },
+    "test:integration": {
+      "cache": false,
+      "outputs": ["coverage/**", "test-results/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "test:coverage": {
+      "cache": false,
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "test:ui": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "test:performance": {
+      "cache": false,
+      "outputs": ["test-results/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "test:ci": {
+      "cache": false,
+      "outputs": ["coverage/**", "test-results/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
     },
     "test:e2e": {
       "cache": false,
