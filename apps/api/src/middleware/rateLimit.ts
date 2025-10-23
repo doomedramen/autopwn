@@ -1,5 +1,7 @@
 import { Context, Next } from 'hono'
 import { env } from '../config/env'
+import { createRateLimitError } from '../lib/error-handler'
+import { logger } from '../lib/logger'
 
 interface RateLimitStore {
   [key: string]: {
@@ -66,13 +68,22 @@ export const rateLimit = (options: {
       const retryAfter = Math.ceil((resetTime - now) / 1000)
       c.res.headers.set('Retry-After', retryAfter.toString())
 
-      return c.json({
-        success: false,
-        error: 'Rate limit exceeded',
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: `Too many requests. Maximum ${maxRequests} requests per ${Math.ceil(windowMs / 60000)} minute(s) allowed.`,
-        retryAfter
-      }, 429)
+      const rateLimitError = createRateLimitError(
+        `Too many requests. Maximum ${maxRequests} requests per ${Math.ceil(windowMs / 60000)} minute(s) allowed.`,
+        'RATE_LIMIT_EXCEEDED'
+      )
+
+      logger.security('rate_limit_exceeded', 'medium', {
+        key,
+        count,
+        maxRequests,
+        windowMs,
+        retryAfter,
+        clientIP: (c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || (c.env?.get?.('remote_addr')))
+      })
+
+      // Re-throw to be handled by global error handler
+      throw rateLimitError
     }
 
     await next()

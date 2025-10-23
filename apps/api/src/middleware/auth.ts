@@ -1,6 +1,8 @@
 import { Context, Next } from 'hono'
 import { authClient } from '../lib/auth'
 import { getCookie } from 'hono/cookie'
+import { createAuthenticationError, createAuthorizationError } from '../lib/error-handler'
+import { logger } from '../lib/logger'
 
 export interface AuthContext {
   userId: string
@@ -43,12 +45,14 @@ export const authenticate = async (c: Context, next: Next) => {
 
     await next()
   } catch (error) {
-    console.error('Authentication error:', error)
-    return c.json({
-      success: false,
-      error: 'Authentication failed',
-      code: 'AUTH_ERROR'
-    }, 401)
+    const authError = createAuthenticationError('Authentication failed', 'AUTH_ERROR')
+    logger.error('Authentication middleware error', 'authentication', error, {
+      errorType: authError.constructor.name,
+      code: authError.code
+    })
+
+    // Re-throw to be handled by global error handler
+    throw authError
   }
 }
 
@@ -57,13 +61,18 @@ export const authenticate = async (c: Context, next: Next) => {
  */
 export const requireAdmin = async (c: Context, next: Next) => {
   const userRole = c.get('userRole') as string
+  const userId = c.get('userId')
 
   if (userRole !== 'admin') {
-    return c.json({
-      success: false,
-      error: 'Access denied - Admin privileges required',
-      code: 'ADMIN_REQUIRED'
-    }, 403)
+    const adminError = createAuthorizationError('Access denied - Admin privileges required')
+    logger.security('admin_access_denied', 'medium', {
+      userId,
+      userRole,
+      attemptedResource: c.req.url
+    })
+
+    // Re-throw to be handled by global error handler
+    throw adminError
   }
 
   await next()
@@ -94,7 +103,7 @@ export const optionalAuth = async (c: Context, next: Next) => {
     }
   } catch (error) {
     // Optional auth - don't fail the request if auth fails
-    console.debug('Optional authentication failed:', error)
+    logger.debug('Optional authentication failed', 'authentication', error)
   }
 
   await next()

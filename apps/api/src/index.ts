@@ -3,6 +3,8 @@ import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import { comprehensiveSecurity } from './middleware/security'
+import { globalErrorHandler, requestContextMiddleware } from './lib/error-handler'
+import { logger as appLogger, extractRequestContext } from './lib/logger'
 import { authRoutes } from './routes/auth'
 import { networksRoutes } from './routes/networks'
 import { dictionariesRoutes } from './routes/dictionaries'
@@ -18,6 +20,7 @@ import { runMigrations } from './db/migrate'
 const app = new Hono()
 
 // Middleware
+app.use('*', requestContextMiddleware)
 app.use('*', logger())
 app.use('*', prettyJSON())
 app.use('*', comprehensiveSecurity({
@@ -25,21 +28,53 @@ app.use('*', comprehensiveSecurity({
   trustProxy: false
 }))
 
-// Health check
+// Health check with comprehensive monitoring
 app.get('/health', async (c) => {
-  const [queueHealth, workerHealth] = await Promise.all([
-    checkQueueHealth(),
-    Promise.resolve(checkWorkerHealth())
-  ])
+  try {
+    const [queueHealth, workerHealth] = await Promise.all([
+      checkQueueHealth(),
+      Promise.resolve(checkWorkerHealth())
+    ])
 
-  return c.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'autopwn-api',
-    version: '1.0.0',
-    queues: queueHealth,
-    workers: workerHealth
-  })
+    // Get application metrics
+    const metrics = AppMonitor.getMetrics()
+
+    return c.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'autopwn-api',
+      version: '1.0.0',
+      uptime: metrics.uptime,
+      memory: metrics.memory,
+      errors: metrics.errors,
+      queues: queueHealth,
+      workers: workerHealth
+    })
+  } catch (error) {
+    appLogger.error('Health check failed', 'health', error)
+    return c.json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      service: 'autopwn-api',
+      version: '1.0.0',
+      error: 'Health check failed'
+    }, 500)
+  }
+})
+
+// Enhanced metrics endpoint for monitoring
+app.get('/metrics', async (c) => {
+  try {
+    const metrics = AppMonitor.getMetrics()
+
+    return c.json(metrics)
+  } catch (error) {
+    appLogger.error('Metrics retrieval failed', 'metrics', error)
+    return c.json({
+      error: 'Failed to retrieve metrics',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
 })
 
 // API routes
@@ -59,13 +94,13 @@ app.notFound((c) => {
   }, 404)
 })
 
-// Error handler
-app.onError((err, c) => {
-  console.error('Server error:', err)
-  return c.json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  }, 500)
+// Global error handler
+app.onError(globalErrorHandler)
+
+// Log server startup
+appLogger.info('AutoPWN API Server initialized', 'system', {
+  nodeEnv: process.env.NODE_ENV,
+  version: '1.0.0'
 })
 
 const port = parseInt(process.env.PORT || '3001')
@@ -97,31 +132,54 @@ process.on('SIGTERM', async () => {
 
 // Initialize superuser before starting server
 async function startServer() {
-  console.log('🔧 Initializing AutoPWN API Server...')
-  console.log('📊 Health check: http://localhost:${port}/health')
-  console.log('🔄 Background workers initialized')
+  appLogger.info('Initializing AutoPWN API Server...', 'system')
 
   // Run database migrations first
   try {
-    await runMigrations();
-    console.log('✅ Database migrations completed');
+    appLogger.info('Running database migrations...', 'database')
+    const startTime = Date.now()
+    await runMigrations()
+    const duration = Date.now() - startTime
+    appLogger.info('Database migrations completed successfully', 'database', {
+      duration,
+      success: true
+    })
   } catch (error) {
-    console.error('❌ Failed to run database migrations:', error);
-    process.exit(1);
+    appLogger.error('Failed to run database migrations', 'database', error, {
+      fatal: true
+    })
+    process.exit(1)
   }
 
   // Create superuser after migrations
-  await initializeSuperUser()
+  try {
+    appLogger.info('Creating/verifying superuser account...', 'database')
+    await initializeSuperUser()
+    appLogger.info('Superuser setup completed', 'database')
+  } catch (error) {
+    appLogger.warn('Superuser creation failed, continuing startup', 'database', error)
+    // Continue with server startup even if superuser creation fails
+  }
 
-  console.log(`🚀 AutoPWN API Server starting on port ${port}`)
+  const serverUrl = `http://localhost:${port}`
+  appLogger.info(`AutoPWN API Server starting on port ${port}`, 'system', {
+    serverUrl,
+    healthCheckUrl: `${serverUrl}/health`,
+    nodeEnv: process.env.NODE_ENV
+  })
 
   serve({
     fetch: app.fetch,
     port,
+    onCreate: () => {
+      appLogger.info('Server created successfully', 'system')
+    }
+  }).on('error', (error) => {
+    appLogger.error('Server encountered an error', 'system', error, {
+      fatal: true
+    })
+    process.exit(1)
   })
 }
 
-startServer().catch((error) => {
-  console.error('❌ Failed to start server:', error)
-  process.exit(1)
-})
+startServer()

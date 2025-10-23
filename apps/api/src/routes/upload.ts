@@ -13,6 +13,8 @@ import { addPCAPProcessingJob } from '@/lib/queue'
 import { authenticate, getUserId } from '@/middleware/auth'
 import { uploadRateLimit } from '@/middleware/rateLimit'
 import { secureUploadRoutes } from '@/middleware/fileSecurity'
+import { createValidationError, createNotFoundError, createFileSystemError, asyncHandler } from '@/lib/error-handler'
+import { logger } from '@/lib/logger'
 
 const upload = new Hono()
 
@@ -21,17 +23,22 @@ upload.use('*', authenticate)
 upload.use('*', uploadRateLimit)
 
 // Upload route for both PCAP and dictionary files
-upload.post('/', async (c) => {
-  try {
+upload.post('/', asyncHandler(async (c) => {
     const contentType = c.req.header('content-type') || ''
     const searchParams = new URL(c.req.url).searchParams
     const uploadType = searchParams.get('type') as 'pcap' | 'dictionary'
 
     if (!uploadType || !['pcap', 'dictionary'].includes(uploadType)) {
-      return c.json({
-        success: false,
-        error: 'Invalid upload type. Must be "pcap" or "dictionary"',
-      }, 400)
+      const validationError = createValidationError(
+        'Invalid upload type. Must be "pcap" or "dictionary"',
+        'INVALID_UPLOAD_TYPE'
+      )
+      logger.warn('Invalid upload type provided', 'validation', {
+        uploadType,
+        allowedTypes: ['pcap', 'dictionary'],
+        userId: getUserId(c)
+      })
+      throw validationError
     }
 
     // Handle multipart form data
@@ -39,10 +46,12 @@ upload.post('/', async (c) => {
     const file = form.get('file') as File
 
     if (!file) {
-      return c.json({
-        success: false,
-        error: 'No file provided',
-      }, 400)
+      const noFileError = createValidationError('No file provided')
+      logger.warn('Upload attempted without file', 'validation', {
+        uploadType,
+        userId: getUserId(c)
+      })
+      throw noFileError
     }
 
     // Validate file type based on upload type
@@ -50,24 +59,48 @@ upload.post('/', async (c) => {
     const allowedTypes = uploadType === 'pcap' ? ['.pcap'] : ['.txt']
 
     if (!allowedTypes.includes(fileExtension)) {
-      return c.json({
-        success: false,
-        error: `Invalid file type for ${uploadType} upload. Allowed types: ${allowedTypes.join(', ')}`,
-      }, 400)
+      const fileTypeError = createValidationError(
+        `Invalid file type for ${uploadType} upload. Allowed types: ${allowedTypes.join(', ')}`,
+        'INVALID_FILE_TYPE'
+      )
+      logger.warn('Invalid file type provided', 'validation', {
+        uploadType,
+        fileExtension,
+        allowedTypes,
+        fileName: file.name,
+        userId: getUserId(c)
+      })
+      throw fileTypeError
     }
 
     // Validate file size (100MB max)
     const maxSize = 100 * 1024 * 1024 // 100MB in bytes
     if (file.size > maxSize) {
-      return c.json({
-        success: false,
-        error: 'File too large. Maximum size is 100MB',
-      }, 400)
+      const fileSizeError = createValidationError(
+        'File too large. Maximum size is 100MB',
+        'FILE_TOO_LARGE'
+      )
+      logger.warn('File size too large', 'validation', {
+        uploadType,
+        fileSize: file.size,
+        maxSize,
+        fileName: file.name,
+        userId: getUserId(c)
+      })
+      throw fileSizeError
     }
 
     // Create upload directory if it doesn't exist
     const uploadDir = path.join(process.cwd(), env.UPLOAD_DIR, uploadType)
-    await fs.mkdir(uploadDir, { recursive: true })
+    try {
+      await fs.mkdir(uploadDir, { recursive: true })
+    } catch (error) {
+      logger.error('Failed to create upload directory', 'filesystem', error, {
+        uploadDir,
+        uploadType
+      })
+      throw createFileSystemError('Failed to create upload directory')
+    }
 
     // Generate unique filename
     const fileHash = crypto.createHash('sha256').update(await file.arrayBuffer()).digest('hex')
@@ -76,7 +109,18 @@ upload.post('/', async (c) => {
 
     // Save file
     const fileBuffer = await file.arrayBuffer()
-    await fs.writeFile(filePath, fileBuffer)
+    try {
+      await fs.writeFile(filePath, fileBuffer)
+    } catch (error) {
+      logger.error('Failed to save uploaded file', 'filesystem', error, {
+        fileName: file.name,
+        filePath,
+        fileSize: fileBuffer.length,
+        uploadType,
+        userId: getUserId(c)
+      })
+      throw createFileSystemError('Failed to save uploaded file')
+    }
 
     // Generate file metadata
     const fileStats = await fs.stat(filePath)
@@ -88,80 +132,117 @@ upload.post('/', async (c) => {
       // TODO: Implement PCAP processing logic
       // This would involve using libraries like pcap-parser to extract WiFi networks
 
-      const [network] = await db.insert(networks).values({
-        ssid: 'Sample Network',
-        bssid: '00:11:22:33:44:55',
-        encryption: 'WPA2',
-        status: 'ready',
-        channel: 6,
-        frequency: 2437,
-        signalStrength: -50,
-        captureDate: new Date(),
-        notes: `Uploaded file: ${file.name}`,
-        userId: getUserId(c),
-        filePath: filePath,
-      }).returning()
-
-      return c.json({
-        success: true,
-        message: 'PCAP file uploaded and processed successfully',
-        file: {
-          id: network.id,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          extension: fileExtension,
-          uploadType,
-          checksum,
+      try {
+        const [network] = await db.insert(networks).values({
+          ssid: 'Sample Network',
+          bssid: '00:11:22:33:44:55',
+          encryption: 'WPA2',
+          status: 'ready',
+          channel: 6,
+          frequency: 2437,
+          signalStrength: -50,
+          captureDate: new Date(),
+          notes: `Uploaded file: ${file.name}`,
+          userId: getUserId(c),
           filePath,
-          networksFound: 1, // TODO: Actual network count from processing
-          encryptionTypes: ['WPA2', 'WPA3', 'Open'],
-          processingTime: '2.5s', // TODO: Actual processing time
-        }
-      })
+        }).returning()
+
+        logger.info('PCAP file uploaded successfully', 'database', {
+          networkId: network.id,
+          fileName: file.name,
+          fileSize: file.size,
+          userId: getUserId(c)
+        })
+
+        return c.json({
+          success: true,
+          message: 'PCAP file uploaded and processed successfully',
+          file: {
+            id: network.id,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            extension: fileExtension,
+            uploadType,
+            checksum,
+            filePath,
+            networksFound: 1, // TODO: Actual network count from processing
+            encryptionTypes: ['WPA2', 'WPA3', 'Open'],
+            processingTime: '2.5s', // TODO: Actual processing time
+          }
+        })
+      } catch (error) {
+        logger.error('Failed to save network record to database', 'database', error, {
+          fileName: file.name,
+          uploadType,
+          userId: getUserId(c)
+        })
+        throw createDatabaseError('Failed to save network record')
+      }
     } else {
       // For dictionary files, estimate word count
       const content = fileBuffer.toString('utf-8')
       const wordCount = content.split('\n').filter(line => line.trim()).length
 
-      const [dictionary] = await db.insert(dictionaries).values({
-        name: file.name,
-        filename: uniqueFilename,
-        type: 'uploaded',
-        status: 'ready',
-        size: file.size,
-        wordCount,
-        encoding: 'utf-8',
-        checksum,
-        filePath,
-        userId: getUserId(c),
-      }).returning()
-
-      return c.json({
-        success: true,
-        message: 'Dictionary file uploaded successfully',
-        file: {
-          id: dictionary.id,
+      try {
+        const [dictionary] = await db.insert(dictionaries).values({
           name: file.name,
+          filename: uniqueFilename,
+          type: 'uploaded',
+          status: 'ready',
           size: file.size,
-          type: file.type,
-          extension: fileExtension,
-          uploadType,
+          wordCount,
+          encoding: 'utf-8',
           checksum,
           filePath,
+          userId: getUserId(c),
+        }).returning()
+
+        logger.info('Dictionary file uploaded successfully', 'database', {
+          dictionaryId: dictionary.id,
+          fileName: file.name,
           wordCount,
-          estimatedCrackTime: `${(wordCount / 1000000).toFixed(1)}M passwords`,
-          processingTime: '0.1s', // TODO: Actual processing time
-        }
-      })
+          fileSize: file.size,
+          userId: getUserId(c)
+        })
+
+        return c.json({
+          success: true,
+          message: 'Dictionary file uploaded successfully',
+          file: {
+            id: dictionary.id,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            extension: fileExtension,
+            uploadType,
+            checksum,
+            filePath,
+            wordCount,
+            estimatedCrackTime: `${(wordCount / 1000000).toFixed(1)}M passwords`,
+            processingTime: '0.1s', // TODO: Actual processing time
+          }
+        })
+      } catch (error) {
+        logger.error('Failed to save dictionary record to database', 'database', error, {
+          fileName: file.name,
+          wordCount,
+          uploadType,
+          userId: getUserId(c)
+        })
+        throw createDatabaseError('Failed to save dictionary record')
+      }
     }
 
   } catch (error) {
-    console.error('Upload error:', error)
-    return c.json({
-      success: false,
-      error: 'Internal server error during upload',
-    }, 500)
+    logger.error('Unhandled upload error', 'upload', error, {
+      errorType: error.constructor.name,
+      userId: getUserId(c),
+      fatal: false
+    })
+
+    // Re-throw to be handled by global error handler
+    throw createFileSystemError('Upload processing failed', 'UPLOAD_ERROR')
   }
 })
 
@@ -216,10 +297,14 @@ upload.post('/presign', zValidator('json', z.object({
     })
 
   } catch (error) {
-    console.error('Presign error:', error)
-    return c.json({
-      error: 'Failed to generate presigned upload URL',
-    }, 500)
+    logger.error('Presign URL generation error', 'upload', error, {
+      errorType: error.constructor.name,
+      userId: getUserId(c),
+      filename: data.filename,
+      uploadType: data.type
+    })
+
+    throw createFileSystemError('Failed to generate presigned upload URL')
   }
 })
 
@@ -331,10 +416,14 @@ upload.put('/presigned/:uploadId', async (c) => {
     })
 
   } catch (error) {
-    console.error('Presigned upload error:', error)
-    return c.json({
-      error: 'Failed to process uploaded file',
-    }, 500)
+    logger.error('Presigned upload processing error', 'upload', error, {
+      errorType: error.constructor.name,
+      userId: getUserId(c),
+      uploadId,
+      filename
+    })
+
+    throw createFileSystemError('Failed to process uploaded file')
   }
 })
 
@@ -358,10 +447,15 @@ upload.post('/complete', zValidator('json', z.object({
     })
 
   } catch (error) {
-    console.error('Upload completion error:', error)
-    return c.json({
-      error: 'Failed to complete upload',
-    }, 500)
+    logger.error('Upload completion error', 'upload', error, {
+      errorType: error.constructor.name,
+      userId: getUserId(c),
+      uploadId: data.uploadId,
+      filename: data.filename
+      type: data.type
+    })
+
+    throw createFileSystemError('Failed to complete upload')
   }
 })
 
@@ -380,10 +474,13 @@ upload.get('/status/:uploadId', async (c) => {
     })
 
   } catch (error) {
-    console.error('Upload status error:', error)
-    return c.json({
-      error: 'Failed to get upload status',
-    }, 500)
+    logger.error('Upload status retrieval error', 'upload', error, {
+      errorType: error.constructor.name,
+      userId: getUserId(c),
+      uploadId
+    })
+
+    throw createFileSystemError('Failed to get upload status')
   }
 })
 
@@ -425,10 +522,10 @@ upload.get('/config', async (c) => {
     })
 
   } catch (error) {
-    console.error('Upload config error:', error)
-    return c.json({
-      error: 'Failed to get upload configuration',
-    }, 500)
+    logger.error('Upload config retrieval error', 'upload', error, {
+      errorType: error.constructor.name
+    })
+    throw createFileSystemError('Failed to get upload configuration')
   }
 })
 

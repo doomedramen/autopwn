@@ -4,6 +4,12 @@ import { lookup } from 'mime-types'
 import path from 'path'
 import { promises as fs } from 'fs'
 import crypto from 'crypto'
+import {
+  createValidationError,
+  createFileSystemError,
+  ExternalServiceError
+} from '../lib/error-handler'
+import { logger } from '../lib/logger'
 
 /**
  * File upload security configuration
@@ -285,13 +291,23 @@ export const fileSecurityMiddleware = (config: FileSecurityConfig = {}) => {
       await next()
 
     } catch (error) {
-      console.error('File security middleware error:', error)
-      return c.json({
-        success: false,
-        error: 'File processing error',
-        code: 'PROCESSING_ERROR',
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
-      }, 500)
+      const fileError = error instanceof ExternalServiceError
+        ? error
+        : createFileSystemError('File processing error', 'PROCESSING_ERROR')
+
+      // Get file info before throwing error for logging
+      const fileInfo = c.get('fileInfo')
+
+      logger.error('File security middleware error', 'file_security', error, {
+        errorType: fileError.constructor.name,
+        code: fileError.code,
+        fileName: fileInfo?.name || file?.name,
+        fileSize: fileInfo?.size || file?.size,
+        fileType: fileInfo?.type || file?.type
+      })
+
+      // Re-throw to be handled by global error handler
+      throw fileError
     }
   }
 }
