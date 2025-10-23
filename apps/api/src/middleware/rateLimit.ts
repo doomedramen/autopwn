@@ -13,6 +13,11 @@ interface RateLimitStore {
 // In-memory rate limiting store (for production, use Redis)
 const rateLimitStore: RateLimitStore = {}
 
+// Export function to clear the rate limit store (for testing)
+export const clearRateLimitStore = () => {
+  Object.keys(rateLimitStore).forEach(key => delete rateLimitStore[key])
+}
+
 /**
  * Rate limiting middleware to protect API endpoints
  * Limits requests based on IP address and configurable windows

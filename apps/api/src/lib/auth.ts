@@ -3,9 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { env } from '@/config/env'
 import { db } from '@/db'
 
-import type { BetterAuth } from 'better-auth/types'
-
-export const authClient: BetterAuth = betterAuth({
+export const authClient: any = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),

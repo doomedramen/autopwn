@@ -88,7 +88,7 @@ class ClamAVScanner {
       return result
 
     } catch (error) {
-      logger.error('Virus scan failed', 'virus_scanner', error, {
+      logger.error('Virus scan failed', 'virus_scanner', error instanceof Error ? error : new Error(String(error)), {
         filePath,
         originalName,
         engine: 'ClamAV',
@@ -151,7 +151,7 @@ class ClamAVScanner {
     try {
       const versionResult = await execAsync('clamscan --version')
       const versionMatch = versionResult.stdout.match(/ClamAV (\d+\.\d+\.\d+)/)
-      if (versionMatch) {
+      if (versionMatch && versionMatch[1]) {
         definitions = versionMatch[1]
       }
     } catch {
@@ -172,13 +172,15 @@ class ClamAVScanner {
         const match = line.match(/^(.+):\s+(.+)\s+FOUND$/)
         if (match) {
           const [, filePath, signature] = match
-          threats.push(`Threat detected in ${path.basename(filePath)}`)
-          signatures.push(signature)
+          if (filePath && signature) {
+            threats.push(`Threat detected in ${path.basename(filePath)}`)
+            signatures.push(signature)
+          }
         } else {
           // Fallback parsing
           const parts = line.split(':')
           if (parts.length >= 2) {
-            const signature = parts[parts.length - 1].replace('FOUND', '').trim()
+            const signature = parts[parts.length - 1]?.replace('FOUND', '').trim()
             threats.push('Threat detected')
             signatures.push(signature)
           }
@@ -265,7 +267,7 @@ class ClamAVScanner {
       scanResult.quarantinePath = quarantinePath
 
     } catch (error) {
-      logger.error('Failed to quarantine infected file', 'virus_scanner', error, {
+      logger.error('Failed to quarantine infected file', 'virus_scanner', error instanceof Error ? error : new Error(String(error)), {
         filePath,
         originalName
       })
@@ -317,7 +319,7 @@ class YARAScanner {
       return result
 
     } catch (error) {
-      logger.error('YARA scan failed', 'virus_scanner', error, {
+      logger.error('YARA scan failed', 'virus_scanner', error instanceof Error ? error : new Error(String(error)), {
         filePath,
         originalName,
         engine: 'YARA',
@@ -381,8 +383,8 @@ class YARAScanner {
 
       if (stdout) {
         const matches = stdout.split('\n')
-          .filter(line => line.trim())
-          .map(line => {
+          .filter((line: string) => line.trim())
+          .map((line: string) => {
             const parts = line.split(' ')
             return {
               rule: parts[0] || 'unknown',
@@ -450,7 +452,7 @@ class YARAScanner {
       scanResult.quarantinePath = quarantinePath
 
     } catch (error) {
-      logger.error('Failed to quarantine infected file', 'virus_scanner', error)
+      logger.error('Failed to quarantine infected file', 'virus_scanner', error instanceof Error ? error : new Error(String(error)))
     }
   }
 }
@@ -539,12 +541,23 @@ export class VirusScanner {
           const versionResult = await execAsync('clamscan --version')
           const versionMatch = versionResult.stdout.match(/ClamAV (\d+\.\d+\.\d+)/)
 
-          return {
+          const result: {
+            enabled: boolean
+            engine: string
+            available: boolean
+            definitions?: string
+            lastUpdate?: Date
+          } = {
             enabled: true,
             engine: 'ClamAV',
-            available: true,
-            definitions: versionMatch ? versionMatch[1] : 'Unknown'
+            available: true
           }
+
+          if (versionMatch && versionMatch[1]) {
+            result.definitions = versionMatch[1]
+          }
+
+          return result
 
         case 'yara':
           await execAsync('which yara')

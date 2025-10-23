@@ -1,4 +1,5 @@
-import { cors, CorsOptions } from 'hono/cors'
+import { cors } from 'hono/cors'
+import type { CorsOptions } from 'hono/cors'
 import { Context, Next } from 'hono'
 import { logSecurityEvent, SecurityEventType } from '../lib/monitoring'
 

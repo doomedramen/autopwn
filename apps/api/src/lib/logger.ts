@@ -237,16 +237,28 @@ export class Logger {
     error?: Error,
     metadata?: Record<string, any>
   ): LogEntry {
-    return {
+    // Handle test environments where Date might be mocked
+    let timestamp: string
+    try {
+      timestamp = new Date().toISOString()
+    } catch {
+      // Fallback for test environments
+      timestamp = new Date(Date.now()).toISOString()
+    }
+
+    const entry: LogEntry = {
       level,
       message,
-      timestamp: new Date().toISOString(),
-      context: context || 'application',
-      userId: metadata?.userId || '',
-      requestId: metadata?.requestId || '',
-      error,
-      metadata,
+      timestamp,
     }
+
+    if (context) entry.context = context
+    if (metadata?.userId) entry.userId = metadata.userId
+    if (metadata?.requestId) entry.requestId = metadata.requestId
+    if (error) entry.error = error
+    if (metadata) entry.metadata = metadata
+
+    return entry
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -427,11 +439,25 @@ export const extractRequestContext = (req: Request): {
 } => {
   const url = new URL(req.url, `http://${req.headers.get('host') || 'localhost'}`)
 
-  return {
-    requestId: req.headers.get('x-request-id') || req.headers.get('x-amzn-requestid') || undefined,
-    userAgent: req.headers.get('user-agent') || undefined,
-    ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined,
-    method: req.method,
-    path: url.pathname + url.search,
-  }
+  const result: {
+    requestId?: string
+    userAgent?: string
+    ip?: string
+    method?: string
+    path?: string
+  } = {}
+
+  const requestId = req.headers.get('x-request-id') || req.headers.get('x-amzn-requestid')
+  if (requestId) result.requestId = requestId
+
+  const userAgent = req.headers.get('user-agent')
+  if (userAgent) result.userAgent = userAgent
+
+  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip')
+  if (ip) result.ip = ip
+
+  result.method = req.method
+  result.path = url.pathname + url.search
+
+  return result
 }

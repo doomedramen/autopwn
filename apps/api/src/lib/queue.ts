@@ -3,12 +3,10 @@ import Redis from 'ioredis'
 import { env } from '@/config/env'
 
 // Create Redis connection
-const redisConnection = new Redis({
+const redisConfig: any = {
   host: env.REDIS_HOST,
   port: parseInt(env.REDIS_PORT),
-  password: env.REDIS_PASSWORD,
   maxRetriesPerRequest: null,
-  retryDelayOnFailover: 100,
   lazyConnect: true,
   retryStrategy: (times) => {
     // Exponential backoff: start with 100ms, double each time, max 30 seconds
@@ -17,7 +15,14 @@ const redisConnection = new Redis({
   },
   connectTimeout: 30000, // 30 seconds
   commandTimeout: 10000, // 10 seconds
-})
+}
+
+// Add password conditionally
+if (env.REDIS_PASSWORD) {
+  redisConfig.password = env.REDIS_PASSWORD
+}
+
+const redisConnection = new Redis(redisConfig)
 
 // Queue names
 export const QUEUE_NAMES = {

@@ -46,7 +46,7 @@ export const authenticate = async (c: Context, next: Next) => {
     await next()
   } catch (error) {
     const authError = createAuthenticationError('Authentication failed', 'AUTH_ERROR')
-    logger.error('Authentication middleware error', 'authentication', error, {
+    logger.error('Authentication middleware error', 'authentication', error instanceof Error ? error : new Error(String(error)), {
       errorType: authError.constructor.name,
       code: authError.code
     })
@@ -103,7 +103,7 @@ export const optionalAuth = async (c: Context, next: Next) => {
     }
   } catch (error) {
     // Optional auth - don't fail the request if auth fails
-    logger.debug('Optional authentication failed', 'authentication', error)
+    logger.debug('Optional authentication failed', 'authentication', error instanceof Error ? error : new Error(String(error)))
   }
 
   await next()

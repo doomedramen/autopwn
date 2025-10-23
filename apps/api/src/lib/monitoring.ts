@@ -334,6 +334,60 @@ class SecurityMonitoringService {
         'Conduct a thorough security audit',
         'Review user activity patterns',
         'Consider additional monitoring'
+      ],
+
+      // Add missing event types with default recommendations
+      [SecurityEventType.LOGIN_SUCCESS]: [
+        'Monitor for successful login patterns',
+        'Verify login location consistency'
+      ],
+      [SecurityEventType.LOGOUT]: [
+        'Review session termination',
+        'Monitor for concurrent sessions'
+      ],
+      [SecurityEventType.SUSPICIOUS_LOGIN]: [
+        'Investigate login anomaly',
+        'Consider temporary account lock'
+      ],
+      [SecurityEventType.FORBIDDEN_ACCESS]: [
+        'Review permission settings',
+        'Audit access control configuration'
+      ],
+      [SecurityEventType.PRIVILEGE_ESCALATION]: [
+        'Investigate privilege escalation attempt',
+        'Review role assignments'
+      ],
+      [SecurityEventType.SUSPICIOUS_REQUEST_PATTERN]: [
+        'Analyze request patterns',
+        'Consider IP blocking'
+      ],
+      [SecurityEventType.SUSPICIOUS_FILE_UPLOAD]: [
+        'Scan uploaded files',
+        'Review file access patterns'
+      ],
+      [SecurityEventType.FILE_QUOTA_EXCEEDED]: [
+        'Review storage usage',
+        'Contact user about quota limits'
+      ],
+      [SecurityEventType.DATA_ACCESS_PATTERN]: [
+        'Audit data access logs',
+        'Review user permissions'
+      ],
+      [SecurityEventType.SENSITIVE_DATA_ACCESS]: [
+        'Investigate sensitive data access',
+        'Review authorization context'
+      ],
+      [SecurityEventType.SYSTEM_ERROR]: [
+        'Review system logs',
+        'Monitor for recurring errors'
+      ],
+      [SecurityEventType.SECURITY_MISCONFIGURATION]: [
+        'Audit security settings',
+        'Review configuration files'
+      ],
+      [SecurityEventType.MALICIOUS_REQUEST]: [
+        'Block malicious requests',
+        'Investigate request patterns'
       ]
     }
 
@@ -608,6 +662,7 @@ export class AppMonitor {
     uptime: number
     memory: NodeJS.MemoryUsage
     errors: Record<string, any>
+    timestamp: string
   } {
     const uptime = Date.now() - this.startTime
     const memUsage = process.memoryUsage()
@@ -619,7 +674,8 @@ export class AppMonitor {
         rss: Math.round(memUsage.rss / 1024 / 1024),
         heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
         heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-        external: Math.round(memUsage.external / 1024 / 1024)
+        external: Math.round(memUsage.external / 1024 / 1024),
+        arrayBuffers: Math.round((memUsage.arrayBuffers || 0) / 1024 / 1024)
       },
       errors: errorStats,
       timestamp: new Date().toISOString()
