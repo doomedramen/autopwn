@@ -224,6 +224,70 @@ export const createFileSystemError = (
 }
 
 /**
+ * Global error handler middleware
+ */
+export const errorHandler = async (c: Context, next: Next) => {
+  try {
+    await next()
+  } catch (error) {
+    // Log the error
+    logger.error('Unhandled error', 'error_handler', error)
+
+    // Determine error type and status code
+    let statusCode = 500
+    let errorCode = 'INTERNAL_ERROR'
+    let message = 'An internal error occurred'
+
+    if (error instanceof ValidationError) {
+      statusCode = 400
+      errorCode = error.code || 'VALIDATION_ERROR'
+      message = error.message
+    } else if (error instanceof AuthenticationError) {
+      statusCode = 401
+      errorCode = error.code || 'AUTHENTICATION_ERROR'
+      message = error.message
+    } else if (error instanceof AuthorizationError) {
+      statusCode = 403
+      errorCode = error.code || 'AUTHORIZATION_ERROR'
+      message = error.message
+    } else if (error instanceof NotFoundError) {
+      statusCode = 404
+      errorCode = error.code || 'NOT_FOUND'
+      message = error.message
+    } else if (error instanceof ConflictError) {
+      statusCode = 409
+      errorCode = error.code || 'CONFLICT'
+      message = error.message
+    } else if (error instanceof RateLimitError) {
+      statusCode = 429
+      errorCode = error.code || 'RATE_LIMIT_ERROR'
+      message = error.message
+    } else if (error instanceof DatabaseError) {
+      statusCode = 500
+      errorCode = error.code || 'DATABASE_ERROR'
+      message = 'A database error occurred'
+    } else if (error instanceof ExternalServiceError) {
+      statusCode = 502
+      errorCode = error.code || 'EXTERNAL_SERVICE_ERROR'
+      message = 'An external service error occurred'
+    } else if (error instanceof FileSystemError) {
+      statusCode = 500
+      errorCode = error.code || 'FILESYSTEM_ERROR'
+      message = 'A file system error occurred'
+    }
+
+    // Return error response
+    return c.json({
+      success: false,
+      error: message,
+      code: errorCode,
+      timestamp: new Date().toISOString(),
+      requestId: c.get('requestId')
+    }, statusCode as any)
+  }
+}
+
+/**
  * Request context middleware for error handling
  */
 export const requestContextMiddleware = async (c: Context, next: Next) => {

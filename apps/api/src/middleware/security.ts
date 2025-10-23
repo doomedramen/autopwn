@@ -58,8 +58,8 @@ export const requestSizeLimit = (config: SecurityConfig = {}) => {
 }
 
 /**
- * Security headers middleware
- * Adds comprehensive security headers to responses
+ * Enhanced security headers middleware
+ * Adds comprehensive security headers to responses with environment-specific configurations
  */
 export const securityHeaders = (config: SecurityConfig = {}) => {
   const {
@@ -69,27 +69,96 @@ export const securityHeaders = (config: SecurityConfig = {}) => {
     ...restConfig
   } = config
 
+  const isProduction = process.env.NODE_ENV === 'production'
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
   return async (c: Context, next: Next) => {
-    // Set security headers
+    // Basic security headers
     c.res.headers.set('X-Content-Type-Options', 'nosniff')
     c.res.headers.set('X-Frame-Options', 'DENY')
     c.res.headers.set('X-XSS-Protection', '1; mode=block')
-    c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-    c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    c.res.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
 
-    // Content Security Policy
-    c.res.headers.set('Content-Security-Policy',
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https:; " +
-      "font-src 'self'; " +
-      "connect-src 'self'; " +
-      "frame-ancestors 'none'; " +
-      "base-uri 'self'; " +
-      "form-action 'self'"
-    )
+    // Enhanced HTTP Strict Transport Security (HSTS)
+    if (isProduction) {
+      c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+    } else {
+      c.res.headers.set('Strict-Transport-Security', 'max-age=3600') // 1 hour for development
+    }
+
+    // Referrer Policy - more restrictive in production
+    c.res.headers.set('Referrer-Policy', isProduction ? 'strict-origin-when-cross-origin' : 'strict-origin-when-cross-origin')
+
+    // Enhanced Permissions Policy
+    const permissionsPolicy = [
+      'geolocation=()',
+      'microphone=()',
+      'camera=()',
+      'payment=()',
+      'usb=()',
+      'magnetometer=()',
+      'gyroscope=()',
+      'accelerometer=()',
+      'ambient-light-sensor=()',
+      'autoplay=()',
+      'encrypted-media=()',
+      'fullscreen=(self)',
+      'picture-in-picture=(self)',
+      'sync-xhr=(self)'
+    ].join(', ')
+
+    c.res.headers.set('Permissions-Policy', permissionsPolicy)
+
+    // Cross-Origin Embedder Policy
+    c.res.headers.set('Cross-Origin-Embedder-Policy', 'require-corp')
+
+    // Cross-Origin Opener Policy
+    c.res.headers.set('Cross-Origin-Opener-Policy', 'same-origin')
+
+    // Cross-Origin Resource Policy
+    c.res.headers.set('Cross-Origin-Resource-Policy', 'same-origin')
+
+    // Content Security Policy - more restrictive in production
+    const cspDirectives = [
+      "default-src 'self'",
+      "script-src 'self'" + (isDevelopment ? " 'unsafe-inline' 'unsafe-eval'" : " 'nonce-<random>'"),
+      "style-src 'self'" + (isDevelopment ? " 'unsafe-inline'" : ""),
+      "img-src 'self' data: https: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self'" + (isDevelopment ? " ws: wss:" : ""),
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "media-src 'self'",
+      "manifest-src 'self'",
+      "worker-src 'self' blob:",
+      "child-src 'self'",
+      "frame-src 'none'",
+      "prefetch-src 'self'"
+    ].join('; ')
+
+    c.res.headers.set('Content-Security-Policy', cspDirectives)
+
+    // Additional security headers
+    c.res.headers.set('X-Permitted-Cross-Domain-Policies', 'none')
+    c.res.headers.set('X-Download-Options', 'noopen')
+    c.res.headers.set('X-Robots-Tag', 'noindex, nofollow, nosnippet, noarchive')
+
+    // Server information hiding
+    c.res.headers.set('Server', '') // Remove server signature
+    c.res.headers.set('X-Powered-By', '') // Remove powered by header
+
+    // Cache control for security-sensitive endpoints
+    if (c.req.path.startsWith('/auth') || c.req.path.startsWith('/security') || c.req.path.startsWith('/virus-scanner')) {
+      c.res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      c.res.headers.set('Pragma', 'no-cache')
+      c.res.headers.set('Expires', '0')
+    }
+
+    // Content type protection
+    if (c.req.path.endsWith('.json')) {
+      c.res.headers.set('Content-Type', 'application/json; charset=utf-8')
+    }
 
     await next()
   }
@@ -274,3 +343,6 @@ export const comprehensiveSecurity = (config: SecurityConfig = {}) => {
     await next()
   }
 }
+
+// Export a default security middleware that combines all features
+export const securityMiddleware = comprehensiveSecurity()

@@ -10,6 +10,8 @@ import {
   ExternalServiceError
 } from '../lib/error-handler'
 import { logger } from '../lib/logger'
+import { virusScanner, VirusScanResult } from '../lib/virus-scanner'
+import { logSecurityEvent, SecurityEventType } from '../lib/monitoring'
 
 /**
  * File upload security configuration
@@ -20,7 +22,9 @@ interface FileSecurityConfig {
   allowedExtensions: string[]
   blockedExtensions: string[]
   scanFiles: boolean
+  virusScanning: boolean
   quarantineDirectory?: string
+  enableDeepScanning: boolean
 }
 
 const defaultFileSecurityConfig: FileSecurityConfig = {
@@ -57,7 +61,9 @@ const defaultFileSecurityConfig: FileSecurityConfig = {
     '.dll'
   ],
   scanFiles: true,
-  quarantineDirectory: './quarantine'
+  virusScanning: true,
+  quarantineDirectory: './quarantine',
+  enableDeepScanning: true
 }
 
 /**
@@ -177,14 +183,16 @@ const enhancedFileScanner = {
  * File security middleware
  * Provides comprehensive file upload security
  */
-export const fileSecurityMiddleware = (config: FileSecurityConfig = {}) => {
+export const fileSecurityMiddleware = (config: Partial<FileSecurityConfig> = {}) => {
   const {
     maxFileSize = config.maxFileSize ?? defaultFileSecurityConfig.maxFileSize,
     allowedMimeTypes = config.allowedMimeTypes ?? defaultFileSecurityConfig.allowedMimeTypes,
     allowedExtensions = config.allowedExtensions ?? defaultFileSecurityConfig.allowedExtensions,
     blockedExtensions = config.blockedExtensions ?? defaultFileSecurityConfig.blockedExtensions,
     scanFiles = config.scanFiles ?? defaultFileSecurityConfig.scanFiles,
-    quarantineDirectory = config.quarantineDirectory ?? defaultFileSecurityConfig.quarantineDirectory
+    virusScanning = config.virusScanning ?? defaultFileSecurityConfig.virusScanning,
+    quarantineDirectory = config.quarantineDirectory ?? defaultFileSecurityConfig.quarantineDirectory,
+    enableDeepScanning = config.enableDeepScanning ?? defaultFileSecurityConfig.enableDeepScanning
   } = config
 
   return async (c: Context, next: Next) => {
@@ -242,16 +250,105 @@ export const fileSecurityMiddleware = (config: FileSecurityConfig = {}) => {
 
       // Scan file content if enabled
       let scanResult: ScanResult = { safe: true, threatLevel: 'safe', issues: [] }
+      let virusScanResult: VirusScanResult | null = null
+
       if (scanFiles) {
         scanResult = await enhancedFileScanner.scan(fileName, fileBuffer)
+      }
+
+      // Perform virus scanning if enabled
+      if (config.virusScanning && scanResult.safe) {
+        try {
+          // Create temporary file for virus scanning
+          const tempDir = path.join(process.cwd(), 'temp')
+          await fs.mkdir(tempDir, { recursive: true })
+          const tempFilePath = path.join(tempDir, `${Date.now()}-${fileName}`)
+
+          // Write file to temporary location
+          await fs.writeFile(tempFilePath, fileBuffer)
+
+          // Perform virus scan
+          virusScanResult = await virusScanner.scanFile(tempFilePath, fileName)
+
+          // Clean up temporary file
+          try {
+            await fs.unlink(tempFilePath)
+          } catch {
+            // Ignore cleanup errors
+          }
+
+          // If virus scan found threats, update security status
+          if (!virusScanResult.safe || virusScanResult.infected) {
+            scanResult.safe = false
+            scanResult.threatLevel = virusScanResult.infected ? 'dangerous' : 'suspicious'
+            scanResult.issues = [
+              ...scanResult.issues,
+              ...virusScanResult.threats.map(threat => `Virus scan: ${threat}`)
+            ]
+          }
+
+        } catch (error) {
+          logger.error('Virus scanning failed', 'file_security', error, {
+            fileName,
+            fileSize: fileBuffer.length
+          })
+
+          // On virus scan failure, treat as suspicious
+          scanResult.safe = false
+          scanResult.threatLevel = 'suspicious'
+          scanResult.issues.push(`Virus scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+
+          // Log security event for scan failure
+          logSecurityEvent({
+            type: SecurityEventType.SYSTEM_ERROR,
+            severity: 'medium',
+            ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
+            path: c.req.path,
+            method: c.req.method,
+            details: {
+              error: 'Virus scan failed',
+              fileName,
+              errorDetails: error instanceof Error ? error.message : 'Unknown error'
+            }
+          })
+        }
       }
 
       // Move file to quarantine if suspicious or dangerous
       if (!scanResult.safe && scanResult.threatLevel !== 'safe') {
         try {
           await fs.mkdir(quarantineDirectory!, { recursive: true })
-          const quarantinePath = path.join(quarantineDirectory!, `${Date.now()}-${fileName}`)
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+          const quarantineFileName = `${timestamp}-${fileName}`
+          const quarantinePath = path.join(quarantineDirectory!, quarantineFileName)
           await fs.writeFile(quarantinePath, fileBuffer)
+
+          // Create quarantine metadata
+          const quarantineMetadata = {
+            originalName: fileName,
+            uploadTime: new Date().toISOString(),
+            size: fileBuffer.length,
+            scanResult,
+            virusScanResult,
+            userAgent: c.req.header('user-agent'),
+            ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown'
+          }
+
+          const metadataPath = path.join(quarantineDirectory!, `${quarantineFileName}.meta.json`)
+          await fs.writeFile(metadataPath, JSON.stringify(quarantineMetadata, null, 2))
+
+          logger.warn('File quarantined due to security scan', 'file_security', {
+            fileName,
+            quarantinePath,
+            threatLevel: scanResult.threatLevel,
+            issues: scanResult.issues,
+            virusScanResult: virusScanResult ? {
+              infected: virusScanResult.infected,
+              threats: virusScanResult.threats,
+              engine: virusScanResult.engine
+            } : null
+          })
+
         } catch (error) {
           console.error('Failed to quarantine file:', error)
         }
@@ -265,7 +362,13 @@ export const fileSecurityMiddleware = (config: FileSecurityConfig = {}) => {
             : 'File appears suspicious and was quarantined',
           issues: scanResult.issues,
           threatLevel: scanResult.threatLevel,
-          hash: scanResult.hash
+          hash: scanResult.hash,
+          virusScan: virusScanResult ? {
+            infected: virusScanResult.infected,
+            threats: virusScanResult.threats,
+            engine: virusScanResult.engine,
+            scanTime: virusScanResult.scanTime
+          } : null
         }, scanResult.threatLevel === 'dangerous' ? 403 : 202)
       }
 
@@ -285,7 +388,8 @@ export const fileSecurityMiddleware = (config: FileSecurityConfig = {}) => {
         type: file.type,
         ext,
         hash: scanResult.hash,
-        scanResult
+        scanResult,
+        virusScanResult
       })
 
       await next()

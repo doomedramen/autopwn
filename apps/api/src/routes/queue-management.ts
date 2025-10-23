@@ -326,4 +326,4 @@ queueManagement.post('/cleanup', zValidator('json', z.object({
   }
 })
 
-export { queueManagement as queueManagementRoutes }
+export { queueManagement as queueManagementRoutes, queueManagement as queueRoutes }

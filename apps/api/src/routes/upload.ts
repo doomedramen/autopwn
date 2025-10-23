@@ -183,4 +183,4 @@ upload.get('/:jobId/status', authMiddleware, async (c) => {
   }
 })
 
-export { upload }
+export { upload as uploadRoutes }

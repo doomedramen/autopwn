@@ -1,7 +1,5 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import { env } from '@/config/env'
+import { getSecureDbOptimizer } from './secure-db-optimizer'
 import { logger } from './logger'
-import { getCache } from './cache'
 
 /**
  * Database connection pool configuration
@@ -399,12 +397,14 @@ export class DatabaseOptimizer {
   }
 }
 
-// Export singleton instance
-let dbOptimizerInstance: DatabaseOptimizer | null = null
+// Legacy wrapper for backward compatibility
+// All database operations are now routed through the secure optimizer
 
-export function getDbOptimizer(): DatabaseOptimizer {
-  if (!dbOptimizerInstance) {
-    dbOptimizerInstance = new DatabaseOptimizer()
-  }
-  return dbOptimizerInstance
+export function getDbOptimizer() {
+  logger.warn('Using legacy dbOptimizer - consider migrating to getSecureDbOptimizer()', 'database')
+  return getSecureDbOptimizer()
 }
+
+// Export the secure optimizer as the recommended default
+export { getSecureDbOptimizer }
+export { SecureDatabaseOptimizer as DatabaseOptimizer } from './secure-db-optimizer'

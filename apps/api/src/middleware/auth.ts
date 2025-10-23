@@ -124,6 +124,39 @@ export const isAdmin = (c: Context): boolean => {
 }
 
 /**
+ * Helper function to require specific role
+ */
+export const requireRole = (role: 'user' | 'admin' | 'superuser') => {
+  return async (c: Context, next: Next) => {
+    const userRole = c.get('userRole')
+
+    if (!userRole) {
+      return c.json({
+        success: false,
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      }, 401)
+    }
+
+    // Admin can access everything, superuser can access everything
+    const hasPermission = userRole === 'admin' || userRole === 'superuser' || userRole === role
+
+    if (!hasPermission) {
+      return c.json({
+        success: false,
+        error: `Access denied. Required role: ${role}`,
+        code: 'INSUFFICIENT_PERMISSIONS'
+      }, 403)
+    }
+
+    await next()
+  }
+}
+
+// Export common middleware aliases
+export const authMiddleware = authenticate
+
+/**
  * Helper function to get auth context
  */
 export const getAuthContext = (c: Context): AuthContext | undefined => {
