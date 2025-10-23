@@ -1,8 +1,8 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
+import { comprehensiveSecurity } from './middleware/security'
 import { authRoutes } from './routes/auth'
 import { networksRoutes } from './routes/networks'
 import { dictionariesRoutes } from './routes/dictionaries'
@@ -20,11 +20,9 @@ const app = new Hono()
 // Middleware
 app.use('*', logger())
 app.use('*', prettyJSON())
-app.use('*', cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true,
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+app.use('*', comprehensiveSecurity({
+  allowedOrigins: ['http://localhost:3000', 'http://localhost:3001'],
+  trustProxy: false
 }))
 
 // Health check
