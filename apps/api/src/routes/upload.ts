@@ -10,8 +10,12 @@ import { promises as fs } from 'fs'
 import { createWriteStream } from 'fs'
 import crypto from 'crypto'
 import { addPCAPProcessingJob } from '@/lib/queue'
+import { authenticate, getUserId } from '@/middleware/auth'
 
 const upload = new Hono()
+
+// Apply authentication middleware to all routes
+upload.use('*', authenticate)
 
 // Upload route for both PCAP and dictionary files
 upload.post('/', async (c) => {
@@ -91,7 +95,7 @@ upload.post('/', async (c) => {
         signalStrength: -50,
         captureDate: new Date(),
         notes: `Uploaded file: ${file.name}`,
-        userId: 'temp-user-id', // TODO: Replace with actual user ID from auth
+        userId: getUserId(c),
         filePath: filePath,
       }).returning()
 
@@ -127,7 +131,7 @@ upload.post('/', async (c) => {
         encoding: 'utf-8',
         checksum,
         filePath,
-        userId: 'temp-user-id', // TODO: Replace with actual user ID from auth
+        userId: getUserId(c),
       }).returning()
 
       return c.json({
@@ -167,7 +171,7 @@ upload.post('/presign', zValidator('json', z.object({
   size: z.number().optional(),
 })), async (c) => {
   const data = c.req.valid('json')
-  const userId = 'temp-user-id' // TODO: Get from authentication
+  const userId = getUserId(c)
 
   try {
     // Validate file type
@@ -221,7 +225,7 @@ upload.put('/presigned/:uploadId', async (c) => {
   const uploadId = c.req.param('uploadId')
   const filename = c.req.header('x-upload-filename') || 'unknown'
   const type = c.req.header('x-upload-type') as 'pcap' | 'dictionary' || 'pcap'
-  const userId = c.req.header('x-upload-userid') || 'temp-user-id'
+  const userId = c.req.header('x-upload-userid') || getUserId(c)
 
   try {
     // Validate upload ID and get file metadata
@@ -383,7 +387,7 @@ upload.get('/status/:uploadId', async (c) => {
 // Delete uploaded file
 upload.delete('/:uploadId', async (c) => {
   const uploadId = c.req.param('uploadId')
-  const userId = 'temp-user-id' // TODO: Get from authentication
+  const userId = getUserId(c)
 
   try {
     // Find and delete the file based on uploadId

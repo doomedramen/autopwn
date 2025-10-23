@@ -4,8 +4,12 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { networks, selectNetworkSchema } from '@/db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { authenticate, getUserId } from '@/middleware/auth'
 
 const networks = new Hono()
+
+// Apply authentication middleware to all routes
+networks.use('*', authenticate)
 
 // Get all networks
 networks.get('/', async (c) => {
@@ -72,8 +76,7 @@ networks.post('/', zValidator('json', z.object({
   const data = c.req.valid('json')
 
   try {
-    // TODO: Get user ID from session
-    const userId = 'temp-user-id' // Replace with actual user ID from auth
+    const userId = getUserId(c)
 
     const [newNetwork] = await db.insert(networks)
       .values({

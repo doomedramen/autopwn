@@ -11,8 +11,12 @@ import {
   addFileCleanupJob,
   QUEUE_NAMES
 } from '@/lib/queue'
+import { authenticate, getUserId } from '@/middleware/auth'
 
 const queueManagement = new Hono()
+
+// Apply authentication middleware to all routes
+queueManagement.use('*', authenticate)
 
 // Create cracking job
 queueManagement.post('/crack', zValidator('json', z.object({
@@ -21,7 +25,7 @@ queueManagement.post('/crack', zValidator('json', z.object({
   attackMode: z.enum(['pmkid', 'handshake']).default('handshake'),
 })), async (c) => {
   const data = c.req.valid('json')
-  const userId = 'temp-user-id' // TODO: Get from authentication
+  const userId = getUserId(c)
 
   try {
     // Verify network exists and has handshake/PMKID
@@ -100,7 +104,7 @@ queueManagement.post('/dictionary/generate', zValidator('json', z.object({
   transformations: z.array(z.string()).optional(),
 })), async (c) => {
   const data = c.req.valid('json')
-  const userId = 'temp-user-id' // TODO: Get from authentication
+  const userId = getUserId(c)
 
   try {
     // Add to queue
@@ -146,7 +150,7 @@ queueManagement.get('/stats', async (c) => {
 
     // Get recent jobs
     const recentJobs = await db.query.jobs.findMany({
-      where: eq(jobs.userId, 'temp-user-id'), // TODO: Get from auth
+      where: eq(jobs.userId, getUserId(c)),
       with: {
         network: true,
         dictionary: true,
@@ -185,7 +189,7 @@ queueManagement.get('/stats', async (c) => {
 // Cancel job
 queueManagement.delete('/jobs/:id', async (c) => {
   const jobId = c.req.param('id')
-  const userId = 'temp-user-id' // TODO: Get from authentication
+  const userId = getUserId(c)
 
   try {
     // Update job status to cancelled
@@ -228,7 +232,7 @@ queueManagement.delete('/jobs/:id', async (c) => {
 // Retry failed job
 queueManagement.post('/jobs/:id/retry', async (c) => {
   const jobId = c.req.param('id')
-  const userId = 'temp-user-id' // TODO: Get from authentication
+  const userId = getUserId(c)
 
   try {
     // Get the failed job
@@ -296,7 +300,7 @@ queueManagement.post('/cleanup', zValidator('json', z.object({
   userId: z.string().optional(),
 })), async (c) => {
   const data = c.req.valid('json')
-  const userId = data.userId || 'temp-user-id' // TODO: Get from authentication
+  const userId = data.userId || getUserId(c)
 
   try {
     // Add cleanup job to queue
