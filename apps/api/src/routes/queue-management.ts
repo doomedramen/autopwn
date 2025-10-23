@@ -12,11 +12,13 @@ import {
   QUEUE_NAMES
 } from '@/lib/queue'
 import { authenticate, getUserId } from '@/middleware/auth'
+import { rateLimit } from '@/middleware/rateLimit'
 
 const queueManagement = new Hono()
 
-// Apply authentication middleware to all routes
+// Apply authentication and rate limiting middleware to all routes
 queueManagement.use('*', authenticate)
+queueManagement.use('*', rateLimit())
 
 // Create cracking job
 queueManagement.post('/crack', zValidator('json', z.object({

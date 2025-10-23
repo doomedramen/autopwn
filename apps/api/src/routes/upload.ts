@@ -11,11 +11,13 @@ import { createWriteStream } from 'fs'
 import crypto from 'crypto'
 import { addPCAPProcessingJob } from '@/lib/queue'
 import { authenticate, getUserId } from '@/middleware/auth'
+import { uploadRateLimit } from '@/middleware/rateLimit'
 
 const upload = new Hono()
 
-// Apply authentication middleware to all routes
+// Apply authentication and rate limiting to all routes
 upload.use('*', authenticate)
+upload.use('*', uploadRateLimit)
 
 // Upload route for both PCAP and dictionary files
 upload.post('/', async (c) => {

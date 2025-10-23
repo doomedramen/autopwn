@@ -3,8 +3,12 @@ import { authClient } from '@/lib/auth'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import type { User } from '@/db/schema'
+import { strictRateLimit } from '@/middleware/rateLimit'
 
 const auth = new Hono()
+
+// Apply strict rate limiting to all auth routes
+auth.use('*', strictRateLimit)
 
 // Sign up endpoint
 auth.post('/sign-up', zValidator('json', z.object({
