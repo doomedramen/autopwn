@@ -37,7 +37,7 @@ const defaultConfig: SecurityConfig = {
 export const requestSizeLimit = (config: SecurityConfig = {}) => {
   const {
     maxRequestSize = defaultConfig.maxRequestSize,
-    ...config
+    ...restConfig
   } = config
 
   return async (c: Context, next: Next) => {
@@ -66,7 +66,7 @@ export const securityHeaders = (config: SecurityConfig = {}) => {
     allowedOrigins = defaultConfig.allowedOrigins,
     allowedMethods = defaultConfig.allowedMethods,
     trustProxy = defaultConfig.trustProxy,
-    ...config
+    ...restConfig
   } = config
 
   return async (c: Context, next: Next) => {
@@ -104,7 +104,7 @@ export const cors = (config: SecurityConfig = {}) => {
     allowedMethods = defaultConfig.allowedMethods,
     allowedHeaders = defaultConfig.allowedHeaders,
     trustProxy = defaultConfig.trustProxy,
-    ...config
+    ...restConfig
   } = config
 
   return async (c: Context, next: Next) => {
@@ -165,7 +165,7 @@ export const ipAccessControl = (options: {
       /curl|wget|python|java|go|node/i
     ],
     stricterLimits = false,
-    ...options
+    ...restOptions
   } = options
 
   return async (c: Context, next: Next) => {

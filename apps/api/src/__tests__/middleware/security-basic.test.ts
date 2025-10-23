@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { Hono } from 'hono'
-import { comprehensiveSecurity } from '@/middleware/security'
+import { comprehensiveSecurity } from '../../middleware/security'
 
 describe('Security Middleware Basic Tests', () => {
   beforeEach(() => {

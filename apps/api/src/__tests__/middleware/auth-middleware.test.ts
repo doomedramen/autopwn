@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi, beforeAll } from 'vitest'
 import { Hono } from 'hono'
-import { authenticate, requireAdmin, getUserId, getAuthContext, optionalAuth } from '@/middleware/auth'
-import { authClient } from '@/lib/auth'
+import { authenticate, requireAdmin, getUserId, getAuthContext, optionalAuth } from '../../middleware/auth'
+import { authClient } from '../../lib/auth'
 
 // Mock Better Auth client
-vi.mock('@/lib/auth', () => ({
+vi.mock('../../lib/auth', () => ({
   authClient: {
     api: {
       getSession: vi.fn()

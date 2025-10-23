@@ -7,7 +7,7 @@ import {
   inputValidation,
   ipAccessControl,
   comprehensiveSecurity
-} from '@/middleware/security'
+} from '../../middleware/security'
 
 describe('Security Middleware', () => {
   beforeEach(() => {
@@ -169,9 +169,10 @@ describe('Security Middleware', () => {
 
       const mockContext = {
         req: {
-          header: vi.fn().mockReturnValue('curl/7.68.0'),
-          url: vi.fn().mockReturnValue('/api/test'),
-          header: vi.fn().mockReturnValue('script')
+          header: vi.fn()
+            .mockReturnValueOnce('curl/7.68.0')
+            .mockReturnValueOnce('script'),
+          url: vi.fn().mockReturnValue('/api/test')
         },
         json: vi.fn()
       }
