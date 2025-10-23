@@ -187,7 +187,7 @@ export class TestDataFactory {
   // File upload data
   static createFileUpload(overrides: Partial<any> = {}) {
     return {
-      file: new File(['test data'], 'test.pcap'), {
+      file: new File(['test data'], 'test.pcap', {
         type: 'application/octet-stream'
       }),
       name: 'test.pcap',
