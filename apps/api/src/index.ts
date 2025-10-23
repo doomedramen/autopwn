@@ -3,8 +3,11 @@ import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import { comprehensiveSecurity } from './middleware/security'
+import { responseCache } from './middleware/responseCache'
 import { globalErrorHandler, requestContextMiddleware } from './lib/error-handler'
 import { logger as appLogger, extractRequestContext } from './lib/logger'
+import { getPerformanceMonitor } from './lib/performance'
+import { getCache } from './lib/cache'
 import { authRoutes } from './routes/auth'
 import { networksRoutes } from './routes/networks'
 import { dictionariesRoutes } from './routes/dictionaries'
@@ -19,14 +22,49 @@ import { runMigrations } from './db/migrate'
 
 const app = new Hono()
 
+// Performance monitoring
+const performanceMonitor = getPerformanceMonitor()
+
 // Middleware
 app.use('*', requestContextMiddleware)
 app.use('*', logger())
 app.use('*', prettyJSON())
+app.use('*', responseCache({ enabled: process.env.NODE_ENV !== 'test' }))
 app.use('*', comprehensiveSecurity({
   allowedOrigins: ['http://localhost:3000', 'http://localhost:3001'],
   trustProxy: false
 }))
+
+// Performance tracking middleware
+app.use('*', async (c, next) => {
+  const startTime = Date.now()
+
+  try {
+    await next()
+
+    const responseTime = Date.now() - startTime
+    await performanceMonitor.recordRequest({
+      method: c.req.method,
+      path: c.req.path,
+      statusCode: c.res.status,
+      responseTime,
+      timestamp: Date.now(),
+      userAgent: c.req.header('user-agent'),
+      cached: c.res.headers.get('X-Cache') === 'HIT'
+    })
+  } catch (error) {
+    const responseTime = Date.now() - startTime
+    await performanceMonitor.recordRequest({
+      method: c.req.method,
+      path: c.req.path,
+      statusCode: c.res.status || 500,
+      responseTime,
+      timestamp: Date.now(),
+      error: error instanceof Error ? error.message : String(error)
+    })
+    throw error
+  }
+})
 
 // Health check with comprehensive monitoring
 app.get('/health', async (c) => {
@@ -65,13 +103,68 @@ app.get('/health', async (c) => {
 // Enhanced metrics endpoint for monitoring
 app.get('/metrics', async (c) => {
   try {
-    const metrics = AppMonitor.getMetrics()
+    const [systemMetrics, requestStats, dbStats, cacheStats, recommendations] = await Promise.all([
+      performanceMonitor.getMetrics(),
+      performanceMonitor.getRequestStats(1),
+      performanceMonitor.getDatabaseStats(),
+      performanceMonitor.getCacheStats(),
+      performanceMonitor.getRecommendations()
+    ])
 
-    return c.json(metrics)
+    return c.json({
+      system: systemMetrics,
+      requests: requestStats,
+      database: dbStats,
+      cache: cacheStats,
+      recommendations,
+      timestamp: new Date().toISOString()
+    })
   } catch (error) {
     appLogger.error('Metrics retrieval failed', 'metrics', error)
     return c.json({
       error: 'Failed to retrieve metrics',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// Performance optimization endpoint
+app.post('/optimize', async (c) => {
+  try {
+    await performanceMonitor.optimizeSystem()
+
+    return c.json({
+      success: true,
+      message: 'Performance optimization completed',
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    appLogger.error('Performance optimization failed', 'metrics', error)
+    return c.json({
+      success: false,
+      error: 'Performance optimization failed',
+      timestamp: new Date().toISOString()
+    }, 500)
+  }
+})
+
+// Cache management endpoint
+app.post('/cache/clear', async (c) => {
+  try {
+    const cache = getCache()
+    const cleared = await cache.clear()
+
+    return c.json({
+      success: true,
+      cleared,
+      message: 'Cache cleared successfully',
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    appLogger.error('Cache clear failed', 'cache', error)
+    return c.json({
+      success: false,
+      error: 'Cache clear failed',
       timestamp: new Date().toISOString()
     }, 500)
   }

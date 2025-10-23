@@ -1,0 +1,258 @@
+# AutoPWN Docker Compose Configuration for Testing
+# This file provides isolated testing environment
+
+x-app-environment: &app-environment
+  NODE_ENV: test
+  PORT: 3001
+
+  # Test database configuration
+  DATABASE_URL: postgresql://postgres:password@database:5432/autopwn_test
+
+  # Test Redis configuration
+  REDIS_URL: redis://redis:6379
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+
+  # Test authentication secrets (fixed for reproducibility)
+  AUTH_SECRET: test-secret-key-here-is-32-chars-long-please
+  AUTH_URL: http://localhost:3001/auth
+  JWT_SECRET: test-jwt-secret-here-is-32-chars-long-please
+
+  # Test file upload settings
+  UPLOAD_DIR: ./uploads
+  MAX_FILE_SIZE: 100MB
+
+  # Test frontend URL
+  FRONTEND_URL: http://localhost:3000
+
+  # Test background job settings
+  DEFAULT_JOB_TIMEOUT: 300000
+  MAX_CONCURRENT_JOBS: 5
+
+  # Test security settings
+  CORS_ORIGIN: http://localhost:3000
+  RATE_LIMIT_WINDOW: 900000
+  RATE_LIMIT_MAX: 100
+
+  # Test-specific environment variables
+  TEST_WITH_REAL_TOOLS: "true"
+  HASHCAT_PATH: "/usr/local/bin/hashcat"
+  HCX_PCAPNGTOOL_PATH: "/usr/local/bin/hcxpcapngtool"
+
+x-web-environment: &web-environment
+  NODE_ENV: test
+  NEXT_PUBLIC_API_URL: http://localhost:3001
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+services:
+  # PostgreSQL Test Database
+  database:
+    image: postgres:16-alpine
+    container_name: autopwn-db-test
+    environment:
+      POSTGRES_DB: autopwn_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    tmpfs:
+      - /tmpfs # Use tmpfs for better performance in tests
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - autopwn-test-network
+
+  # Redis Test Instance
+  redis:
+    image: redis:7-alpine
+    container_name: autopwn-redis-test
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    volumes:
+      - redis_test_data:/data
+      - ./config/redis-test.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf --save "" --appendonly no
+    tmpfs:
+      - /tmpfs # Use tmpfs for better performance in tests
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - autopwn-test-network
+
+  # Test Runner Service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: autopwn-test-runner
+    environment:
+      <<: *app-environment
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - test_uploads:/app/uploads
+      - test_results:/app/test-results
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["tail", "-f", "/dev/null"]  # Keep container running for manual test execution
+    networks:
+      - autopwn-test-network
+    profiles:
+      - integration-test
+      - e2e-test
+
+  # E2E Test Service
+  e2e-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    container_name: autopwn-e2e-test
+    environment:
+      <<: *web-environment
+      # E2E specific environment variables
+      BASE_URL: http://web:3000
+      API_URL: http://api:3001
+      E2E_ADMIN_EMAIL: admin@test.com
+      E2E_ADMIN_PASSWORD: test-password-123
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - test_results:/app/test-results
+      - /dev/shm:/dev/shm  # Required for Chromium
+    depends_on:
+      - api
+      - web
+    command: ["tail", "-f", "/dev/null"]  # Keep container running for manual test execution
+    networks:
+      - autopwn-test-network
+    profiles:
+      - e2e-test
+
+  # API Service for Testing
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    container_name: autopwn-api-test
+    environment:
+      <<: *app-environment
+    ports:
+      - "3002:3001"  # Different port to avoid conflicts
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - test_uploads:/app/uploads
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - autopwn-test-network
+    profiles:
+      - e2e-test
+
+  # Web Frontend for Testing
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      target: test
+    container_name: autopwn-web-test
+    environment:
+      <<: *web-environment
+    ports:
+      - "3003:3000"  # Different port to avoid conflicts
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - autopwn-test-network
+    profiles:
+      - e2e-test
+
+  # Test Database Management
+  test-db-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: autopwn-test-db-migrate
+    environment:
+      <<: *app-environment
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["pnpm", "test:migrate"]
+    networks:
+      - autopwn-test-network
+    profiles:
+      - db-setup
+
+  # Test Database Seeding
+  test-db-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: autopwn-test-db-seed
+    environment:
+      <<: *app-environment
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["pnpm", "test:seed"]
+    networks:
+      - autopwn-test-network
+    profiles:
+      - db-setup
+
+volumes:
+  postgres_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+  test_uploads:
+    driver: local
+  test_results:
+    driver: local
+
+networks:
+  autopwn-test-network:
+    driver: bridge

@@ -160,13 +160,35 @@ For complete testing documentation, see [docs/TESTING.md](./docs/TESTING.md)
 
 ## Documentation
 
-- [Architecture Overview](./docs/ARCHITECTURE.md) - System design and components
-- [Setup Guide](./docs/SETUP.md) - Installation and configuration
-- [API Documentation](./docs/API.md) - REST API reference
-- [Database Schema](./docs/DATABASE.md) - Data model documentation
-- [Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment
-- [Development Guide](./docs/DEVELOPMENT.md) - Contributing and local development
-- [Roadmap](./docs/ROADMAP.md) - Planned features and improvements
+- [🔧 Troubleshooting Guide](./TROUBLESHOOTING.md) - Comprehensive troubleshooting and repair guide
+- [🐳 Docker Setup](./DOCKER.md) - Docker configuration and deployment guide
+- [🏗️ Architecture Overview](./docs/ARCHITECTURE.md) - System design and components
+- [📋 Setup Guide](./docs/SETUP.md) - Installation and configuration
+- [🔌 API Documentation](./docs/API.md) - REST API reference
+- [🗄️ Database Schema](./docs/DATABASE.md) - Data model documentation
+- [🚀 Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment
+- [💻 Development Guide](./docs/DEVELOPMENT.md) - Contributing and local development
+- [🗺️ Roadmap](./docs/ROADMAP.md) - Planned features and improvements
+
+### Quick Troubleshooting
+
+If you encounter issues, start with these commands:
+
+```bash
+# Health check
+./scripts/health-check.sh
+
+# Automatic repair
+./scripts/repair-docker.sh auto
+
+# Development environment
+./scripts/docker-dev.sh start
+./scripts/docker-dev.sh status
+
+# Test environment
+./scripts/docker-test.sh start
+./scripts/docker-test.sh setup
+```
 
 ## Environment Variables
 
