@@ -1,6 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { TestDataFactory } from '../test/utils/test-data-factory'
 
+// Mock HCX Tools module
+const mockHCXTools = {
+  convertToHC22000: vi.fn(),
+  extractPMKID: vi.fn(),
+  convertToHashcat: vi.fn(),
+  validateConversion: vi.fn(),
+}
+
+// Mock file system module
+const fsMock = {
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  access: vi.fn(),
+  mkdir: vi.fn(),
+  rm: vi.fn(),
+}
+
+// Mock child_process for hashcat execution
+vi.mock('child_process', () => ({
+  exec: vi.fn(),
+  execSync: vi.fn(),
+}))
+
 describe('HCX PCAPNGTOOL Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks()

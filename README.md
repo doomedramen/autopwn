@@ -64,6 +64,17 @@ docker compose up -d
 
 Visit `http://localhost:3000` and log in with the default superuser credentials (displayed in logs on first run).
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Setup Guide](docs/SETUP.md)** - Detailed installation and configuration
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and best practices
+- **[Testing Guide](docs/TESTING.md)** - Testing strategy and running tests
+- **[Docker Deployment](docs/DOCKER_DEPLOYMENT.md)** - Production deployment with Docker
+- **[Architecture](docs/ARCHITECTURE.md)** - System architecture and design
+
 ## Development
 
 ### Setting up for Development

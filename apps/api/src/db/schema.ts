@@ -11,6 +11,13 @@ import {
   bigint
 } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import { z } from 'zod'
+import {
+  dictionaryProcessingConfigSchema,
+  jobConfigSchema,
+  jobResultSchema,
+  jobResultDataSchema,
+} from './jsonb-schemas'
 
 // Enums
 export const roleEnum = pgEnum('role', ['user', 'admin'])
@@ -139,12 +146,32 @@ export const insertUserSchema = createInsertSchema(users)
 export const selectUserSchema = createSelectSchema(users)
 export const insertNetworkSchema = createInsertSchema(networks)
 export const selectNetworkSchema = createSelectSchema(networks)
-export const insertDictionarySchema = createInsertSchema(dictionaries)
-export const selectDictionarySchema = createSelectSchema(dictionaries)
-export const insertJobSchema = createInsertSchema(jobs)
-export const selectJobSchema = createSelectSchema(jobs)
-export const insertJobResultSchema = createInsertSchema(jobResults)
-export const selectJobResultSchema = createSelectSchema(jobResults)
+
+// Dictionary schemas with JSONB validation
+export const insertDictionarySchema = createInsertSchema(dictionaries, {
+  processingConfig: dictionaryProcessingConfigSchema.optional().nullable(),
+})
+export const selectDictionarySchema = createSelectSchema(dictionaries, {
+  processingConfig: dictionaryProcessingConfigSchema.optional().nullable(),
+})
+
+// Job schemas with JSONB validation
+export const insertJobSchema = createInsertSchema(jobs, {
+  config: jobConfigSchema,
+  result: jobResultSchema.optional().nullable(),
+})
+export const selectJobSchema = createSelectSchema(jobs, {
+  config: jobConfigSchema,
+  result: jobResultSchema.optional().nullable(),
+})
+
+// Job result schemas with JSONB validation
+export const insertJobResultSchema = createInsertSchema(jobResults, {
+  data: jobResultDataSchema,
+})
+export const selectJobResultSchema = createSelectSchema(jobResults, {
+  data: jobResultDataSchema,
+})
 
 // Types
 export type User = typeof users.$inferSelect

@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { env } from '@/config/env'
 import { db } from '@/db'
+import { emailService } from '@/lib/email'
 
 export const authClient: any = betterAuth({
   database: drizzleAdapter(db, {
@@ -9,9 +10,37 @@ export const authClient: any = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: env.NODE_ENV === 'production', // Enable in production only
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    sendVerificationEmail: async ({ user, url, token }) => {
+      try {
+        const sent = await emailService.sendVerificationEmail(user.email, url)
+
+        if (!sent) {
+          // In development or when SMTP is not configured, log to console
+          console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║            📧 EMAIL VERIFICATION (Development Mode)          ║
+╠══════════════════════════════════════════════════════════════╣
+║ User: ${user.email.padEnd(54)} ║
+║ Verification URL:                                            ║
+║ ${url.padEnd(60)} ║
+║ Token: ${token.substring(0, 30).padEnd(54)}... ║
+╠══════════════════════════════════════════════════════════════╣
+║ ⚠️  SMTP not configured - email not sent                    ║
+║ In production, configure SMTP to enable email verification  ║
+╚══════════════════════════════════════════════════════════════╝
+          `)
+        }
+      } catch (error) {
+        console.error('Failed to send verification email:', error)
+        // Don't throw error in development to allow testing
+        if (env.NODE_ENV === 'production') {
+          throw error
+        }
+      }
+    },
   },
   // Note: Social providers disabled for now - can be configured later
   // socialProviders: {},

@@ -36,3 +36,4 @@ npm-debug.log*
 *.pem
 /apps/web/playwright-report
 /apps/web/test-results
+/data

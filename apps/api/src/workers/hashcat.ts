@@ -5,6 +5,8 @@ import { jobs, jobResults, networks } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { validateFilePath, quotePathForShell, createSafePath } from '../lib/file-path-validator'
+import { logger } from '../lib/logger'
 
 const execAsync = promisify(exec)
 
@@ -28,6 +30,36 @@ export async function runHashcatAttack({
   userId
 }: RunHashcatAttackOptions) {
   try {
+    // SECURITY: Validate file paths before using them
+    logger.info('Validating file paths for hashcat attack', 'hashcat', {
+      jobId,
+      userId,
+      handshakePath,
+      dictionaryPath
+    })
+
+    // Validate handshake file path
+    const validatedHandshakePath = await validateFilePath(handshakePath, {
+      allowedBasePaths: ['temp/handshakes', 'data/handshakes', 'uploads/handshakes'],
+      allowedExtensions: ['.hc22000', '.cap', '.pcap'],
+      mustExist: true,
+      allowSymlinks: false,
+    })
+
+    // Validate dictionary file path
+    const validatedDictionaryPath = await validateFilePath(dictionaryPath, {
+      allowedBasePaths: ['temp/dictionaries', 'data/dictionaries', 'uploads/dictionaries'],
+      allowedExtensions: ['.txt', '.lst', '.dict'],
+      mustExist: true,
+      allowSymlinks: false,
+    })
+
+    logger.info('File paths validated successfully', 'hashcat', {
+      jobId,
+      validatedHandshakePath,
+      validatedDictionaryPath
+    })
+
     // Update job status to running
     await db.update(jobs)
       .set({
@@ -45,15 +77,19 @@ export async function runHashcatAttack({
       })
       .where(eq(networks.id, networkId))
 
-    // Prepare hashcat command
+    // Prepare hashcat command with validated paths
     const hashcatCommand = buildHashcatCommand({
       attackMode,
-      handshakePath,
-      dictionaryPath,
+      handshakePath: validatedHandshakePath,
+      dictionaryPath: validatedDictionaryPath,
       jobId
     })
 
-    console.log(`Running hashcat command: ${hashcatCommand}`)
+    logger.info('Running hashcat command', 'hashcat', {
+      jobId,
+      attackMode,
+      command: hashcatCommand
+    })
 
     // Execute hashcat
     const result = await executeHashcat(hashcatCommand, jobId)
@@ -169,30 +205,32 @@ export function buildHashcatCommand({
   dictionaryPath: string
   jobId: string
 }) {
-  const workDir = path.join(process.cwd(), 'temp', 'hashcat', jobId)
+  // SECURITY: Create safe work directory path
+  const workDir = createSafePath('temp', 'hashcat', jobId)
 
   // Hashcat attack modes:
   // -m 16800: WPA-PMKID-PBKDF2 (PMKID attack)
   // -m 22000: WPA-PBKDF2-PMKID+EAPOL (handshake attack)
   const hashMode = attackMode === 'pmkid' ? 16800 : 22000
 
-  // Output files
-  const outputFile = path.join(workDir, 'hashcat_output.txt')
-  const potfile = path.join(workDir, 'hashcat.pot')
+  // SECURITY: Create safe output file paths
+  const outputFile = createSafePath(workDir, 'hashcat_output.txt')
+  const potfile = createSafePath(workDir, 'hashcat.pot')
 
+  // SECURITY: Quote and sanitize all file paths for shell execution
   const command = [
     'hashcat',
     `-m ${hashMode}`,
     `-a 0`, // Dictionary attack
-    handshakePath,
-    dictionaryPath,
-    `-o ${outputFile}`,
-    `--potfile-path=${potfile}`,
+    quotePathForShell(handshakePath),
+    quotePathForShell(dictionaryPath),
+    `-o ${quotePathForShell(outputFile)}`,
+    `--potfile-path=${quotePathForShell(potfile)}`,
     '--quiet',
     '--force',
     '-O', // Optimized kernel
     '-w 4', // Workload profile (high)
-    `--session=${jobId}`,
+    `--session=${jobId}`, // jobId should be UUID (safe)
     '--runtime=3600' // 1 hour max runtime
   ].join(' ')
 

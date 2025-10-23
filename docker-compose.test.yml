@@ -1,5 +1,5 @@
 # AutoPWN Docker Compose Configuration for Testing
-# This file provides isolated testing environment
+# Optimized for fast, isolated test execution with parallel support
 
 x-app-environment: &app-environment
   NODE_ENV: test
@@ -8,7 +8,7 @@ x-app-environment: &app-environment
   # Test database configuration
   DATABASE_URL: postgresql://postgres:password@database:5432/autopwn_test
 
-  # Test Redis configuration
+  # Test Redis configuration (optimized for testing)
   REDIS_URL: redis://redis:6379
   REDIS_HOST: redis
   REDIS_PORT: 6379
@@ -19,33 +19,53 @@ x-app-environment: &app-environment
   JWT_SECRET: test-jwt-secret-here-is-32-chars-long-please
 
   # Test file upload settings
-  UPLOAD_DIR: ./uploads
+  UPLOAD_DIR: /app/data/uploads
   MAX_FILE_SIZE: 100MB
 
   # Test frontend URL
   FRONTEND_URL: http://localhost:3000
 
-  # Test background job settings
-  DEFAULT_JOB_TIMEOUT: 300000
-  MAX_CONCURRENT_JOBS: 5
+  # Test background job settings (reduced for faster tests)
+  DEFAULT_JOB_TIMEOUT: 60000
+  MAX_CONCURRENT_JOBS: 10
 
-  # Test security settings
+  # Test security settings (relaxed for testing)
   CORS_ORIGIN: http://localhost:3000
   RATE_LIMIT_WINDOW: 900000
-  RATE_LIMIT_MAX: 100
+  RATE_LIMIT_MAX: 1000
 
   # Test-specific environment variables
   TEST_WITH_REAL_TOOLS: "true"
   HASHCAT_PATH: "/usr/local/bin/hashcat"
   HCX_PCAPNGTOOL_PATH: "/usr/local/bin/hcxpcapngtool"
 
+  # Performance optimizations
+  VITEST_POOL_SIZE: "4"
+  VITEST_MAX_THREADS: "4"
+
 x-web-environment: &web-environment
   NODE_ENV: test
   NEXT_PUBLIC_API_URL: http://localhost:3001
   NEXT_PUBLIC_APP_URL: http://localhost:3000
 
+# Common resource limits for test services
+x-test-resources: &test-resources
+  limits:
+    cpus: '1.0'
+    memory: 512M
+  reservations:
+    cpus: '0.25'
+    memory: 128M
+
+# Logging configuration for tests
+x-test-logging: &test-logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+
 services:
-  # PostgreSQL Test Database
+  # PostgreSQL Test Database (Optimized for fast test execution)
   database:
     image: postgres:16-alpine
     container_name: autopwn-db-test
@@ -54,75 +74,121 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      # Performance optimizations for testing
+      POSTGRES_SHARED_BUFFERS: "128MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "256MB"
+      POSTGRES_WORK_MEM: "8MB"
     ports:
-      - "5433:5432"  # Different port to avoid conflicts
+      - "127.0.0.1:5433:5432"  # Localhost only, different port
     volumes:
-      - postgres_test_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     tmpfs:
-      - /tmpfs # Use tmpfs for better performance in tests
+      # Use tmpfs for maximum performance (data not persisted)
+      - /var/lib/postgresql/data:rw,size=512m
+      - /tmp:rw,size=128m
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d autopwn_test"]
+      interval: 3s
+      timeout: 3s
       retries: 10
-      start_period: 15s
+      start_period: 10s
     restart: unless-stopped
+    logging: *test-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
 
-  # Redis Test Instance
+  # Redis Test Instance (Optimized for fast test execution)
   redis:
     image: redis:7-alpine
     container_name: autopwn-redis-test
     ports:
-      - "6380:6379"  # Different port to avoid conflicts
-    volumes:
-      - redis_test_data:/data
-      - ./config/redis-test.conf:/usr/local/etc/redis/redis.conf:ro
-    command: redis-server /usr/local/etc/redis/redis.conf --save "" --appendonly no
+      - "127.0.0.1:6380:6379"  # Localhost only, different port
+    command: >
+      redis-server
+      --save ""
+      --appendonly no
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-backlog 128
+      --timeout 300
     tmpfs:
-      - /tmpfs # Use tmpfs for better performance in tests
+      # Use tmpfs for maximum performance (no persistence needed in tests)
+      - /data:rw,size=256m
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
+      interval: 2s
+      timeout: 3s
       retries: 10
       start_period: 5s
     restart: unless-stopped
+    logging: *test-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
 
-  # Test Runner Service
+  # Test Runner Service (for running tests in containers)
   test-runner:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: development
+      cache_from:
+        - autopwn-test-runner:latest
+    image: autopwn-test-runner:latest
     container_name: autopwn-test-runner
     environment:
       <<: *app-environment
     volumes:
-      - ./apps/api:/app/apps/api
-      - ./packages:/app/packages
-      - test_uploads:/app/uploads
-      - test_results:/app/test-results
+      - ./apps/api:/app/apps/api:cached
+      - ./packages:/app/packages:cached
+      - test_uploads:/app/data/uploads:rw
+      - test_results:/app/test-results:rw
+      - node_modules_cache:/app/node_modules:rw
+      # Cache for faster rebuilds
+      - pnpm_cache:/root/.local/share/pnpm/store:rw
     depends_on:
       database:
         condition: service_healthy
       redis:
         condition: service_healthy
     command: ["tail", "-f", "/dev/null"]  # Keep container running for manual test execution
+    logging: *test-logging
+    deploy:
+      resources: *test-resources
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
     profiles:
-      - integration-test
-      - e2e-test
+      - manual-test
 
-  # E2E Test Service
+  # E2E Test Service (End-to-end testing with Playwright)
   e2e-test:
     build:
       context: .
       dockerfile: Dockerfile.e2e
+      cache_from:
+        - autopwn-e2e-test:latest
+    image: autopwn-e2e-test:latest
     container_name: autopwn-e2e-test
     environment:
       <<: *web-environment
@@ -131,35 +197,56 @@ services:
       API_URL: http://api:3001
       E2E_ADMIN_EMAIL: admin@test.com
       E2E_ADMIN_PASSWORD: test-password-123
+      # Playwright optimizations
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     volumes:
-      - ./apps/web:/app/apps/web
-      - ./packages:/app/packages
-      - test_results:/app/test-results
-      - /dev/shm:/dev/shm  # Required for Chromium
+      - ./apps/web:/app/apps/web:cached
+      - ./packages:/app/packages:cached
+      - test_results:/app/test-results:rw
+      - /dev/shm:/dev/shm:rw  # Required for Chromium (2GB recommended)
+      - playwright_cache:/ms-playwright:rw
     depends_on:
-      - api
-      - web
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
     command: ["tail", "-f", "/dev/null"]  # Keep container running for manual test execution
+    logging: *test-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
+    shm_size: '2gb'  # Required for Chromium
     profiles:
       - e2e-test
 
-  # API Service for Testing
+  # API Service for E2E Testing
   api:
     build:
       context: .
       dockerfile: Dockerfile
       target: test
+      cache_from:
+        - autopwn-api:test
+    image: autopwn-api:test
     container_name: autopwn-api-test
     environment:
       <<: *app-environment
     ports:
-      - "3002:3001"  # Different port to avoid conflicts
+      - "127.0.0.1:3002:3001"  # Localhost only, different port
     volumes:
-      - ./apps/api:/app/apps/api
-      - ./packages:/app/packages
-      - test_uploads:/app/uploads
+      - ./apps/api:/app/apps/api:cached
+      - ./packages:/app/packages:cached
+      - test_uploads:/app/data/uploads:rw
+      - node_modules_cache:/app/node_modules:rw
     depends_on:
       database:
         condition: service_healthy
@@ -167,87 +254,121 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 20s
+    logging: *test-logging
+    deploy:
+      resources: *test-resources
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
     profiles:
       - e2e-test
 
-  # Web Frontend for Testing
+  # Web Frontend for E2E Testing
   web:
     build:
       context: .
       dockerfile: Dockerfile.web
       target: test
+      cache_from:
+        - autopwn-web:test
+    image: autopwn-web:test
     container_name: autopwn-web-test
     environment:
       <<: *web-environment
     ports:
-      - "3003:3000"  # Different port to avoid conflicts
+      - "127.0.0.1:3003:3000"  # Localhost only, different port
     volumes:
-      - ./apps/web:/app/apps/web
-      - ./packages:/app/packages
+      - ./apps/web:/app/apps/web:cached
+      - ./packages:/app/packages:cached
+      - node_modules_cache:/app/node_modules:rw
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 20s
+    logging: *test-logging
+    deploy:
+      resources: *test-resources
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
     profiles:
       - e2e-test
 
-  # Test Database Management
+  # Test Database Management (Migration runner)
   test-db-migrate:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: development
+    image: autopwn-test-runner:latest
     container_name: autopwn-test-db-migrate
     environment:
       <<: *app-environment
     volumes:
-      - ./apps/api:/app/apps/api
-      - ./packages:/app/packages
+      - ./apps/api:/app/apps/api:cached
+      - ./packages:/app/packages:cached
+      - node_modules_cache:/app/node_modules:rw
     depends_on:
       database:
         condition: service_healthy
-    command: ["pnpm", "test:migrate"]
+    command: ["pnpm", "--filter", "@autopwn/api", "test:migrate"]
+    logging: *test-logging
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
     profiles:
       - db-setup
 
-  # Test Database Seeding
+  # Test Database Seeding (Seed test data)
   test-db-seed:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: development
+    image: autopwn-test-runner:latest
     container_name: autopwn-test-db-seed
     environment:
       <<: *app-environment
     volumes:
-      - ./apps/api:/app/apps/api
-      - ./packages:/app/packages
+      - ./apps/api:/app/apps/api:cached
+      - ./packages:/app/packages:cached
+      - node_modules_cache:/app/node_modules:rw
     depends_on:
       database:
         condition: service_healthy
-    command: ["pnpm", "test:seed"]
+      test-db-migrate:
+        condition: service_completed_successfully
+    command: ["pnpm", "--filter", "@autopwn/api", "test:seed"]
+    logging: *test-logging
     networks:
       - autopwn-test-network
+    security_opt:
+      - no-new-privileges:true
     profiles:
       - db-setup
 
 volumes:
-  postgres_test_data:
+  # Named volumes for caching (improves performance)
+  node_modules_cache:
     driver: local
-  redis_test_data:
+  pnpm_cache:
     driver: local
+  playwright_cache:
+    driver: local
+
+  # Test data volumes (can be deleted/recreated easily)
   test_uploads:
     driver: local
   test_results:
@@ -256,3 +377,38 @@ volumes:
 networks:
   autopwn-test-network:
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-autopwn-test
+
+# Usage Instructions:
+#
+# 1. Run unit tests (fastest - no containers needed for most tests):
+#    pnpm test:unit
+#
+# 2. Run integration tests with real DB/Redis:
+#    docker-compose -f docker-compose.test.yml up -d database redis
+#    pnpm test:integration:real
+#    docker-compose -f docker-compose.test.yml down
+#
+# 3. Run tests inside container (manual execution):
+#    docker-compose -f docker-compose.test.yml --profile manual-test up -d
+#    docker-compose -f docker-compose.test.yml exec test-runner pnpm test:unit
+#    docker-compose -f docker-compose.test.yml down
+#
+# 4. Setup test database:
+#    docker-compose -f docker-compose.test.yml --profile db-setup up test-db-seed
+#    docker-compose -f docker-compose.test.yml down
+#
+# 5. Run E2E tests:
+#    docker-compose -f docker-compose.test.yml --profile e2e-test up -d
+#    docker-compose -f docker-compose.test.yml exec e2e-test pnpm test:e2e
+#    docker-compose -f docker-compose.test.yml down
+#
+# 6. Clean up all test data:
+#    docker-compose -f docker-compose.test.yml down -v
+#
+# Performance Tips:
+# - Use tmpfs for postgres and redis data (already configured)
+# - Cached volumes for source code improve rebuild performance
+# - node_modules_cache persists dependencies between runs
+# - All services have resource limits to prevent resource exhaustion

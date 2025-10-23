@@ -19,32 +19,42 @@ describe('Security Middleware', () => {
     vi.useRealTimers()
   })
 
-  const createMockContext = (overrides: Partial<Context> = {}): any => ({
-    req: {
-      header: vi.fn(),
-      url: 'http://localhost/test',
-      path: '/test',
-      method: 'GET',
-      ...overrides?.req
-    },
-    res: {
-      headers: {
-        set: vi.fn(),
-        get: vi.fn(),
-        has: vi.fn(),
-        delete: vi.fn()
+  const createMockContext = (overrides: Partial<Context> = {}): any => {
+    // Create a Headers-like object that matches Hono's API
+    const headersMap = new Map<string, string>()
+    const mockHeaders = {
+      set: vi.fn((key: string, value: string) => {
+        headersMap.set(key, value)
+      }),
+      get: vi.fn((key: string) => headersMap.get(key)),
+      has: vi.fn((key: string) => headersMap.has(key)),
+      delete: vi.fn((key: string) => headersMap.delete(key)),
+      append: vi.fn((key: string, value: string) => {
+        const existing = headersMap.get(key)
+        headersMap.set(key, existing ? `${existing}, ${value}` : value)
+      }),
+    }
+
+    return {
+      req: {
+        header: vi.fn(),
+        url: 'http://localhost/test',
+        path: '/test',
+        method: 'GET',
+        ...overrides?.req
       },
-      status: vi.fn(),
+      res: {
+        headers: mockHeaders,
+        status: vi.fn(),
+        ...overrides?.res
+      },
+      header: vi.fn(),
       json: vi.fn(),
       text: vi.fn(),
-      ...overrides?.res
-    },
-    header: vi.fn(),
-    json: vi.fn(),
-    text: vi.fn(),
-    env: new Map(),
-    ...overrides
-  })
+      env: new Map(),
+      ...overrides
+    }
+  }
 
   describe('CORS middleware', () => {
     it('should allow requests from allowed origins', async () => {
@@ -52,12 +62,19 @@ describe('Security Middleware', () => {
         allowedOrigins: ['http://localhost:3000', 'https://localhost:3001']
       })
 
+      const headerMock = vi.fn((name: string) => {
+        if (name === 'origin') return 'https://localhost:3001'
+        if (name === 'access-control-request-method') return undefined // Not a preflight
+        if (name === 'access-control-request-headers') return undefined
+        return undefined
+      })
+
       const mockContext = createMockContext({
         req: {
-          header: vi.fn()
-            .mockReturnValueOnce('https://localhost:3001') // origin
-            .mockReturnValueOnce('GET') // access-control-request-method
-            .mockReturnValueOnce('authorization') // access-control-request-headers
+          header: headerMock,
+          url: 'http://localhost/test',
+          path: '/test',
+          method: 'GET',
         }
       })
 
@@ -75,11 +92,19 @@ describe('Security Middleware', () => {
         allowedOrigins: ['https://localhost:3001']
       })
 
+      const headerMock = vi.fn((name: string) => {
+        if (name === 'origin') return 'https://malicious.com'
+        if (name === 'access-control-request-method') return undefined
+        if (name === 'access-control-request-headers') return undefined
+        return undefined
+      })
+
       const mockContext = createMockContext({
         req: {
-          header: vi.fn()
-            .mockReturnValueOnce('https://malicious.com') // origin
-            .mockReturnValueOnce('GET') // access-control-request-method
+          header: headerMock,
+          url: 'http://localhost/test',
+          path: '/test',
+          method: 'GET',
         }
       })
 
@@ -87,7 +112,9 @@ describe('Security Middleware', () => {
       await corsMiddleware(mockContext, mockNext)
 
       expect(mockNext).toHaveBeenCalled()
-      expect(mockContext.res.headers.set).toHaveBeenCalledWith('Access-Control-Allow-Origin', 'https://malicious.com')
+      // For disallowed origins, headers should NOT be set (or set to null/empty)
+      // The middleware doesn't set headers for disallowed origins on non-preflight requests
+      expect(mockContext.res.headers.set).not.toHaveBeenCalledWith('Access-Control-Allow-Origin', 'https://malicious.com')
     })
   })
 
@@ -174,19 +201,34 @@ describe('Security Middleware', () => {
     it('should detect suspicious input patterns', async () => {
       const validationMiddleware = inputValidation()
 
+      const headerMock = vi.fn((name: string) => {
+        if (name === 'user-agent') return '<script>alert("xss")</script>' // Suspicious pattern
+        if (name === 'referer') return ''
+        if (name === 'content-type') return 'application/json'
+        return undefined
+      })
+
       const mockContext = createMockContext({
         req: {
-          header: vi.fn()
-            .mockReturnValueOnce('test bot') // user-agent with suspicious pattern
-            .mockReturnValueOnce('application/json'), // content-type
+          header: headerMock,
           url: 'http://localhost/api/test'
         }
       })
 
       const mockNext = vi.fn()
-      await validationMiddleware(mockContext, mockNext)
+      const result = await validationMiddleware(mockContext, mockNext)
 
-      expect(mockNext).toHaveBeenCalled()
+      // Should not call next() when suspicious input is detected
+      expect(mockNext).not.toHaveBeenCalled()
+      // Should return JSON error response
+      expect(mockContext.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          code: 'SUSPICIOUS_INPUT'
+        }),
+        400
+      )
+      // Should set security flag header
       expect(mockContext.header).toHaveBeenCalledWith('X-Security-Flag', 'suspicious-input')
     })
   })
@@ -220,15 +262,23 @@ describe('Security Middleware', () => {
 
     it('should apply stricter limits for suspicious requests', async () => {
       const ipMiddleware = ipAccessControl({
-        suspiciousPatterns: [/bot|crawler/i],
+        suspiciousPatterns: [/bot|crawler|python|curl/i],
         stricterLimits: true
+      })
+
+      const headerMock = vi.fn((name: string) => {
+        if (name === 'x-forwarded-for') return '192.168.1.200'
+        if (name === 'x-real-ip') return undefined
+        if (name === 'user-agent') return 'Python/3.9 urllib/3.4' // Suspicious user agent
+        return undefined
       })
 
       const mockContext = createMockContext({
         req: {
-          header: vi.fn()
-            .mockReturnValueOnce('192.168.1.200') // x-forwarded-for (not blocked)
-            .mockReturnValueOnce('Python/3.9 urllib/3.4') // user-agent (suspicious)
+          header: headerMock,
+          url: 'http://localhost/test',
+          path: '/test',
+          method: 'GET',
         }
       })
 
