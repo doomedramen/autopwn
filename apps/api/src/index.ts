@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import { cors } from 'hono/cors'
+import { environmentAwareCORS, publicApiCORS } from './middleware/cors'
 
 // Import routes
 import { authRoutes } from './routes/auth'
@@ -12,12 +13,16 @@ import { networksRoutes } from './routes/networks'
 import { dictionariesRoutes } from './routes/dictionaries'
 import { queueRoutes } from './routes/queue-management'
 import { uploadRoutes } from './routes/upload'
+import { securityRoutes } from './routes/security-monitoring'
+import { virusScannerRoutes } from './routes/virus-scanner'
 
 // Import middleware
 import { securityMiddleware } from './middleware/security'
 import { authMiddleware } from './middleware/auth'
 import { rateLimit, strictRateLimit, uploadRateLimit } from './middleware/rateLimit'
 import { fileSecurityMiddleware } from './middleware/fileSecurity'
+import { dbSecurityMiddleware, parameterValidationMiddleware } from './middleware/db-security'
+import { securityHeaderValidator } from './middleware/security-header-validator'
 import { errorHandler } from './lib/error-handler'
 
 const app = new Hono()
@@ -25,12 +30,16 @@ const app = new Hono()
 // Security and utility middleware (applied globally)
 app.use('*', logger())
 app.use('*', prettyJSON())
-app.use('*', cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true,
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}))
+
+// Environment-aware CORS configuration
+app.use('*', environmentAwareCORS())
+
+// Database security and parameter validation
+app.use('*', dbSecurityMiddleware())
+app.use('*', parameterValidationMiddleware())
+
+// Security header validation
+app.use('*', securityHeaderValidator())
 
 // Security middleware
 app.use('*', securityMiddleware)
@@ -47,8 +56,14 @@ app.route('/api/queue', strictRateLimit(), authMiddleware, queueRoutes)
 app.use('/api/upload', rateLimit(), authMiddleware, fileSecurityMiddleware)
 app.route('/api/upload', uploadRateLimit(), uploadRoutes)
 
-// Health check (no auth required)
-app.get('/health', (c) => {
+// Security monitoring routes (admin only)
+app.route('/security', rateLimit(), authMiddleware, securityRoutes)
+
+// Virus scanner routes (admin only)
+app.route('/virus-scanner', rateLimit(), authMiddleware, virusScannerRoutes)
+
+// Health check (no auth required) - Public CORS
+app.get('/health', publicApiCORS(), (c) => {
   return c.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -58,8 +73,8 @@ app.get('/health', (c) => {
   })
 })
 
-// Basic API info route
-app.get('/api/info', (c) => {
+// Basic API info route - Public CORS
+app.get('/api/info', publicApiCORS(), (c) => {
   return c.json({
     message: 'AutoPWN API is working',
     version: '1.0.0',
@@ -71,6 +86,8 @@ app.get('/api/info', (c) => {
       '/api/dictionaries/*',
       '/api/queue/*',
       '/api/upload/*',
+      '/security/*',
+      '/virus-scanner/*',
       '/health'
     ]
   })
@@ -92,6 +109,8 @@ app.notFound((c) => {
       '/api/dictionaries/*',
       '/api/queue/*',
       '/api/upload/*',
+      '/security/*',
+      '/virus-scanner/*',
       '/health',
       '/api/info'
     ]
