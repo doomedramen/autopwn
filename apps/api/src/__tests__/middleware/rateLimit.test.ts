@@ -37,7 +37,8 @@ describe('Rate Limiting Middleware', () => {
         res: {
           headers: {
             set: vi.fn(),
-          }
+          },
+          json: vi.fn()
         },
         env: {
           get: vi.fn().mockReturnValue('127.0.0.1')
@@ -139,7 +140,11 @@ describe('Rate Limiting Middleware', () => {
 
   describe('Strict rate limiting', () => {
     it('should apply stricter limits for auth endpoints', async () => {
-      const strictLimiter = strictRateLimit()
+      const strictLimiter = rateLimit({
+        windowMs: 60000,
+        maxRequests: 5, // Stricter limit for auth endpoints
+        keyGenerator: (c: Context) => c.req.header('authorization') || 'anonymous'
+      })
 
       const mockNext = vi.fn()
       const mockContext = {
@@ -166,7 +171,11 @@ describe('Rate Limiting Middleware', () => {
 
   describe('Upload rate limiting', () => {
     it('should apply hourly limits for uploads', async () => {
-      const uploadLimiter = uploadRateLimit()
+      const uploadLimiter = rateLimit({
+        windowMs: 3600000, // 1 hour
+        maxRequests: 20, // 20 uploads per hour
+        keyGenerator: (c: Context) => c.req.header('x-upload-type') || 'unknown-upload'
+      })
 
       const mockNext = vi.fn()
       const mockContext = {
@@ -209,6 +218,7 @@ describe('Rate Limiting Middleware', () => {
           headers: {
             set: vi.fn(),
           },
+          json: vi.fn()
         },
         env: {
           get: vi.fn().mockReturnValue('user-ip')
