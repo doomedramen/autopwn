@@ -12,7 +12,7 @@ x-app-environment: &app-environment
   PORT: 3001
 
   # Database configuration
-  DATABASE_URL: postgresql://postgres:password@database:5432/autopwn_${NODE_ENV:-development}
+  DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@database:5432/autopwn_${NODE_ENV:-development}
 
   # Redis configuration
   REDIS_URL: redis://redis:6379
@@ -52,8 +52,8 @@ services:
     container_name: autopwn-db-${NODE_ENV:-development}
     environment:
       POSTGRES_DB: autopwn_${NODE_ENV:-development}
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
       - "5432:5432"
