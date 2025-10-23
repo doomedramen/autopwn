@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Uppy from '@uppy/core';
 import XHRUpload from '@uppy/xhr-upload';
 import Dashboard from '@uppy/dashboard';
-import { DragDrop } from '@uppy/react';
 import {
   Dialog,
   DialogContent,
@@ -56,7 +55,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       target: type === 'pcap' ? '#pcap-dashboard' : '#dictionary-dashboard',
       width: '100%',
       height: 400,
-      plugins: ['FileInput', 'DragDrop', 'ProgressBar', 'StatusBar'],
+      plugins: ['FileInput', 'ProgressBar', 'StatusBar'],
       proudlyHostedByUppy: false,
     });
 
@@ -213,18 +212,20 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
         <div className="border rounded-lg p-4">
           <div id={type === 'pcap' ? 'pcap-dashboard' : 'dictionary-dashboard'}>
             {uppy && (
-              <DragDrop
-                uppy={uppy}
-                locale={{
-                  strings: {
-                    // Text to show on the droppable area.
-                    // `%{browse}` is replaced with a link that opens the system file selection dialog.
-                    dropHereOr: 'Drop files here or %{browse}',
-                    // Used as the label for the link that opens the system file selection dialog.
-                    browse: 'browse',
-                  },
+              <div
+                className="min-h-[200px] border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-500"
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const files = Array.from(e.dataTransfer.files);
+                  files.forEach((file) => uppy.addFile(file));
                 }}
-              />
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <div className="text-center">
+                  <Upload className="mx-auto h-12 w-12 mb-4" />
+                  <p>Drop files here or click to browse</p>
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -60,7 +60,7 @@ export default function Page() {
   }
 
   // Check if user is admin
-  const isAdmin = authData?.user?.role === 'admin';
+  const isAdmin = authData && (authData as any).user?.role === 'admin';
 
   const renderActiveTab = () => {
     switch (activeTab) {

@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
     // 2. Process the file (extract networks from PCAP, word count for dictionaries)
     // 3. Update the database with the processed data
 
-    let processedData = {
+    // Define base processed data
+    const baseData = {
       name: file.name,
       size: file.size,
       type: file.type,
@@ -72,28 +73,34 @@ export async function POST(request: NextRequest) {
     // Add type-specific processing results
     if (uploadType === 'pcap') {
       // Simulate network extraction results
-      processedData = {
-        ...processedData,
+      const processedData = {
+        ...baseData,
         networksFound: Math.floor(Math.random() * 10) + 1,
-        encryptionTypes: ['WPA2', 'WPA3', 'Open'],
+        encryptionTypes: ['WPA2', 'WPA3', 'Open'] as string[],
         processingTime: `${(processingTime / 1000).toFixed(1)}s`
       };
+
+      return NextResponse.json({
+        success: true,
+        message: 'PCAP file uploaded and processed successfully',
+        data: processedData
+      });
     } else {
       // Simulate dictionary processing results
       const wordCount = Math.floor(file.size / 10); // Rough estimate
-      processedData = {
-        ...processedData,
+      const processedData = {
+        ...baseData,
         wordCount,
         estimatedCrackTime: `${(wordCount / 1000000).toFixed(1)}M passwords`,
         processingTime: `${(processingTime / 1000).toFixed(1)}s`
       };
-    }
 
-    return NextResponse.json({
-      success: true,
-      message: `${uploadType === 'pcap' ? 'PCAP' : 'Dictionary'} file uploaded and processed successfully`,
-      file: processedData
-    });
+      return NextResponse.json({
+        success: true,
+        message: 'Dictionary file uploaded and processed successfully',
+        data: processedData
+      });
+    }
 
   } catch (error) {
     console.error('Upload error:', error);

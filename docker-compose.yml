@@ -103,16 +103,12 @@ services:
       <<: *app-environment
     ports:
       - "3001:3001"
-    volumes:
-      - ./apps/api:/app/apps/api
-      - ./packages:/app/packages
-      - /app/node_modules
-      - uploads_data_${NODE_ENV:-development}:/app/uploads
     depends_on:
       database:
         condition: service_healthy
       redis:
         condition: service_healthy
+    command: ["node", "apps/api/dist/index.js"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
@@ -135,12 +131,13 @@ services:
     container_name: autopwn-worker-${NODE_ENV:-development}
     environment:
       <<: *app-environment
-    command: ["pnpm", "worker"]
+    command: sh -c "cd /app/apps/api && /app/apps/api/node_modules/.bin/tsx src/workers/index.ts"
     volumes:
       - ./apps/api:/app/apps/api
       - ./packages:/app/packages
       - /app/node_modules
       - uploads_data_${NODE_ENV:-development}:/app/uploads
+    user: "apiuser"
     depends_on:
       database:
         condition: service_healthy
@@ -172,14 +169,9 @@ services:
       - ./apps/web:/app/apps/web
       - ./packages:/app/packages
       - /app/node_modules
+    user: "webuser"
     depends_on:
       - api
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     restart: unless-stopped
     networks:
       - autopwn-network
@@ -191,7 +183,7 @@ services:
     image: adminer:latest
     container_name: autopwn-adminer-${NODE_ENV:-development}
     ports:
-      - "8080:8080"
+      - "1337:1337"
     environment:
       ADMINER_DEFAULT_SERVER: database
     depends_on:

@@ -157,8 +157,27 @@ vi.mock('child_process', () => ({
   spawn: mockSpawn
 }))
 
-// Mock database
-const dbMock = {
+// Mock database with explicit type
+type MockDB = {
+  query: any;
+  select: any;
+  insert: any;
+  update: any;
+  delete: any;
+  from: any;
+  where: any;
+  values: any;
+  set: any;
+  returning: any;
+  limit: any;
+  offset: any;
+  orderBy: any;
+  leftJoin: any;
+  rightJoin: any;
+  innerJoin: any;
+}
+
+const dbMock: MockDB = {
   query: vi.fn(),
   select: vi.fn(() => dbMock),
   insert: vi.fn(() => dbMock),

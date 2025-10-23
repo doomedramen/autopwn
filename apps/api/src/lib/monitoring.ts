@@ -91,7 +91,7 @@ export class AppMonitor {
     if (memoryUsagePercent > 80) {
       logger.warn('High memory usage detected', 'monitoring', {
         memoryUsage: memoryUsagePercent,
-        threshold: 80
+        threshold: 80,
         memoryStats: {
           used: memoryUsageMB,
           limit: memoryLimitMB
