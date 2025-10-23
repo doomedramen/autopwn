@@ -53,7 +53,59 @@ const envSchema = z.object({
 
 function validateEnv() {
   try {
-    return envSchema.parse(process.env)
+    const env = envSchema.parse(process.env)
+
+    // Production-specific validations
+    if (env.NODE_ENV === 'production') {
+      const errors = []
+
+      // Check for default/placeholder values that shouldn't be used in production
+      const defaultSecrets = [
+        'your-secret-key-here',
+        'your-jwt-secret-here',
+        'CHANGE_ME_IN_PRODUCTION',
+        'CHANGE_ME_IN_PRODUCTION_MIN_32_CHARS',
+        'password',
+        'test_password',
+        'default'
+      ]
+
+      const secretFields = ['AUTH_SECRET', 'JWT_SECRET', 'DATABASE_URL']
+      secretFields.forEach(field => {
+        const value = env[field as keyof typeof env]
+        if (defaultSecrets.some(secret => value.includes(secret))) {
+          errors.push(`❌ SECURITY: ${field} contains default/placeholder value in production`)
+        }
+      })
+
+      // Check database URL for insecure defaults
+      if (env.DATABASE_URL.includes('password') && env.DATABASE_URL.includes('localhost')) {
+        errors.push('❌ SECURITY: Database URL appears to use default credentials in production')
+      }
+
+      // Check for weak authentication secrets
+      if (env.AUTH_SECRET.length < 32) {
+        errors.push('❌ SECURITY: AUTH_SECRET must be at least 32 characters in production')
+      }
+
+      if (env.JWT_SECRET.length < 32) {
+        errors.push('❌ SECURITY: JWT_SECRET must be at least 32 characters in production')
+      }
+
+      if (errors.length > 0) {
+        console.error('🚨 PRODUCTION SECURITY VALIDATION FAILED:')
+        errors.forEach(error => console.error(error))
+        console.error('\n💡 To fix:')
+        console.error('1. Set secure random secrets in your environment')
+        console.error('2. Use environment-specific .env files')
+        console.error('3. Never commit secrets to version control')
+        process.exit(1)
+      }
+
+      console.log('✅ Production environment security validation passed')
+    }
+
+    return env
   } catch (error) {
     console.error('❌ Invalid environment variables:')
     console.error(error)
