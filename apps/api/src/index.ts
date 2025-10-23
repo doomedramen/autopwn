@@ -16,7 +16,7 @@ import { uploadRoutes } from './routes/upload'
 // Import middleware
 import { securityMiddleware } from './middleware/security'
 import { authMiddleware } from './middleware/auth'
-import { rateLimitMiddleware } from './middleware/rateLimit'
+import { rateLimit, strictRateLimit, uploadRateLimit } from './middleware/rateLimit'
 import { fileSecurityMiddleware } from './middleware/fileSecurity'
 import { errorHandler } from './lib/error-handler'
 
@@ -35,17 +35,17 @@ app.use('*', cors({
 // Security middleware
 app.use('*', securityMiddleware)
 
-// API routes with authentication
-app.route('/auth', authRoutes)
-app.route('/users', authMiddleware, usersRoutes)
-app.route('/api/jobs', authMiddleware, jobsRoutes)
-app.route('/api/networks', authMiddleware, networksRoutes)
-app.route('/api/dictionaries', authMiddleware, dictionariesRoutes)
-app.route('/api/queue', authMiddleware, queueRoutes)
+// API routes with authentication and rate limiting
+app.route('/auth', rateLimit(), authRoutes)
+app.route('/users', rateLimit(), authMiddleware, usersRoutes)
+app.route('/api/jobs', rateLimit(), authMiddleware, jobsRoutes)
+app.route('/api/networks', rateLimit(), authMiddleware, networksRoutes)
+app.route('/api/dictionaries', rateLimit(), authMiddleware, dictionariesRoutes)
+app.route('/api/queue', strictRateLimit(), authMiddleware, queueRoutes)
 
-// Upload routes with additional security
-app.use('/api/upload', authMiddleware, fileSecurityMiddleware)
-app.route('/api/upload', uploadRoutes)
+// Upload routes with additional security and stricter rate limiting
+app.use('/api/upload', rateLimit(), authMiddleware, fileSecurityMiddleware)
+app.route('/api/upload', uploadRateLimit(), uploadRoutes)
 
 // Health check (no auth required)
 app.get('/health', (c) => {
