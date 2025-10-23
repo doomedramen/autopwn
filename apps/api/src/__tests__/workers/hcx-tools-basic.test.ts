@@ -7,7 +7,7 @@ import {
   checkHCXToolsAvailability
 } from '../../lib/hcx-tools'
 import * as fs from 'fs/promises'
-import { TestDataFactory } from '../test/utils/test-data-factory'
+import { TestDataFactory } from '../../test/utils/test-data-factory'
 
 describe('HCX Tools Basic Functionality', () => {
   beforeEach(() => {
@@ -16,22 +16,18 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('HCX Tools Availability', () => {
     it('should detect when hcxpcapngtool is available', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
-      // Mock exec to return successful version check
-      vi.mock('child_process', () => ({
-        exec: vi.fn().mockImplementation((command, callback) => {
-          if (command.includes('--version')) {
-            setTimeout(() => {
-              callback(null, {
-                stdout: 'hcxpcapngtool v4.2.1',
-                stderr: ''
-              })
-            }, 0)
-          }
-          return { kill: vi.fn() } as any
-        })
-      }))
+      // Set up the global mock to return successful version
+      global.mockExec.mockImplementation((command, callback) => {
+        if (command.includes('--version')) {
+          setTimeout(() => {
+            callback(null, {
+              stdout: 'hcxpcapngtool v4.2.1',
+              stderr: ''
+            })
+          }, 0)
+        }
+        return { kill: vi.fn() } as any
+      })
 
       const result = await checkHCXToolsAvailability()
 
@@ -40,17 +36,16 @@ describe('HCX Tools Basic Functionality', () => {
     })
 
     it('should handle when hcxpcapngtool is not found', async () => {
-      vi.mock('child_process', () => ({
-        exec: vi.fn().mockImplementation((command, callback) => {
-          if (command.includes('--version')) {
-            setTimeout(() => {
-              const error = new Error('Command not found: hcxpcapngtool')
-              callback(error, { stdout: '', stderr: 'hcxpcapngtool: not found' })
-            }, 0)
-          }
-          return { kill: vi.fn() } as any
-        })
-      }))
+      // Set up the global mock to return error
+      global.mockExec.mockImplementation((command, callback) => {
+        if (command.includes('--version')) {
+          setTimeout(() => {
+            const error = new Error('Command not found: hcxpcapngtool')
+            callback(error, { stdout: '', stderr: 'hcxpcapngtool: not found' })
+          }, 0)
+        }
+        return { kill: vi.fn() } as any
+      })
 
       const result = await checkHCXToolsAvailability()
 
@@ -61,8 +56,7 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('HC22000 Conversion', () => {
     it('should convert WPA networks to HC22000 format', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       const mockPCAP = Buffer.from('mock pcap with WPA networks')
       const mockHC22000 = 'WPA*01*test_ssid*00*11:22:33:44:55*test_pmkid\nWPA*01*test_ssid*00*aa:bb:cc:dd:ee*test_pmkid'
       const mockOutputFile = '/tmp/test.hc22000'
@@ -94,8 +88,7 @@ describe('HCX Tools Basic Functionality', () => {
     })
 
     it('should handle conversion errors gracefully', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       fsMock.readFile = vi.fn().mockRejectedValue(new Error('File not found'))
 
       const result = await convertToHC22000('missing.pcap', '/tmp/output.hc22000')
@@ -107,8 +100,7 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('PMKID Extraction', () => {
     it('should extract PMKIDs from beacon frames', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       const mockPCAP = Buffer.from('mock pcap with beacons')
       const mockPMKID = 'test_ssid*00*11:22:33:44:55*b4a5c8a6d9f2a5d8bb590056b2241c\ntest_ssid*00*aa:bb:cc:dd:ee*b4a5c8a6d9f2a5d8bb590056b2241c'
       const mockOutputFile = '/tmp/test.pmkid'
@@ -142,8 +134,7 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('Hashcat Format Conversion', () => {
     it('should convert HC22000 to hashcat-compatible format', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       const mockHC22000 = 'WPA*01*test_ssid*00*11:22:33:44:55*test_pmkid'
       const mockHashcatFormat = 'test_ssid*00*11:22:33:44:55*test_pmkid\nWPA*01*test_ssid*00*aa:bb:cc:dd:ee*test_pmkid'
       const mockOutputFile = '/tmp/hashcat.txt'
@@ -177,8 +168,7 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('Format Validation', () => {
     it('should validate correctly formatted HC22000 files', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       const validHC22000 = [
         'WPA*01*ssid1*00*11:22:33:44:55*password',
         'WPA*01*ssid2*00*22:33:44:55*password',
@@ -201,8 +191,7 @@ describe('HCX Tools Basic Functionality', () => {
     })
 
     it('should detect invalid format issues', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       const invalidHC22000 = [
         'invalid format without hash',
         'hash:invalid_hex_format',
@@ -226,8 +215,7 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('Performance Tests', () => {
     it('should process large PCAP files efficiently', async () => {
-      const { promises: fsMock } = await import('fs/promises')
-
+      
       // Mock large PCAP (10MB)
       const largePCAP = Buffer.alloc(10 * 1024 * 1024)
       fsMock.readFile = vi.fn().mockResolvedValue(largePCAP)

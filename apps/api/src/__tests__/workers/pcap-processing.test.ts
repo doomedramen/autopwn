@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { processPCAP } from '../../workers/pcap-processing'
-import { TestDataFactory } from '../test/utils/test-data-factory'
-import { fsMock, dbMock } from '../test/setup/unit-setup'
+import { TestDataFactory } from '../../test/utils/test-data-factory'
 
 describe('PCAP Processing', () => {
   beforeEach(() => {

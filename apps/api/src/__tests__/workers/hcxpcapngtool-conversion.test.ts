@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { TestDataFactory } from '../test/utils/test-data-factory'
-import { fsMock, mockHCXTools } from '../test/setup/unit-setup'
 
 describe('HCX PCAPNGTOOL Integration', () => {
   beforeEach(() => {

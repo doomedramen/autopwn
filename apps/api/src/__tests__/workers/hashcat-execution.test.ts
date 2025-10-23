@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { runHashcatAttack, parseHashcatOutput, checkHashcatAvailability } from '../../workers/hashcat'
-import { TestDataFactory } from '../test/utils/test-data-factory'
-import { fsMock, mockExecInstance } from '../test/setup/unit-setup'
+import { TestDataFactory } from '../../test/utils/test-data-factory'
 
 describe('Hashcat Execution', () => {
   beforeEach(() => {

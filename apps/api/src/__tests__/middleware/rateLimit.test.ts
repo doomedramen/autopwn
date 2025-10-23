@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, beforeAll, afterEach } from 'vitest'
 import { Context, Next } from 'hono'
-import { rateLimit, strictRateLimit, uploadRateLimit } from '@/middleware/rateLimit'
+import { rateLimit, strictRateLimit, uploadRateLimit } from '../../../middleware/rateLimit'
 
 // Mock Date.now for consistent testing
 const mockTime = vi.fn().mockReturnValue(1000000000000) // 2023-11-01T00:00:00.000Z

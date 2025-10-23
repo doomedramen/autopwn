@@ -229,6 +229,12 @@ declare global {
 // Setup test database (in-memory for unit tests)
 global.testDb = dbMock
 
+// Make mocks globally available for all test files
+global.fsMock = fsMock
+global.dbMock = dbMock
+global.mockHCXTools = mockHCXTools
+global.mockExec = mockExec
+
 // Export mocks for test files to use
 export { fsMock, dbMock, mockHCXTools, mockExec }
 
