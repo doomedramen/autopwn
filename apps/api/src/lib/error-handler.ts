@@ -86,7 +86,7 @@ export const globalErrorHandler = async (err: Error, c: Context) => {
       }
     }
 
-    return c.json(response, err.statusCode)
+    return c.json(response, err.statusCode as any)
   } else {
     // Unknown errors (programming errors, etc.)
     logger.error('Unexpected application error', context, err, {
@@ -150,7 +150,7 @@ export const createErrorResponse = (
     error: error.message,
     code: error.code,
     timestamp: new Date().toISOString(),
-    requestId
+    ...(requestId && { requestId })
   }
 }
 
@@ -231,7 +231,7 @@ export const errorHandler = async (c: Context, next: Next) => {
     await next()
   } catch (error) {
     // Log the error
-    logger.error('Unhandled error', 'error_handler', error)
+    logger.error('Unhandled error', 'error_handler', error instanceof Error ? error : new Error(String(error)))
 
     // Determine error type and status code
     let statusCode = 500
@@ -282,9 +282,12 @@ export const errorHandler = async (c: Context, next: Next) => {
       error: message,
       code: errorCode,
       timestamp: new Date().toISOString(),
-      requestId: c.get('requestId')
+      ...(c.get('requestId') && { requestId: c.get('requestId') })
     }, statusCode as any)
   }
+
+  // This ensures all code paths return a value
+  return Promise.resolve()
 }
 
 /**

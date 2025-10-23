@@ -1,26 +1,22 @@
 import { betterAuth } from 'better-auth'
-import { admin, twoFactor } from 'better-auth/plugins'
-import { Pool } from 'pg'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { env } from '@/config/env'
+import { db } from '@/db'
 
-// Create PostgreSQL connection pool for Better Auth
-export const authClient = betterAuth({
-  database: new Pool({
-    connectionString: env.DATABASE_URL,
-    ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    connectionTimeoutMillis: 10000, // 10 seconds timeout
-    idleTimeoutMillis: 30000,       // 30 seconds idle timeout
+import type { BetterAuth } from 'better-auth/types'
+
+export const authClient: BetterAuth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: 'pg',
   }),
-
-  // Email and password authentication
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false, // Set to true if you want email verification
-    // Disable public sign-up - only admins can create users
-    disableSignUp: true,
+    requireEmailVerification: false,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
   },
-
-  // Session configuration
+  // Note: Social providers disabled for now - can be configured later
+  // socialProviders: {},
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
@@ -28,39 +24,33 @@ export const authClient = betterAuth({
       enabled: true,
       maxAge: 5 * 60, // 5 minutes
     },
+    modelName: 'sessions',
+    fields: {
+      userId: 'user_id',
+      expiresAt: 'expires_at',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      ipAddress: 'ip_address',
+      userAgent: 'user_agent',
+    },
   },
-
-  // Account management
   account: {
+    modelName: 'accounts',
     accountLinking: {
       enabled: true,
       allowDifferentEmails: false,
       trustedProviders: ['google', 'github', 'microsoft'],
     },
-  },
-
-  // Social providers (optional - uncomment as needed)
-  // socialProviders: {
-  //   google: {
-  //     clientId: env.GOOGLE_CLIENT_ID,
-  //     clientSecret: env.GOOGLE_CLIENT_SECRET,
-  //   },
-  //   github: {
-  //     clientId: env.GITHUB_CLIENT_ID,
-  //     clientSecret: env.GITHUB_CLIENT_SECRET,
-  //   },
-  // },
-
-  // Verification for email verification, password reset, etc.
-  verification: {
-    modelName: 'verifications',
     fields: {
       userId: 'user_id',
+      accountId: 'account_id',
+      providerId: 'provider_id',
+      accessTokenExpiresAt: 'access_token_expires_at',
+      refreshTokenExpiresAt: 'refresh_token_expires_at',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
     },
-    disableCleanup: false,
   },
-
-  // Custom user schema with role field
   user: {
     modelName: 'users',
     fields: {
@@ -72,62 +62,25 @@ export const authClient = betterAuth({
       role: {
         type: 'string',
         defaultValue: 'user',
-        required: false,
       },
     },
   },
-
-  // Session schema
-  session: {
-    modelName: 'sessions',
-    fields: {
-      userId: 'user_id',
-      expiresAt: 'expires_at',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      ipAddress: 'ip_address',
-      userAgent: 'user_agent',
-    },
+  verification: {
+    modelName: 'verifications',
+    disableCleanup: false,
   },
-
-  // Account schema
-  account: {
-    modelName: 'accounts',
-    fields: {
-      userId: 'user_id',
-      accountId: 'account_id',
-      providerId: 'provider_id',
-      accessTokenExpiresAt: 'access_token_expires_at',
-      refreshTokenExpiresAt: 'refresh_token_expires_at',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-  },
-
-  // Advanced options
   advanced: {
     generateId: false, // We're using text IDs, not UUIDs
     crossSubDomainCookies: {
       enabled: false,
     },
-    secureCookies: env.NODE_ENV === 'production',
-    prefixedCookies: false,
+    useSecureCookies: env.NODE_ENV === 'production',
   },
-
-  // Plugins
   plugins: [
     // Admin plugin for admin functionality
-    admin({
-      defaultRole: 'user',
-      adminRoles: ['admin'],
-    }),
-
-    // Two-factor authentication plugin (optional)
-    // twoFactor({
-    //   issuer: 'AutoPWN',
-    // }),
+    {
+      id: 'admin',
+      // Add admin-specific configuration here
+    },
   ],
-
-  // Base URLs
-  baseURL: env.AUTH_URL,
 })

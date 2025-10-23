@@ -73,7 +73,7 @@ function validateEnv() {
       const secretFields = ['AUTH_SECRET', 'JWT_SECRET', 'DATABASE_URL']
       secretFields.forEach(field => {
         const value = env[field as keyof typeof env]
-        if (defaultSecrets.some(secret => value.includes(secret))) {
+        if (value && defaultSecrets.some(secret => value.includes(secret))) {
           errors.push(`❌ SECURITY: ${field} contains default/placeholder value in production`)
         }
       })

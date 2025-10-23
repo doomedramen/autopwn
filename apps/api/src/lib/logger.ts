@@ -61,8 +61,8 @@ export class AppError extends Error {
     this.statusCode = statusCode
     this.isOperational = isOperational
     this.context = context || 'application'
-    this.userId = userId
-    this.requestId = requestId
+    this.userId = userId || ''
+    this.requestId = requestId || ''
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -111,7 +111,7 @@ export class DatabaseError extends AppError {
   constructor(message: string, code: string = 'DATABASE_ERROR', context?: string, originalError?: Error) {
     super(message, code, 500, true, context || 'database')
     if (originalError) {
-      this.stack = originalError.stack
+      this.stack = originalError.stack || ''
     }
   }
 }
@@ -241,9 +241,9 @@ export class Logger {
       level,
       message,
       timestamp: new Date().toISOString(),
-      context,
-      userId: metadata?.userId,
-      requestId: metadata?.requestId,
+      context: context || 'application',
+      userId: metadata?.userId || '',
+      requestId: metadata?.requestId || '',
       error,
       metadata,
     }
@@ -272,7 +272,7 @@ export class Logger {
     } else {
       // Human-readable console output with colors
       if (this.config.enableColors) {
-        const color = this.colors[LogLevel[entry.level]]
+        const color = this.colors[LogLevel[entry.level] as keyof typeof this.colors]
         console.log(`${color}${formattedMessage}${this.colors.RESET}`)
       } else {
         console.log(formattedMessage)

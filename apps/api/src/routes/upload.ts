@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { authMiddleware, getUserId } from '@/lib/auth'
+import { authMiddleware, getUserId } from '@/middleware/auth'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { uploadRateLimit } from '@/middleware/rate-limit'
