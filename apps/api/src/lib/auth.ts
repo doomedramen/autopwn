@@ -130,5 +130,4 @@ export const authClient = betterAuth({
 
   // Base URLs
   baseURL: env.AUTH_URL,
-  baseURL: env.FRONTEND_URL,
 })
