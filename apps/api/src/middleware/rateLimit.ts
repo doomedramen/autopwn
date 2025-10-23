@@ -25,7 +25,7 @@ export const rateLimit = (options: {
     maxRequests = parseInt(env.RATE_LIMIT_MAX) || 100,
     keyGenerator = (c: Context) => c.req.header('x-forwarded-for') ||
                        c.req.header('x-real-ip') ||
-                       c.env.get('remote_addr') || 'unknown'
+                       (c.env?.get?.('remote_addr')) || 'unknown'
   } = options
 
   return async (c: Context, next: Next) => {
@@ -88,7 +88,7 @@ export const strictRateLimit = rateLimit({
   keyGenerator: (c: Context) => {
     const ip = c.req.header('x-forwarded-for') ||
                c.req.header('x-real-ip') ||
-               c.env.get('remote_addr') || 'unknown'
+               (c.env?.get?.('remote_addr')) || 'unknown'
     return `auth-${ip}`
   }
 })
@@ -102,7 +102,7 @@ export const uploadRateLimit = rateLimit({
   keyGenerator: (c: Context) => {
     const ip = c.req.header('x-forwarded-for') ||
                c.req.header('x-real-ip') ||
-               c.env.get('remote_addr') || 'unknown'
+               (c.env?.get?.('remote_addr')) || 'unknown'
     return `upload-${ip}`
   }
 })

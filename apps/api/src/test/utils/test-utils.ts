@@ -257,14 +257,4 @@ export const handleTestErrors = (error: any) => {
   throw error
 }
 
-// Export all utilities
-export {
-  TestDataFactory,
-  AuthTestUtils,
-  DatabaseTestUtils,
-  QueueTestUtils,
-  FileTestUtils,
-  SecurityTestUtils,
-  setupTestEnvironment,
-  handleTestErrors
-}
+// Individual utilities are already exported above - no need for re-export

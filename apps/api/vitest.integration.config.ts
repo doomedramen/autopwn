@@ -1,9 +1,7 @@
 import { defineConfig } from 'vitest/config'
-import tsconfigPaths from 'vite-tsconfig-paths'
 import { resolve } from 'path'
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
   test: {
     globals: true,
     environment: 'node',
@@ -15,13 +13,12 @@ export default defineConfig({
       'node_modules',
       'dist'
     ],
-    globalSetup: [resolve(__dirname, 'src/test/setup/integration-global-setup.ts')],
-    setupFiles: [resolve(__dirname, 'src/test/setup/integration-setup.ts')],
-    testTimeout: 60000, // Longer timeout for container startup
-    hookTimeout: 120000, // 2 minutes for global setup
-    maxWorkers: 1, // Run integration tests sequentially to avoid port conflicts
-    sequence: {
-      concurrent: false
+    testTimeout: 30000,
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true
+      }
     },
     coverage: {
       provider: 'v8',
@@ -34,12 +31,6 @@ export default defineConfig({
         '**/migrations/',
         '**/*.d.ts'
       ]
-    },
-    onConsoleLog: (log, type) => {
-      // Suppress noisy container logs during tests
-      if (type === 'stderr' && log.includes('POSTGRES_HOST_AUTH_METHOD')) return false
-      if (type === 'stderr' && log.includes('Redis')) return false
-      return true
     }
   },
   resolve: {

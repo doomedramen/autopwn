@@ -171,7 +171,7 @@ export const ipAccessControl = (options: {
   return async (c: Context, next: Next) => {
     const clientIP = c.req.header('x-forwarded-for') ||
                        c.req.header('x-real-ip') ||
-                       c.env.get('remote_addr') ||
+                       (c.env?.get?.('remote_addr')) ||
                        'unknown'
 
     // Check if IP is explicitly blocked
