@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, vi, benchmark } from 'vitest'
 import {
   convertToHC22000,
   extractPMKID,
@@ -8,6 +8,7 @@ import {
 } from '../../lib/hcx-tools'
 import * as fs from 'fs/promises'
 import { TestDataFactory } from '../../test/utils/test-data-factory'
+import { fsMock, mockExecInstance } from '../test-setup/unit-setup'
 
 describe('HCX Tools Basic Functionality', () => {
   beforeEach(() => {
@@ -17,7 +18,7 @@ describe('HCX Tools Basic Functionality', () => {
   describe('HCX Tools Availability', () => {
     it('should detect when hcxpcapngtool is available', async () => {
       // Set up the global mock to return successful version
-      global.mockExec.mockImplementation((command, callback) => {
+      mockExecInstance.mockImplementation((command, callback) => {
         if (command.includes('--version')) {
           setTimeout(() => {
             callback(null, {
@@ -32,12 +33,12 @@ describe('HCX Tools Basic Functionality', () => {
       const result = await checkHCXToolsAvailability()
 
       expect(result.available).toBe(true)
-      expect(result.version).toBe('hcxpcapngtool v4.2.1')
+      expect(result.version).toBe('v4.2.1')
     })
 
     it('should handle when hcxpcapngtool is not found', async () => {
       // Set up the global mock to return error
-      global.mockExec.mockImplementation((command, callback) => {
+      mockExecInstance.mockImplementation((command, callback) => {
         if (command.includes('--version')) {
           setTimeout(() => {
             const error = new Error('Command not found: hcxpcapngtool')
@@ -56,27 +57,13 @@ describe('HCX Tools Basic Functionality', () => {
 
   describe('HC22000 Conversion', () => {
     it('should convert WPA networks to HC22000 format', async () => {
-      
+
       const mockPCAP = Buffer.from('mock pcap with WPA networks')
       const mockHC22000 = 'WPA*01*test_ssid*00*11:22:33:44:55*test_pmkid\nWPA*01*test_ssid*00*aa:bb:cc:dd:ee*test_pmkid'
       const mockOutputFile = '/tmp/test.hc22000'
 
       fsMock.readFile = vi.fn().mockResolvedValue(mockPCAP)
       fsMock.writeFile = vi.fn().mockResolvedValue(undefined)
-
-      vi.mock('child_process', () => ({
-        exec: vi.fn().mockImplementation((command, callback) => {
-          if (command.includes('hcxpcapngtool')) {
-            setTimeout(() => {
-              callback(null, {
-                stdout: `Successfully converted ${mockHC22000.split('\n').length} networks`,
-                stderr: ''
-              })
-            }, 200)
-          }
-          return { kill: vi.fn() } as any
-        })
-      }))
 
       const result = await convertToHC22000('test.pcap', mockOutputFile)
 

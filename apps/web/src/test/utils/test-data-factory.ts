@@ -7,7 +7,7 @@ export class TestDataFactory {
     return {
       id: faker.string.uuid(),
       email: faker.internet.email().toLowerCase(),
-      username: faker.internet.userName().toLowerCase(),
+      username: faker.internet.username().toLowerCase(),
       role: faker.helpers.arrayElement(['user', 'admin']),
       isActive: true,
       emailVerified: true,
@@ -40,7 +40,7 @@ export class TestDataFactory {
       userId: faker.string.uuid(),
       targetFile: faker.system.fileName({ extensionCount: 1, extension: 'cap' }),
       dictionaryFile: faker.system.fileName({ extensionCount: 1, extension: 'txt' }),
-      hashcatMode: faker.helpers.arrayElement([22000, 16800]),
+      hashcatMode: faker.helpers.arrayElement(['22000', '16800']),
       progress: status === 'running' ? faker.number.int({ min: 0, max: 100 }) :
                 completed ? 100 : 0,
       createdAt: faker.date.past().toISOString(),
@@ -60,12 +60,12 @@ export class TestDataFactory {
   static createNetworkCapture(overrides: Partial<any> = {}) {
     return {
       id: faker.string.uuid(),
-      filename: faker.system.fileName({ extensionCount: 1, extension: 'pcap' }),
+      filename: 'test.pcap',
       originalName: `capture_${faker.date.recent().getTime()}.pcap`,
       size: faker.number.int({ min: 1024, max: 10485760 }), // 1KB to 10MB
       userId: faker.string.uuid(),
       networks: faker.helpers.multiple(() => ({
-        ssid: faker.internet.wifiSsid(),
+        ssid: faker.helpers.arrayElement(['HomeNetwork', 'OfficeWiFi', 'CoffeeShop', 'MobileHotspot']),
         bssid: faker.internet.mac(),
         channel: faker.number.int({ min: 1, max: 14 }),
         frequency: faker.helpers.arrayElement([2412, 2437, 2462, 5180, 5240, 5785]),
@@ -106,7 +106,7 @@ export class TestDataFactory {
       type: faker.helpers.arrayElement(['wordlist', 'mask', 'hybrid']),
       dictionaryId: faker.string.uuid(),
       captureId: faker.string.uuid(),
-      hashcatMode: faker.helpers.arrayElement([22000, 16800]),
+      hashcatMode: faker.helpers.arrayElement(['22000', '16800']),
       mask: faker.helpers.arrayElement(['?d?d?d?d?d', '?l?l?l?l?l?l?l', '?a?a?a?a?a?a?a']),
       rules: faker.helpers.arrayElement(['best64.rule', 'd3ad0ne.rule']),
       ...overrides
@@ -123,20 +123,22 @@ export class TestDataFactory {
 
   // API response data
   static createApiResponse(overrides: Partial<any> = {}) {
+    const success = overrides.success !== undefined ? overrides.success : faker.datatype.boolean()
+
     return {
-      success: faker.datatype.boolean(),
+      success,
       message: faker.helpers.arrayElement([
         'Operation completed successfully',
         'Request processed',
         'Data retrieved',
         'Error occurred'
       ]),
-      data: faker.datatype.boolean() ? {} : null,
-      error: faker.datatype.boolean() ? {
+      data: success ? (overrides.data !== undefined ? overrides.data : {}) : null,
+      error: !success ? (overrides.error !== undefined ? overrides.error : {
         code: faker.helpers.arrayElement(['VALIDATION_ERROR', 'NOT_FOUND', 'UNAUTHORIZED', 'INTERNAL_ERROR']),
         message: faker.lorem.sentence(),
         details: faker.lorem.paragraph()
-      } : null,
+      }) : null,
       timestamp: faker.date.recent().toISOString(),
       requestId: faker.string.uuid(),
       ...overrides
@@ -151,7 +153,7 @@ export class TestDataFactory {
     const items = Array.from({ length: limit }, (_, i) => ({
       id: faker.string.uuid(),
       name: faker.hacker.noun(),
-      ...faker.helpers.createTransaction()
+      ...{ createdAt: faker.date.past(), updatedAt: faker.date.recent() }
     }))
 
     return {
@@ -185,10 +187,10 @@ export class TestDataFactory {
   // File upload data
   static createFileUpload(overrides: Partial<any> = {}) {
     return {
-      file: new File(['test data'], faker.system.fileName({ extensionCount: 1, extension: 'pcap' }), {
+      file: new File(['test data'], 'test.pcap'), {
         type: 'application/octet-stream'
       }),
-      name: faker.system.fileName({ extensionCount: 1, extension: 'pcap' }),
+      name: 'test.pcap',
       size: faker.number.int({ min: 1024, max: 10485760 }),
       type: 'application/octet-stream',
       lastModified: faker.date.past().getTime(),
