@@ -16,7 +16,7 @@ import {
 /**
  * Standard error response structure
  */
-interface ErrorResponse {
+export interface ErrorResponse {
   success: false
   error: string
   code: string
@@ -24,6 +24,7 @@ interface ErrorResponse {
   details?: any
   timestamp: string
   requestId?: string
+  stack?: string // Include stack in development only
 }
 
 /**
@@ -55,11 +56,33 @@ export const globalErrorHandler = async (err: Error, c: Context) => {
       requestId
     }
 
-    // Only include stack trace in development for operational errors
-    if (process.env.NODE_ENV === 'development' && !err.isOperational) {
+    // Enhanced error context with structured data
+    const errorContext = {
+      stack: err.stack,
+      context: err.context,
+      userId: c.get('userId'),
+      requestId: c.get('requestId'),
+      route: c.get('route'),
+      method: c.req.method,
+      userAgent: c.req.header('user-agent'),
+      ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
+      timestamp: new Date().toISOString()
+    }
+
+    // Include comprehensive error details in development
+    if (process.env.NODE_ENV === 'development') {
       response.details = {
-        stack: err.stack,
-        context: err.context
+        ...errorContext,
+        isOperational: err.isOperational,
+        severity: err.isOperational ? 'medium' : 'high'
+      }
+    } else {
+      // In production, include safe context for debugging
+      response.details = {
+        requestId: errorContext.requestId,
+        context: errorContext.context,
+        severity: err.isOperational ? 'medium' : 'high',
+        timestamp: errorContext.timestamp
       }
     }
 
