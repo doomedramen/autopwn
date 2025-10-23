@@ -301,7 +301,7 @@ describe('Authentication Middleware', () => {
       expect(mockContext.get).toHaveBeenCalledWith('userId')
     })
 
-    it('should check admin status correctly', () => {
+    it('should check admin status correctly', async () => {
       const mockContext = {
         get: vi.fn((key) => {
           if (key === 'userRole') return 'admin'
@@ -317,7 +317,7 @@ describe('Authentication Middleware', () => {
         return undefined
       })
 
-      expect(requireAdmin(mockContext as any, () => Promise.resolve())).resolves.toBeUndefined()
+      await expect(requireAdmin(mockContext as any, () => Promise.resolve())).resolves.toBeUndefined()
 
       // Test non-admin check
       mockContext.get.mockClear()
@@ -326,7 +326,7 @@ describe('Authentication Middleware', () => {
         return undefined
       })
 
-      expect(requireAdmin(mockContext as any, () => Promise.resolve())).rejects.toThrow()
+      await expect(requireAdmin(mockContext as any, () => Promise.resolve())).rejects.toThrow()
     })
 
     it('should get auth context', () => {

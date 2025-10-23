@@ -18,7 +18,7 @@ describe('Rate Limiting Middleware', () => {
   })
 
   afterEach(() => {
-    vi.useFakeTimers()
+    vi.useRealTimers()
   })
 
   describe('General rate limiting', () => {
@@ -31,14 +31,17 @@ describe('Rate Limiting Middleware', () => {
 
       const mockNext = vi.fn()
       const mockContext = {
-        req: { header: vi.fn().mockReturnValue('') },
+        req: {
+          header: vi.fn().mockReturnValue('127.0.0.1')
+        },
         res: {
           headers: {
             set: vi.fn(),
           }
         },
-        get: vi.fn(),
-        set: vi.fn()
+        env: {
+          get: vi.fn().mockReturnValue('127.0.0.1')
+        }
       }
 
       // First request
@@ -58,15 +61,18 @@ describe('Rate Limiting Middleware', () => {
 
       const mockNext = vi.fn()
       const mockContext = {
-        req: { header: vi.fn().mockReturnValue('') },
+        req: {
+          header: vi.fn().mockReturnValue('127.0.0.1')
+        },
         res: {
           headers: {
             set: vi.fn(),
           },
           json: vi.fn()
         },
-        get: vi.fn(),
-        set: vi.fn()
+        env: {
+          get: vi.fn().mockReturnValue('127.0.0.1')
+        }
       }
 
       // Mock 10 previous requests within window
@@ -101,15 +107,18 @@ describe('Rate Limiting Middleware', () => {
 
       const mockNext = vi.fn()
       const mockContext = {
-        req: { header: vi.fn().mockReturnValue('') },
+        req: {
+          header: vi.fn().mockReturnValue('127.0.0.1')
+        },
         res: {
           headers: {
             set: vi.fn(),
           },
           json: vi.fn()
         },
-        get: vi.fn(),
-        set: vi.fn()
+        env: {
+          get: vi.fn().mockReturnValue('127.0.0.1')
+        }
       }
 
       // Request within window
@@ -134,15 +143,18 @@ describe('Rate Limiting Middleware', () => {
 
       const mockNext = vi.fn()
       const mockContext = {
-        req: { header: vi.fn().mockReturnValue('') },
+        req: {
+          header: vi.fn().mockReturnValue('127.0.0.1')
+        },
         res: {
           headers: {
             set: vi.fn(),
           },
           json: vi.fn()
         },
-        get: vi.fn(),
-        set: vi.fn()
+        env: {
+          get: vi.fn().mockReturnValue('127.0.0.1')
+        }
       }
 
       await strictLimiter(mockContext as any, mockNext)
@@ -158,15 +170,18 @@ describe('Rate Limiting Middleware', () => {
 
       const mockNext = vi.fn()
       const mockContext = {
-        req: { header: vi.fn().mockReturnValue('') },
+        req: {
+          header: vi.fn().mockReturnValue('127.0.0.1')
+        },
         res: {
           headers: {
             set: vi.fn(),
           },
           json: vi.fn()
         },
-        get: vi.fn(),
-        set: vi.fn()
+        env: {
+          get: vi.fn().mockReturnValue('127.0.0.1')
+        }
       }
 
       await uploadLimiter(mockContext as any, mockNext)
@@ -187,14 +202,17 @@ describe('Rate Limiting Middleware', () => {
       })
 
       const mockContext = {
-        req: { header: vi.fn().mockReturnValue('') },
+        req: {
+          header: vi.fn().mockReturnValue('user-123')
+        },
         res: {
           headers: {
             set: vi.fn(),
           },
         },
-        get: vi.fn(),
-        set: vi.fn()
+        env: {
+          get: vi.fn().mockReturnValue('user-ip')
+        }
       }
 
       // Mock header with user ID

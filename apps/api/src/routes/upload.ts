@@ -12,6 +12,7 @@ import crypto from 'crypto'
 import { addPCAPProcessingJob } from '@/lib/queue'
 import { authenticate, getUserId } from '@/middleware/auth'
 import { uploadRateLimit } from '@/middleware/rateLimit'
+import { secureUploadRoutes } from '@/middleware/fileSecurity'
 
 const upload = new Hono()
 

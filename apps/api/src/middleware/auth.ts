@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono'
-import { authClient } from '@/lib/auth'
+import { authClient } from '../lib/auth'
 import { getCookie } from 'hono/cookie'
 
 export interface AuthContext {

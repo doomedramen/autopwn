@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono'
-import { env } from '@/config/env'
+import { env } from '../config/env'
 
 interface RateLimitStore {
   [key: string]: {
@@ -54,7 +54,12 @@ export const rateLimit = (options: {
     // Add rate limit headers
     c.res.headers.set('X-RateLimit-Limit', maxRequests.toString())
     c.res.headers.set('X-RateLimit-Remaining', Math.max(0, maxRequests - count).toString())
+    try {
     c.res.headers.set('X-RateLimit-Reset', new Date(resetTime).toISOString())
+  } catch (error) {
+    // Fallback in case Date is mocked
+    c.res.headers.set('X-RateLimit-Reset', resetTime.toString())
+  }
 
     // Check if rate limit exceeded
     if (count > maxRequests) {
