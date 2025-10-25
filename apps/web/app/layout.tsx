@@ -1,7 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "@workspace/ui/globals.css"
-import "@daveyplate/better-auth-ui/css"
 import { Providers } from "@/components/providers"
 import { AuthProvider } from "@/components/auth-provider"
 
@@ -26,7 +25,9 @@ export default function RootLayout({
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
         <Providers>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </Providers>
       </body>
     </html>

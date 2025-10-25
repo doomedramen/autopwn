@@ -2,11 +2,14 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { virusScanner } from '../lib/virus-scanner'
-import { requireRole } from '../middleware/auth'
+import { authenticate, requireAdmin } from '../middleware/auth'
 import { promises as fs } from 'fs'
 import path from 'path'
 
 const virusScannerRoutes = new Hono()
+
+// Apply authentication middleware - admin required for all routes
+virusScannerRoutes.use('*', authenticate)
 
 // Schema for updating quarantine settings
 const quarantineConfigSchema = z.object({
@@ -19,7 +22,7 @@ const quarantineConfigSchema = z.object({
  * GET /virus-scanner/status
  * Get virus scanner status and configuration
  */
-virusScannerRoutes.get('/status', requireRole('admin'), async (c) => {
+virusScannerRoutes.get('/status', async (c) => {
   try {
     const status = await virusScanner.getStatus()
 
@@ -78,7 +81,7 @@ virusScannerRoutes.get('/status', requireRole('admin'), async (c) => {
  * GET /virus-scanner/quarantine
  * List quarantined files
  */
-virusScannerRoutes.get('/quarantine', requireRole('admin'), async (c) => {
+virusScannerRoutes.get('/quarantine', async (c) => {
   try {
     const quarantineDir = './quarantine'
     const files = await fs.readdir(quarantineDir)
@@ -147,7 +150,7 @@ virusScannerRoutes.get('/quarantine', requireRole('admin'), async (c) => {
  * GET /virus-scanner/quarantine/:fileId
  * Get details of a specific quarantined file
  */
-virusScannerRoutes.get('/quarantine/:fileId', requireRole('admin'), async (c) => {
+virusScannerRoutes.get('/quarantine/:fileId', async (c) => {
   try {
     const fileId = c.req.param('fileId')
     const quarantineDir = './quarantine'
@@ -202,7 +205,7 @@ virusScannerRoutes.get('/quarantine/:fileId', requireRole('admin'), async (c) =>
  * DELETE /virus-scanner/quarantine/:fileId
  * Delete a quarantined file (permanent deletion)
  */
-virusScannerRoutes.delete('/quarantine/:fileId', requireRole('admin'), async (c) => {
+virusScannerRoutes.delete('/quarantine/:fileId', async (c) => {
   try {
     const fileId = c.req.param('fileId')
     const quarantineDir = './quarantine'
@@ -238,7 +241,7 @@ virusScannerRoutes.delete('/quarantine/:fileId', requireRole('admin'), async (c)
  * POST /virus-scanner/quarantine/:fileId/restore
  * Restore a quarantined file (move to regular uploads)
  */
-virusScannerRoutes.post('/quarantine/:fileId/restore', requireRole('admin'), async (c) => {
+virusScannerRoutes.post('/quarantine/:fileId/restore', async (c) => {
   try {
     const fileId = c.req.param('fileId')
     const quarantineDir = './quarantine'
@@ -283,7 +286,7 @@ virusScannerRoutes.post('/quarantine/:fileId/restore', requireRole('admin'), asy
  * POST /virus-scanner/quarantine/cleanup
  * Clean up old quarantined files
  */
-virusScannerRoutes.post('/quarantine/cleanup', requireRole('admin'), async (c) => {
+virusScannerRoutes.post('/quarantine/cleanup', async (c) => {
   try {
     const body = await c.req.parseBody()
     const olderThanDays = parseInt(body.olderThanDays as string) || 30

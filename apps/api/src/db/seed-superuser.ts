@@ -1,6 +1,5 @@
 
 import crypto from 'crypto'
-import { authClient } from '@/lib/auth'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
@@ -37,7 +36,7 @@ export async function createSuperUser() {
     if (existingSuperUser) {
       console.log('✅ Superuser already exists:')
       console.log(`   Email: ${email}`)
-      
+
       // Only show the actual password in test environments for debugging purposes
       if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
         console.log(`   Password: ${password} (test environment)`)
@@ -47,19 +46,13 @@ export async function createSuperUser() {
       return
     }
 
-    // Since Better Auth signup is disabled, and the admin plugin doesn't have a create method,
-    // we need to directly create the user in the database with properly hashed password
-    // Better Auth uses bcrypt internally to hash passwords, let's import bcrypt and use it
-    
-    // Import the password hashing function from Better Auth
-    // For direct database insertion, we need to hash the password properly
+    // Create user manually with proper Better Auth field values
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Create a unique ID for the user
+
     const userId = crypto.randomUUID();
-    
-    // Insert user record into the users table
+
+    // Insert user record
     await db.insert(users).values({
       id: userId,
       email,
@@ -70,16 +63,15 @@ export async function createSuperUser() {
       updatedAt: new Date(),
     });
 
-    // Insert account record into the accounts table with the hashed password
-    // The accounts table links users to their authentication details
-    const { accounts } = await import('./schema');  // Import accounts schema
+    // Insert account record with correct Better Auth values
+    const { accounts } = await import('./schema');
     await db.insert(accounts).values({
       id: crypto.randomUUID(),
       userId: userId,
-      accountId: userId, // For local accounts, account ID can be same as user ID
-      providerId: 'credentials', // For email/password authentication
-      provider: 'credentials',
-      password: hashedPassword, // Store the properly hashed password
+      accountId: userId,  // For credential accounts, accountId = userId
+      providerId: 'credential',  // Better Auth uses "credential" for email/password
+      provider: 'credential',
+      password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -87,29 +79,14 @@ export async function createSuperUser() {
     console.log('🎉 Superuser created successfully!')
     console.log('=====================================')
     console.log(`📧 Email: ${email}`)
-    
-    // Only show the actual password in test environments for security
-    if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
-      console.log(`🔑 Password: ${password} (test environment)`)
-    } else {
-      console.log(`🔑 Password: [Password hidden in non-test environment]`)
-    }
-    
-    console.log('=====================================')
-    console.log('⚠️  Save these credentials securely!')
-    console.log('🔗 Login at: http://localhost:3002/auth/sign-in')
 
-    console.log('🎉 Superuser created successfully!')
-    console.log('=====================================')
-    console.log(`📧 Email: ${email}`)
-    
     // Only show the actual password in test environments for security
     if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
       console.log(`🔑 Password: ${password} (test environment)`)
     } else {
       console.log(`🔑 Password: [Password hidden in non-test environment]`)
     }
-    
+
     console.log('=====================================')
     console.log('⚠️  Save these credentials securely!')
     console.log('🔗 Login at: http://localhost:3002/auth/sign-in')
@@ -119,19 +96,18 @@ export async function createSuperUser() {
   }
 }
 
-// Function to create additional users (admin only) 
+// Function to create additional users (admin only)
 export async function createUser(email: string, role: 'user' | 'admin' = 'user') {
   const password = getPasswordForEnvironment();
 
   try {
-    // For creating additional users when signup is disabled, use the same direct approach
+    // Create user manually with proper Better Auth field values
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Create a unique ID for the user
+
     const userId = crypto.randomUUID();
-    
-    // Insert user record into the users table
+
+    // Insert user record
     await db.insert(users).values({
       id: userId,
       email,
@@ -142,14 +118,14 @@ export async function createUser(email: string, role: 'user' | 'admin' = 'user')
       updatedAt: new Date(),
     });
 
-    // Insert account record into the accounts table with the hashed password
+    // Insert account record with correct Better Auth values
     const { accounts } = await import('./schema');
     await db.insert(accounts).values({
       id: crypto.randomUUID(),
       userId: userId,
-      accountId: userId,
-      providerId: 'credentials',
-      provider: 'credentials',
+      accountId: userId,  // For credential accounts, accountId = userId
+      providerId: 'credential',  // Better Auth uses "credential" for email/password
+      provider: 'credential',
       password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -157,28 +133,14 @@ export async function createUser(email: string, role: 'user' | 'admin' = 'user')
 
     console.log(`✅ User created successfully!`)
     console.log(`📧 Email: ${email}`)
-    
+
     // Only show the actual password in test environments for security
     if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
       console.log(`🔑 Password: ${password} (test environment)`)
     } else {
       console.log('🔑 Password: [Password hidden in non-test environment]')
     }
-    
-    console.log(`👤 Role: ${role}`)
 
-    return { email, password, role }
-
-    console.log(`✅ User created successfully!`)
-    console.log(`📧 Email: ${email}`)
-    
-    // Only show the actual password in test environments for security
-    if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
-      console.log(`🔑 Password: ${password} (test environment)`)
-    } else {
-      console.log('🔑 Password: [Password hidden in non-test environment]')
-    }
-    
     console.log(`👤 Role: ${role}`)
 
     return { email, password, role }

@@ -4,7 +4,12 @@ import { z } from 'zod'
 import { getSecurityMetrics, getSecurityAlerts, updateAlertStatus, SecurityEventType } from '../lib/monitoring'
 import { requireRole } from '../middleware/auth'
 
+import { authenticate } from '../middleware/auth'
+
 const securityRoutes = new Hono()
+
+// Apply authentication middleware to all routes
+securityRoutes.use('*', authenticate)
 
 // Schema for updating alert status
 const updateAlertSchema = z.object({
@@ -22,7 +27,7 @@ const alertsFilterSchema = z.object({
  * GET /security/metrics
  * Get security metrics and statistics
  */
-securityRoutes.get('/metrics', requireRole('admin'), (c) => {
+securityRoutes.get('/metrics', (c) => {
   try {
     const metrics = getSecurityMetrics()
 
@@ -57,7 +62,6 @@ securityRoutes.get('/metrics', requireRole('admin'), (c) => {
  * Get security alerts with optional filtering
  */
 securityRoutes.get('/alerts',
-  requireRole('admin'),
   zValidator('query', alertsFilterSchema),
   (c) => {
     try {
@@ -88,7 +92,6 @@ securityRoutes.get('/alerts',
  * Update security alert status
  */
 securityRoutes.put('/alerts/:alertId',
-  requireRole('admin'),
   zValidator('json', updateAlertSchema),
   (c) => {
     try {
@@ -116,7 +119,7 @@ securityRoutes.put('/alerts/:alertId',
  * GET /security/dashboard
  * Get security dashboard data (summary view)
  */
-securityRoutes.get('/dashboard', requireRole('admin'), (c) => {
+securityRoutes.get('/dashboard', (c) => {
   try {
     const metrics = getSecurityMetrics()
     const criticalAlerts = getSecurityAlerts({
@@ -159,7 +162,7 @@ securityRoutes.get('/dashboard', requireRole('admin'), (c) => {
  * GET /security/events/summary
  * Get security events summary by type and severity
  */
-securityRoutes.get('/events/summary', requireRole('admin'), (c) => {
+securityRoutes.get('/events/summary', (c) => {
   try {
     const metrics = getSecurityMetrics()
 

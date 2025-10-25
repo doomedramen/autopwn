@@ -18,34 +18,72 @@ import { virusScannerRoutes } from './routes/virus-scanner'
 
 // Import middleware
 import { securityMiddleware } from './middleware/security'
-import { authMiddleware } from './middleware/auth'
 import { rateLimit, strictRateLimit, uploadRateLimit } from './middleware/rateLimit'
 import { fileSecurityMiddleware } from './middleware/fileSecurity'
 import { dbSecurityMiddleware, parameterValidationMiddleware } from './middleware/db-security'
 import { securityHeaderValidator } from './middleware/security-header-validator'
 import { errorHandler } from './lib/error-handler'
 
+import { auth } from './lib/auth'
+
 const app = new Hono()
 
 // Security and utility middleware (applied globally)
 app.use('*', logger())
-app.use('*', prettyJSON())
+// Don't use prettyJSON globally as it can consume request body before Better Auth
+// app.use('*', prettyJSON())
 
 // Environment-aware CORS configuration
 app.use('*', environmentAwareCORS())
 
-// Database security and parameter validation
-app.use('*', dbSecurityMiddleware())
-app.use('*', parameterValidationMiddleware())
+// Add middleware to save session and user in context as per documentation
+app.use("*", async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
-// Security header validation
-app.use('*', securityHeaderValidator())
+  if (!session) {
+    c.set("user", null);
+    c.set("session", null);
+    await next();
+    return;
+  }
 
-// Security middleware
-app.use('*', securityMiddleware)
+  c.set("user", session.user);
+  c.set("session", session.session);
+  await next();
+});
+
+// Database security and parameter validation (exclude auth routes)
+app.use('*', (c, next) => {
+  if (c.req.path.startsWith('/api/auth')) {
+    return next()
+  }
+  return dbSecurityMiddleware()(c, next)
+})
+app.use('*', (c, next) => {
+  if (c.req.path.startsWith('/api/auth')) {
+    return next()
+  }
+  return parameterValidationMiddleware()(c, next)
+})
+
+// Security header validation (exclude auth routes)
+app.use('*', (c, next) => {
+  if (c.req.path.startsWith('/api/auth')) {
+    return next()
+  }
+  return securityHeaderValidator()(c, next)
+})
+
+// Security middleware (exclude auth routes - Better Auth handles its own security)
+app.use('*', (c, next) => {
+  if (c.req.path.startsWith('/api/auth')) {
+    return next()
+  }
+  return securityMiddleware(c, next)
+})
 
 // API routes - simplified for compilation
-app.route('/auth', authRoutes)
+app.route('/api/auth', authRoutes)
 app.route('/users', usersRoutes)
 app.route('/api/jobs', jobsRoutes)
 app.route('/api/networks', networksRoutes)
@@ -73,7 +111,7 @@ app.get('/api/info', publicApiCORS(), (c) => {
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
     endpoints: [
-      '/auth/*',
+      '/api/auth/*',
       '/api/jobs/*',
       '/api/networks/*',
       '/api/dictionaries/*',
@@ -96,7 +134,7 @@ app.notFound((c) => {
     message: 'The requested resource was not found',
     path: c.req.path,
     available_endpoints: [
-      '/auth/*',
+      '/api/auth/*',
       '/api/jobs/*',
       '/api/networks/*',
       '/api/dictionaries/*',

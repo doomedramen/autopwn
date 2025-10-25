@@ -7,8 +7,8 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect to the better-auth-ui sign-in page
-    router.replace("/auth/sign-in")
+    // Redirect to the new sign-in page
+    router.replace("/sign-in")
   }, [router])
 
   return (

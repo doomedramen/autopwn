@@ -1,27 +1,14 @@
-import { AuthView } from "@daveyplate/better-auth-ui"
-import { authViewPaths } from "@daveyplate/better-auth-ui/server"
-import { redirect } from "next/navigation"
+'use client'
 
-export const dynamicParams = false
+import { SignUpView } from '@daveyplate/better-auth-ui'
+import { authClient } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
 
-export function generateStaticParams() {
-  return Object.values(authViewPaths).map((path) => ({ path }))
-}
-
-export default async function AuthPage({
-  params
-}: {
-  params: Promise<{ path: string }>
-}) {
-  const { path } = await params
-
-  // Redirect sign-up attempts to sign-in since public sign-up is disabled
-  if (path === "sign-up") {
-    redirect("/auth/sign-in")
-  }
+export default function SignUpPage() {
+  const router = useRouter()
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* AutoPWN Branding */}
         <div className="text-center mb-8">
@@ -42,9 +29,21 @@ export default async function AuthPage({
           </div>
         </div>
 
-        {/* Auth View */}
-        <AuthView path={path} />
+        <div className="bg-card rounded-lg shadow-lg p-6">
+          <SignUpView 
+            client={authClient} 
+            onSuccess={() => {
+              router.push('/')
+              router.refresh()
+            }}
+            onError={(error) => {
+              console.error('Sign up error:', error)
+            }}
+            signInUrl="/sign-in"
+            className="w-full"
+          />
+        </div>
       </div>
-    </main>
+    </div>
   )
 }

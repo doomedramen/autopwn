@@ -13,11 +13,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu';
+import { useAuthSession, useLogout } from '@/lib/api-hooks';
 
 export function AvatarDropdown() {
+  const { data: session } = useAuthSession();
+  const { mutate: logout } = useLogout();
+
   const handleSignOut = () => {
-    // Clear any stored auth state and redirect to login
-    window.location.href = '/login';
+    logout();
+  };
+
+  // Fallback user data if session is not available
+  const user = session?.user || {
+    name: 'Admin User',
+    email: 'admin@autopwn.local'
   };
 
   return (
@@ -25,16 +34,16 @@ export function AvatarDropdown() {
       <DropdownMenuTrigger asChild>
         <Avatar className="h-8 w-8 cursor-pointer">
           <AvatarFallback className="bg-primary text-primary-foreground">
-            A
+            {user.name?.charAt(0) || 'A'}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Admin User</p>
+            <p className="text-sm font-medium leading-none">{user.name || 'Admin User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              admin@autopwn.local
+              {user.email || 'admin@autopwn.local'}
             </p>
           </div>
         </DropdownMenuLabel>

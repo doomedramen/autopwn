@@ -12,18 +12,24 @@ import type {
   PaginatedResponse,
 } from './types'
 
+import { authClient } from './auth'
+
 // Real API hooks that connect to our backend
 
-// Authentication hooks
+// Authentication hooks using better-auth
 export function useLogin() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: LoginRequest) =>
-      ApiClient.post('/auth/sign-in', { email: data.email, password: data.password }),
+    mutationFn: (data: LoginRequest) => 
+      authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+        callbackURL: '/' // Redirect to home after login
+      }),
     onSuccess: (data: any) => {
-      // Store session data if needed
       queryClient.setQueryData(['auth', 'session'], data)
+      queryClient.invalidateQueries({ queryKey: ['auth', 'session'] }) // This will trigger a refresh of session data
     },
   })
 }
@@ -32,9 +38,8 @@ export function useLogout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => ApiClient.post('/auth/sign-out'),
+    mutationFn: () => authClient.signOut(),
     onSuccess: () => {
-      // Clear all cached data on logout
       queryClient.clear()
     },
   })
@@ -43,9 +48,13 @@ export function useLogout() {
 export function useAuthSession() {
   return useQuery({
     queryKey: ['auth', 'session'],
-    queryFn: () => ApiClient.get('/auth/me'),
+    queryFn: async () => {
+      const session = await authClient.getSession()
+      return session?.session || null
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes if needed
   })
 }
 

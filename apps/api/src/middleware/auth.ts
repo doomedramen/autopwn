@@ -1,6 +1,4 @@
 import { Context, Next } from 'hono'
-import { authClient } from '../lib/auth'
-import { getCookie } from 'hono/cookie'
 import { createAuthenticationError, createAuthorizationError } from '../lib/error-handler'
 import { logger } from '../lib/logger'
 
@@ -12,16 +10,14 @@ export interface AuthContext {
 
 /**
  * Authentication middleware to protect API routes
- * Validates session from Better Auth and extracts user information
+ * Uses session and user from Hono context (set by middleware in index.ts)
  */
 export const authenticate = async (c: Context, next: Next) => {
   try {
-    // Get session from Better Auth
-    const session = await authClient.api.getSession({
-      headers: c.req.header()
-    })
+    // Get user from context (set by middleware in index.ts)
+    const user: any = c.get('user')
 
-    if (!session.data?.user) {
+    if (!user) {
       return c.json({
         success: false,
         error: 'Unauthorized - Please login to access this resource',
@@ -29,8 +25,7 @@ export const authenticate = async (c: Context, next: Next) => {
       }, 401)
     }
 
-    // Extract user information
-    const user = session.data.user
+    // Store user information in context
     const authContext: AuthContext = {
       userId: user.id,
       userRole: (user.role as 'user' | 'admin') || 'user',
@@ -84,12 +79,10 @@ export const requireAdmin = async (c: Context, next: Next) => {
  */
 export const optionalAuth = async (c: Context, next: Next) => {
   try {
-    const session = await authClient.api.getSession({
-      headers: c.req.header()
-    })
+    // Get user from context (set by middleware in index.ts)
+    const user: any = c.get('user')
 
-    if (session.data?.user) {
-      const user = session.data.user
+    if (user) {
       const authContext: AuthContext = {
         userId: user.id,
         userRole: (user.role as 'user' | 'admin') || 'user',
@@ -100,10 +93,21 @@ export const optionalAuth = async (c: Context, next: Next) => {
       c.set('userId', authContext.userId)
       c.set('userRole', authContext.userRole)
       c.set('userEmail', authContext.userEmail)
+    } else {
+      // Set null values if no session exists
+      c.set('auth', undefined)
+      c.set('userId', null)
+      c.set('userRole', null)
+      c.set('userEmail', null)
     }
   } catch (error) {
     // Optional auth - don't fail the request if auth fails
     logger.debug('Optional authentication failed', 'authentication', error instanceof Error ? error : new Error(String(error)))
+    // Set null values if there's an error
+    c.set('auth', undefined)
+    c.set('userId', null)
+    c.set('userRole', null)
+    c.set('userEmail', null)
   }
 
   await next()

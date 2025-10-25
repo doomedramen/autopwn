@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
     // Handle auth errors
     if (error.response?.status === 401) {
       // Redirect to login for auth errors
-      window.location.href = '/auth/sign-in';
+      window.location.href = '/login';
     }
 
     // Handle different types of errors

@@ -2,112 +2,47 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { env } from '@/config/env'
 import { db } from '@/db'
-import { emailService } from '@/lib/email'
+import * as schema from '@/db/schema'
 
-export const authClient: any = betterAuth({
+export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
+    schema: {
+      ...schema,
+      user: schema.users,
+      account: schema.accounts,
+      session: schema.sessions,
+      verification: schema.verifications,
+    },
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: env.NODE_ENV === 'production', // Enable in production only
+    requireEmailVerification: false, // Set to true in production
     minPasswordLength: 8,
-    maxPasswordLength: 128,
-    sendVerificationEmail: async ({ user, url, token }) => {
-      try {
-        const sent = await emailService.sendVerificationEmail(user.email, url)
-
-        if (!sent) {
-          // In development or when SMTP is not configured, log to console
-          console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║            📧 EMAIL VERIFICATION (Development Mode)          ║
-╠══════════════════════════════════════════════════════════════╣
-║ User: ${user.email.padEnd(54)} ║
-║ Verification URL:                                            ║
-║ ${url.padEnd(60)} ║
-║ Token: ${token.substring(0, 30).padEnd(54)}... ║
-╠══════════════════════════════════════════════════════════════╣
-║ ⚠️  SMTP not configured - email not sent                    ║
-║ In production, configure SMTP to enable email verification  ║
-╚══════════════════════════════════════════════════════════════╝
-          `)
-        }
-      } catch (error) {
-        console.error('Failed to send verification email:', error)
-        // Don't throw error in development to allow testing
-        if (env.NODE_ENV === 'production') {
-          throw error
-        }
-      }
-    },
+    sendEmailVerificationOnSignUp: true,
   },
-  // Note: Social providers disabled for now - can be configured later
-  // socialProviders: {},
+  socialProviders: {
+    // Add social providers if needed
+  },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // 1 day
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
-    modelName: 'sessions',
-    fields: {
-      userId: 'user_id',
-      expiresAt: 'expires_at',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      ipAddress: 'ip_address',
-      userAgent: 'user_agent',
+    expiresIn: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 24 * 60 * 60, // 1 day
+  },
+  advanced: {
+    useSecureCookies: env.NODE_ENV === 'production',
+    defaultCookieAttributes: {
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: env.NODE_ENV === 'production',
     },
   },
   account: {
-    modelName: 'accounts',
     accountLinking: {
       enabled: true,
-      allowDifferentEmails: false,
-      trustedProviders: ['google', 'github', 'microsoft'],
-    },
-    fields: {
-      userId: 'user_id',
-      accountId: 'account_id',
-      providerId: 'provider_id',
-      accessTokenExpiresAt: 'access_token_expires_at',
-      refreshTokenExpiresAt: 'refresh_token_expires_at',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
     },
   },
-  user: {
-    modelName: 'users',
-    fields: {
-      emailVerified: 'email_verified',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-    additionalFields: {
-      role: {
-        type: 'string',
-        defaultValue: 'user',
-      },
-    },
+  email: {
+    // Configure email settings
+    enabled: true,
+    from: "AutoPWN <noreply@autopwn.local>",
   },
-  verification: {
-    modelName: 'verifications',
-    disableCleanup: false,
-  },
-  advanced: {
-    generateId: false, // We're using text IDs, not UUIDs
-    crossSubDomainCookies: {
-      enabled: false,
-    },
-    useSecureCookies: env.NODE_ENV === 'production',
-  },
-  plugins: [
-    // Admin plugin for admin functionality
-    {
-      id: 'admin',
-      // Add admin-specific configuration here
-    },
-  ],
 })

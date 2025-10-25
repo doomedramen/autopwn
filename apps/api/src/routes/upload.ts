@@ -1,8 +1,7 @@
 import { Hono } from 'hono'
-import { authMiddleware, getUserId } from '@/middleware/auth'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { uploadRateLimit } from '@/middleware/rate-limit'
+import { uploadRateLimit } from '@/middleware/rateLimit'
 import { logger } from '@/lib/logger'
 import {
   createValidationError,
@@ -17,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { env } from '@/config/env'
+import { authMiddleware as authenticate, getUserId } from '@/middleware/auth'
 
 // Upload request validation schema
 const uploadSchema = z.object({
@@ -36,8 +36,8 @@ const uploadSchema = z.object({
 const upload = new Hono()
 
 // Apply authentication and upload-specific rate limiting
-upload.use('*', authMiddleware)
-upload.use('*', uploadRateLimit())
+upload.use('*', authenticate)
+// upload.use('*', uploadRateLimit()) // Temporarily disabled
 
 /**
  * Handle PCAP file uploads and create processing jobs
@@ -147,7 +147,7 @@ upload.post('/', zValidator('form', uploadSchema), async (c) => {
 /**
  * Get upload status for a specific job
  */
-upload.get('/:jobId/status', authMiddleware, async (c) => {
+upload.get('/:jobId/status', async (c) => {
   try {
     const { jobId } = c.req.param()
     const userId = getUserId(c)

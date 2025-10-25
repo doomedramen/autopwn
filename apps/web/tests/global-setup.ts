@@ -15,7 +15,7 @@ async function globalSetup() {
   
   // Force garbage collection if available (requires --expose-gc flag)
   if (global.gc) {
-    console.log(''gc() available, forcing initial garbage collection...');
+    console.log('gc() available, forcing initial garbage collection...');
     global.gc();
   }
   

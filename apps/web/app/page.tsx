@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/mock-auth';
+import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/api-hooks';
 import { NetworksTab } from '@/components/networks-tab';
 import { DictionariesTab } from '@/components/dictionaries-tab';
 import { JobsTab } from '@/components/jobs-tab';
@@ -42,9 +42,11 @@ export default function Page() {
   const jobsCount = jobsData?.data?.length || 0;
   const usersCount = usersData?.data?.length || 0;
 
-  if (error && !isLoading) {
-    // Redirect to login if not authenticated
-    window.location.href = '/login';
+  if (authData === undefined && !isLoading) {
+    // Redirect to login if there's no session
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
     return null;
   }
 
@@ -60,7 +62,7 @@ export default function Page() {
   }
 
   // Check if user is admin
-  const isAdmin = authData && (authData as any).user?.role === 'admin';
+  const isAdmin = authData?.session?.user?.role === 'admin';
 
   const renderActiveTab = () => {
     switch (activeTab) {
