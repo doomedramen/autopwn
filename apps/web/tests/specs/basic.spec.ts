@@ -14,7 +14,7 @@ test.describe('Basic Functionality Test', () => {
 
   test('should navigate to auth page', async ({ page }) => {
     // Very simple test to verify auth page loads
-    await page.goto('/auth/sign-in');
+    await page.goto('/sign-in');
     
     // Check that we're on the sign-in page
     const title = await page.title();

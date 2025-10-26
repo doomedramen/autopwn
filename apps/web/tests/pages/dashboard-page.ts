@@ -54,7 +54,7 @@ export class DashboardPage extends BasePage {
     await this.page.locator(this.logoutButton).click();
     
     // Wait for redirect to login page
-    await this.page.waitForURL('/auth/sign-in', { timeout: 10000 });
+    await this.page.waitForURL('/sign-in', { timeout: 10000 });
   }
 
   /**

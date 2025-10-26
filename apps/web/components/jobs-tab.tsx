@@ -1,6 +1,6 @@
 'use client';
 
-import { useJobs } from '@/lib/mock-api-hooks';
+import { useJobs } from '@/lib/api-hooks';
 import { formatDate, formatDuration, getStatusColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
 import { CreateJobModal } from '@/components/create-job-modal';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useDictionaries } from '@/lib/mock-api-hooks';
+import { useDictionaries } from '@/lib/api-hooks';
 import { formatDate, formatFileSize, getStatusColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
 import { UploadModal } from '@/components/upload-modal';

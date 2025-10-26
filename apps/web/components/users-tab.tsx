@@ -1,6 +1,6 @@
 'use client';
 
-import { useUsers } from '@/lib/mock-api-hooks';
+import { useUsers } from '@/lib/api-hooks';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
 import {

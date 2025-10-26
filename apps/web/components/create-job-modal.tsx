@@ -27,7 +27,7 @@ import {
   CollapsibleTrigger,
 } from '@workspace/ui/components/collapsible';
 import { ScrollArea } from '@workspace/ui/components/scroll-area';
-import { useNetworks, useDictionaries } from '@/lib/mock-api-hooks';
+import { useNetworks, useDictionaries } from '@/lib/api-hooks';
 import { Package, Plus, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 
 interface CreateJobModalProps {

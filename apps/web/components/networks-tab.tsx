@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useNetworks } from '@/lib/mock-api-hooks';
+import { useNetworks } from '@/lib/api-hooks';
 import { formatDate, getStatusColor, getEncryptionColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
 import { UploadModal } from '@/components/upload-modal';

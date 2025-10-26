@@ -1,6 +1,5 @@
 // Main test helper file to export all test utilities
 export { TestUtils } from './helpers/test-utils';
-export { AuthHelper } from './helpers/auth-helper';
 export { TestDataFactory } from './utils/test-data-factory';
 export { TestEnvironment } from './utils/test-environment';
 

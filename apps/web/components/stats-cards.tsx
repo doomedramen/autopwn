@@ -1,6 +1,6 @@
 'use client';
 
-import { useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/mock-api-hooks';
+import { useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/api-hooks';
 import { Radar, BookOpen, Package, Users } from 'lucide-react';
 
 interface StatCardProps {

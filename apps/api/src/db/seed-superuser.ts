@@ -17,8 +17,8 @@ function generatePassword(length: number = 16): string {
 // Get password based on environment - fixed for test, random for others
 function getPasswordForEnvironment(): string {
   if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV) {
-    // Use a consistent, known password for testing
-    return 'autopwn-test-password';
+    // Use a consistent, known password for testing that matches E2E test expectations
+    return process.env.E2E_ADMIN_PASSWORD || 'admin123';
   }
   return generatePassword();
 }
