@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { Hono } from 'hono'
-import { db } from '@/db'
-import { jobs, networkCaptures, users } from '@/db/schema'
+import { db } from '../../../db'
+import { jobs, networkCaptures, users } from '../../../db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { createSuccessResponse, createValidationError } from '@/lib/error-handler'
-import { createJob } from '@/lib/queue'
+import { createSuccessResponse, createValidationError } from '../../../lib/error-handler'
+import { createJob } from '../../../lib/queue'
 
 describe('Job Management Integration Tests', () => {
   let app: Hono
@@ -58,7 +58,7 @@ describe('Job Management Integration Tests', () => {
         type: 'wordlist',
         dictionaryId: 'test-dict-id',
         targetFile: '/test/file.pcap',
-        hashcatMode: 22000
+        hashcatMode: 22000,
         options: { test: 'value' }
       }
 

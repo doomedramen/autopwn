@@ -14,23 +14,24 @@ setup('authenticate as admin user', async ({ page }) => {
   // Start from homepage to simulate real user flow
   await page.goto('/');
 
-  // Check if we're already redirected to sign-in (due to unauthenticated state)
-  // If not, navigate to sign-in page
+  // Check if we're already redirected to login (due to unauthenticated state)
+  // If not, navigate to login page
   const currentUrl = page.url();
   if (currentUrl === '/' || currentUrl.endsWith('/')) {
     // Look for a "Sign In" link or redirect
-    const signInLink = page.locator('text=Sign in, text=Sign In, a[href="/sign-in"]');
+    const signInLink = page.locator('text=Sign in, text=Sign In, a[href="/sign-in"], a[href="/login"]');
     if (await signInLink.isVisible()) {
       await signInLink.click();
-      await page.waitForURL('/sign-in');
+      // Wait for either /sign-in or /login URL
+      await page.waitForURL(url => url.includes('/sign-in') || url.includes('/login'));
     } else {
-      // Fallback: If no link found, navigate directly (this handles auto-redirect case)
-      await page.goto('/sign-in');
+      // Fallback: If no link found, navigate directly to /login (this handles auto-redirect case)
+      await page.goto('/login');
     }
   }
 
-  // Verify we're on the sign-in page
-  await expect(page.locator('h2:has-text("Sign In")')).toBeVisible();
+  // Verify we're on the sign-in page (check for both Sign In and possible h1/h2 variations)
+  await expect(page.locator('h2:has-text("Sign In"), h1:has-text("Sign In")')).toBeVisible();
 
   // Fill in credentials
   await page.locator('input[name="email"]').fill(adminEmail);

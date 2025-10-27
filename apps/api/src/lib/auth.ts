@@ -31,8 +31,17 @@ export const auth = betterAuth({
   advanced: {
     useSecureCookies: env.NODE_ENV === 'production',
     defaultCookieAttributes: {
-      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax', // Use 'lax' for same-origin, more reliable
       secure: env.NODE_ENV === 'production',
+    },
+  },
+  // Include custom fields in the session
+  user: {
+    additionalFields: {
+      role: {
+        type: 'string',
+        required: false,
+      },
     },
   },
   account: {

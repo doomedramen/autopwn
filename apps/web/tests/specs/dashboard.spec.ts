@@ -87,7 +87,9 @@ test.describe('Dashboard Functionality', () => {
     await dashboardPage.logout();
 
     // Should be redirected to sign-in page
-    await page.waitForURL('/sign-in', { timeout: 15000 });
-    await expect(page.locator('h2:has-text("Sign In")')).toBeVisible();
+    await page.waitForURL(url => url.includes('/sign-in') || url.includes('/login'), { timeout: 15000 });
+    await expect(page.locator('h2:has-text("Sign In")')).toBeVisible({ timeout: 5000 });
+
+    console.log('✅ Successfully logged out and redirected to sign-in page');
   });
 });

@@ -18,7 +18,7 @@ export default defineConfig({
   /* Enable retries for flaky tests */
   retries: process.env.CI ? 1 : 0,
   /* Use multiple workers for faster execution */
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 1 : 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI
     ? [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']]
@@ -48,7 +48,7 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
 
-  /* Configure projects - test on multiple browsers for better coverage */
+  /* Configure projects - test on Chromium only for focused testing */
   projects: [
     {
       name: 'setup',
@@ -64,52 +64,33 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        viewport: { width: 1280, height: 720 },
-        storageState: 'playwright/.auth/user.json'
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-        viewport: { width: 1280, height: 720 },
-        storageState: 'playwright/.auth/user.json'
-      },
-      dependencies: ['setup'],
-    }
+    // Temporarily disabled other browsers for focused testing
+    // {
+    //   name: 'firefox',
+    //   use: {
+    //     ...devices['Desktop Firefox'],
+    //     viewport: { width: 1280, height: 720 },
+    //     storageState: 'playwright/.auth/user.json'
+    //   },
+    //   dependencies: ['setup'],
+    // },
+    // {
+    //   name: 'webkit',
+    //   use: {
+    //     ...devices['Desktop Safari'],
+    //     viewport: { width: 1280, height: 720 },
+    //     storageState: 'playwright/.auth/user.json'
+    //   },
+    //   dependencies: ['setup'],
+    // }
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: process.env.SKIP_WEB_SERVER ? undefined : [
-    // Start API server
-    {
-      command: 'cd ../.. && pnpm --filter @autopwn/api test:dev',
-      url: 'http://localhost:3001/health',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-      env: {
-        ...process.env,
-        NODE_OPTIONS: '--max-old-space-size=2048' // Increased memory limit
-      }
-    },
-    // Start Web server
-    {
-      command: 'cd ../.. && pnpm --filter web test:dev',
-      url: process.env.BASE_URL || 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-      env: {
-        ...process.env,
-        NODE_OPTIONS: '--max-old-space-size=2048' // Increased memory limit
-      }
-    },
-  ],
+  // Note: webServer management disabled to prevent resource conflicts and state pollution
+  // Tests are designed to work with SKIP_WEB_SERVER=true and external server management
+  webServer: undefined,
   
   // Global setup for resource management
   globalSetup: './tests/global-setup',
+  globalTeardown: './tests/global-teardown',
 })

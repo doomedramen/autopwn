@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '@/db'
 import { users, selectUserSchema } from '@/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { authenticate, requireAdmin, getUserId } from '@/middleware/auth'
 
 const users = new Hono()
@@ -15,7 +15,6 @@ users.use('*', authenticate)
 users.get('/', requireAdmin, async (c) => {
   try {
     const allUsers = await db.query.users.findMany({
-      orderBy: [desc(users.createdAt)],
       columns: {
         // Don't return sensitive fields
         id: true,

@@ -22,7 +22,7 @@ export class TestDataFactory {
   static createAuthCredentials(): AuthCredentials {
     return {
       email: process.env.E2E_ADMIN_EMAIL || 'admin@autopwn.local',
-      password: process.env.E2E_ADMIN_PASSWORD || 'autopwn-admin-password'
+      password: process.env.E2E_ADMIN_PASSWORD || 'admin123'
     };
   }
 

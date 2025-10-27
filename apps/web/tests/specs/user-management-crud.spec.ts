@@ -22,7 +22,7 @@ test.describe('User Management CRUD Operations', () => {
   });
 
   test.describe('User Management Access Control', () => {
-    test('should allow admin users to access user management', async ({ page }) => {
+    test('should allow admin users to access user management and load data successfully', async ({ page }) => {
       console.log('🔐 Testing admin access to user management...');
 
       // Navigate to Users tab
@@ -35,21 +35,59 @@ test.describe('User Management CRUD Operations', () => {
       await expect(usersTab).toBeVisible();
       await expect(usersTab).toHaveClass(/text-primary/);
 
-      // Check that user management interface is visible
+      // **CRITICAL**: Check that error state is NOT displayed
+      const errorHeading = page.locator('h3:has-text("Error Loading Users")');
+      const errorMessage = page.locator('p:has-text("Failed to load users. Please try again.")');
+      const retryButton = page.locator('button:has-text("Retry")');
+
+      // Error elements should NOT be visible
+      await expect(errorHeading).not.toBeVisible({ timeout: 5000 });
+      await expect(errorMessage).not.toBeVisible();
+      await expect(retryButton).not.toBeVisible();
+
+      console.log('✅ No error states detected in user management');
+
+      // **CRITICAL**: Check that data loads successfully
+      // Wait for either loading state or data to appear
+      const loadingSpinner = page.locator('.animate-spin.rounded-full.h-8.w-8.border-b-2.border-primary');
+
+      // Check if loading spinner appears and disappears
+      let loadingComplete = false;
+      try {
+        await expect(loadingSpinner).toBeVisible({ timeout: 3000 });
+        console.log('⏳ Data loading in progress...');
+        await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 });
+        loadingComplete = true;
+        console.log('✅ Data loading completed');
+      } catch (e) {
+        // Loading might have completed before we checked
+        console.log('ℹ️ Loading spinner not found, checking if data already loaded');
+        loadingComplete = true;
+      }
+
+      // Check for successful data loading indicators
       const userTable = page.locator('table').first();
-      if (await userTable.isVisible()) {
-        console.log('✅ User management table is visible to admin');
+      const noUsersMessage = page.locator('h3:has-text("no users found")');
+      const statsSection = page.locator('.stats-cards');
+
+      if (await noUsersMessage.isVisible()) {
+        console.log('✅ User data loaded successfully - no users found message displayed');
+      } else if (await userTable.isVisible()) {
+        console.log('✅ User data loaded successfully - user table is visible');
+        // Verify table structure
+        const tableHeaders = page.locator('thead th');
+        await expect(tableHeaders.first()).toBeVisible();
+      } else {
+        console.log('⚠️  User data state unclear - checking for any valid content');
+        // At minimum, the create user button should be present in the interface
+        const createUserButton = page.locator('button:has-text("create user")');
+        await expect(createUserButton).toBeVisible();
+        console.log('✅ User management interface is accessible');
       }
 
-      // Look for user management buttons (may be disabled)
-      const createUserButton = page.locator('button:has-text("create user")').first();
-      if (await createUserButton.isVisible()) {
-        console.log('✅ Create user button is visible to admin');
-        const isDisabled = await createUserButton.isDisabled();
-        console.log(`ℹ️ Create user button is ${isDisabled ? 'disabled' : 'enabled'}`);
-      }
-
-      console.log('✅ Admin user can access user management interface');
+      // Verify the interface doesn't show error states
+      await expect(errorHeading).not.toBeVisible();
+      console.log('✅ Confirmed: No error states in user management');
     });
 
     test('should display user data in table format', async ({ page }) => {

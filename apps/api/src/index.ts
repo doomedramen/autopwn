@@ -1,3 +1,6 @@
+// Load environment variables based on NODE_ENV
+import 'dotenv-flow/config'
+
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
@@ -84,7 +87,7 @@ app.use('*', (c, next) => {
 
 // API routes - simplified for compilation
 app.route('/api/auth', authRoutes)
-app.route('/users', usersRoutes)
+app.route('/api/users', usersRoutes)
 app.route('/api/jobs', jobsRoutes)
 app.route('/api/networks', networksRoutes)
 app.route('/api/dictionaries', dictionariesRoutes)
@@ -122,6 +125,36 @@ app.get('/api/info', publicApiCORS(), (c) => {
       '/health'
     ]
   })
+})
+
+// Debug session route - Public CORS for testing
+app.get('/api/debug/session', publicApiCORS(), async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const user = c.get('user');
+  const userId = c.get('userId');
+  const userRole = c.get('userRole');
+
+  return c.json({
+    session: session ? {
+      session: !!session.session,
+      user: session.user ? {
+        id: session.user.id,
+        email: session.user.email,
+        role: session.user.role,
+        name: session.user.name
+      } : null
+    } : null,
+    context: {
+      user: user ? {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name
+      } : null,
+      userId,
+      userRole
+    }
+  });
 })
 
 // Error handling

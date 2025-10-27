@@ -29,6 +29,9 @@ importers:
       dotenv-cli:
         specifier: ^7.4.4
         version: 7.4.4
+      dotenv-flow:
+        specifier: ^4.1.0
+        version: 4.1.0
       knip:
         specifier: ^5.66.3
         version: 5.66.3(@types/node@20.19.9)(typescript@5.9.2)

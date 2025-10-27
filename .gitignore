@@ -54,3 +54,4 @@ uploads/
 # Additional build artifacts
 .cache/
 *.lcov
+apps/web/auth-debug.png

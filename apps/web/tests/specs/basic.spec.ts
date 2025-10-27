@@ -2,70 +2,123 @@ import { test, expect } from '../fixtures/auth-fixture';
 import { TestUtils } from '../helpers/test-utils';
 
 test.describe('Basic Functionality Test', () => {
-  test('should load homepage successfully', async ({ page }) => {
+  test('should load authenticated dashboard successfully', async ({ page }) => {
+    // Navigate to homepage (should redirect to dashboard if authenticated)
+    await page.goto('/');
+
+    // Wait for page to fully load and session to be established
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Check for authenticated dashboard elements
+    const autoPWNHeader = page.locator('text=AutoPWN');
+    const networkTabs = page.locator('nav[aria-label="Tabs"]');
+
+    await expect(autoPWNHeader).toBeVisible({ timeout: 5000 });
+    await expect(networkTabs).toBeVisible({ timeout: 5000 });
+
+    // Verify we can see dashboard-specific elements
+    const userMenu = page.locator('[data-testid="user-menu"], [data-testid="avatar-dropdown"]');
+    await expect(userMenu).toBeVisible({ timeout: 5000 });
+
+    console.log('✅ Dashboard loaded successfully with authenticated elements');
+  });
+
+  test('should navigate between tabs successfully', async ({ page }) => {
     // Navigate to homepage
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
 
-    // Simple check that the page loaded without errors
-    const body = await page.locator('body');
-    await expect(body).toBeVisible();
+    // Verify Networks tab is initially active
+    const networksTab = page.locator('[data-testid="tab-networks"]');
+    await expect(networksTab).toBeVisible();
+    await expect(networksTab).toHaveClass(/text-primary/);
+
+    // Navigate to Dictionaries tab
+    const dictionariesTab = page.locator('[data-testid="tab-dictionaries"]');
+    await dictionariesTab.click();
+    await page.waitForTimeout(500);
+    await expect(dictionariesTab).toHaveClass(/text-primary/);
+
+    // Navigate to Jobs tab
+    const jobsTab = page.locator('[data-testid="tab-jobs"]');
+    await jobsTab.click();
+    await page.waitForTimeout(500);
+    await expect(jobsTab).toHaveClass(/text-primary/);
+
+    // Navigate to Users tab
+    const usersTab = page.locator('[data-testid="tab-users"]');
+    await usersTab.click();
+    await page.waitForTimeout(500);
+    await expect(usersTab).toHaveClass(/text-primary/);
+
+    console.log('✅ Tab navigation working successfully');
   });
 
-  test('should navigate to auth page from homepage', async ({ page }) => {
-    // Start from homepage
+  test('should access protected API endpoints', async ({ page }) => {
+    // Navigate to homepage to establish authentication
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
-    // If unauthenticated, we should be automatically redirected to sign-in
-    // Or we should be able to navigate via a link
-    const currentUrl = page.url();
+    // Test accessing users API endpoint through the UI
+    const usersTab = page.locator('[data-testid="tab-users"]');
+    await usersTab.click();
+    await page.waitForTimeout(1000);
 
-    if (currentUrl.includes('/sign-in')) {
-      // We're already on the sign-in page (auto-redirect worked)
-      console.log('Auto-redirected to sign-in page');
-    } else {
-      // Look for navigation to sign-in
-      const signInLink = page.locator('text=Sign in, text=Sign In, a[href="/sign-in"]');
-      if (await signInLink.isVisible()) {
-        await signInLink.click();
-        await page.waitForURL('/sign-in');
-      } else {
-        // Fallback - navigate directly
-        await page.goto('/sign-in');
-      }
-    }
+    // Check for user management interface elements
+    const usersTable = page.locator('table');
+    const createUserButton = page.locator('button:has-text("create user")');
 
-    // Check that we're on the sign-in page
-    await expect(page.locator('h2:has-text("Sign In")')).toBeVisible();
+    // Either table should be visible or create user button should be present
+    const hasTable = await usersTable.isVisible().catch(() => false);
+    const hasButton = await createUserButton.isVisible().catch(() => false);
 
-    // Verify sign-up link exists
-    await expect(page.locator('text=Sign Up')).toBeVisible();
-
-    // Minimal element checks
-    const emailInput = await page.locator('input[name="email"]');
-    const passwordInput = await page.locator('input[name="password"]');
-    const submitButton = await page.locator('button[type="submit"]');
-
-    await expect(emailInput).toBeVisible();
-    await expect(passwordInput).toBeVisible();
-    await expect(submitButton).toBeVisible();
+    expect(hasTable || hasButton).toBeTruthy();
+    console.log('✅ Protected API endpoints accessible through UI');
   });
 
-  test('should navigate from sign-in to sign-up', async ({ page }) => {
-    // Start from sign-in page
-    await page.goto('/sign-in');
+  test('should maintain authentication across page reloads', async ({ page }) => {
+    // Navigate to homepage
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
-    // Click the sign-up link (lowercase "Sign up" as displayed on sign-in page)
-    await page.locator('text=Sign up').click();
+    // Verify authenticated state
+    const userMenu = page.locator('[data-testid="user-menu"], [data-testid="avatar-dropdown"]');
+    await expect(userMenu).toBeVisible();
 
-    // Wait for navigation to sign-up page
-    await page.waitForURL('/sign-up');
+    // Reload the page
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
 
-    // Verify we're on the sign-up page using the branding title
-    await expect(page.locator('[data-testid="branding-title"]')).toBeVisible();
-    await expect(page.locator('h1:has-text("AutoPWN")')).toBeVisible();
+    // Verify authentication is still active
+    await expect(userMenu).toBeVisible({ timeout: 5000 });
+    const autoPWNHeader = page.locator('text=AutoPWN');
+    await expect(autoPWNHeader).toBeVisible();
 
-    // Verify the form container and submit button are present
-    await expect(page.locator('[data-testid="signup-form-container"]')).toBeVisible();
-    await expect(page.locator('button:has-text("Create an account")')).toBeVisible();
+    console.log('✅ Authentication maintained across page reloads');
+  });
+
+  test('should display responsive design elements', async ({ page }) => {
+    // Navigate to homepage
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Check for responsive design indicators
+    const navigation = page.locator('nav[aria-label="Tabs"]');
+    await expect(navigation).toBeVisible();
+
+    // Test mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 }); // iPhone size
+    await page.waitForTimeout(500);
+
+    // Navigation should still be accessible on mobile
+    await expect(navigation).toBeVisible();
+
+    // Reset to desktop viewport
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForTimeout(500);
+
+    console.log('✅ Responsive design elements working correctly');
   });
 });
