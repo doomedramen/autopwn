@@ -1,61 +1,57 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Dependencies
+node_modules
+.pnp
+.pnp.js
 
-# testing
-/coverage
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# next.js
-/.next/
-/out/
+# Testing
+coverage
 
-# production
-/build
+# Turbo
+.turbo
 
-# misc
-.DS_Store
-*.pem
-*.log
-*.tmp
-*.cache
-/coverage
-/nyc_output
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
+# Vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-/test-results
-/uploads/pcap
-/uploads/dictionary
-/playwright-report
-src/tests/fixtures/pcaps/BOARDROOMA8D0dz1XZ09Pza_f8d027f41863.pcap
-src/tests/fixtures/pcaps/PageFamily_602232f53912.pcap
-src/tests/fixtures/pcaps/BROWNCO_ee38835f78bb.pcap
-src/tests/fixtures/pcaps/ambrosia_988f008ee211.pcap
-hashes.hc22000
-/jobs
-src/tests/fixtures/pcaps/test-output.hc22000
-src/tests/fixtures/pcaps/test-output2.hc22000
-src/tests/fixtures/pcaps/test-essids2.txt
-src/tests/fixtures/pcaps/test-essids.txt
-/coverage-report
+# Build Outputs
+.next/
+out/
+build
+dist
+
+
+# Debug
+npm-debug.log*
+
+# Misc
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.pem
+/apps/web/playwright-report
+/apps/web/test-results
+/data
+
+# Security and temporary files
+cookies*.txt
+quarantine/
+uploads/
+*.tmp
+*.temp
+
+# Additional build artifacts
+.cache/
+*.lcov
+apps/web/auth-debug.png

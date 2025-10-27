@@ -1,0 +1,90 @@
+# AutoPWN Dockerfile for E2E Testing
+# Optimized for Playwright end-to-end tests
+
+# Base image with E2E testing tools
+FROM node:20-alpine AS base
+RUN apk add --no-cache \
+    curl \
+    dumb-init
+
+# Install pnpm globally
+RUN npm install -g pnpm@10.4.1
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json pnpm-lock.yaml* ./
+COPY packages/ui/package*.json ./packages/ui/
+COPY packages/eslint-config/package*.json ./packages/eslint-config/
+COPY packages/typescript-config/package*.json ./packages/typescript-config/
+COPY apps/web/package*.json ./apps/web/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --prefer-frozen-lockfile
+
+# Development E2E target
+FROM base AS development
+ENV NODE_ENV=development
+
+# Copy source code
+COPY . .
+
+# Build workspace packages
+RUN pnpm build
+
+# Install Playwright browsers
+RUN npx playwright install chromium
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S e2euser -u 1001
+
+# Create test results directory
+RUN mkdir -p /app/test-results && \
+    chown -R e2euser:nodejs /app
+
+# Switch to non-root user
+USER e2euser
+
+# Expose port for development server
+EXPOSE 3000
+
+# Default command keeps container running for manual test execution
+CMD ["tail", "-f", "/dev/null"]
+
+# Test target for CI
+FROM development AS test
+ENV NODE_ENV=test
+
+# Test setup
+RUN mkdir -p /app/test-results/e2e
+
+# E2E test runner script
+RUN echo '#!/bin/sh' > /app/run-e2e-tests.sh && \
+    echo 'set -e' >> /app/run-e2e-tests.sh && \
+    echo 'echo "Starting E2E tests..."' >> /app/run-e2e-tests.sh && \
+    echo 'npx playwright install --with-deps chromium' >> /app/run-e2e-tests.sh && \
+    echo 'pnpm test:e2e:chromium' >> /app/run-e2e-tests.sh && \
+    echo 'echo "E2E tests completed."' >> /app/run-e2e-tests.sh && \
+    chmod +x /app/run-e2e-tests.sh
+
+CMD ["/app/run-e2e-tests.sh"]
+
+# CI target for continuous integration
+FROM test AS ci
+ENV NODE_ENV=ci
+
+# CI-specific optimizations
+RUN echo 'CI=true' >> /app/.env.ci
+
+# Headless E2E test runner
+RUN echo '#!/bin/sh' > /app/run-ci-e2e-tests.sh && \
+    echo 'set -e' >> /app/run-ci-e2e-tests.sh && \
+    echo 'echo "Starting CI E2E tests..."' >> /app/run-ci-e2e-tests.sh && \
+    echo 'CI=true npx playwright install --with-deps chromium' >> /app/run-ci-e2e-tests.sh && \
+    echo 'CI=true pnpm test:e2e:chromium --reporter=json' >> /app/run-ci-e2e-tests.sh && \
+    echo 'echo "CI E2E tests completed."' >> /app/run-ci-e2e-tests.sh && \
+    chmod +x /app/run-ci-e2e-tests.sh
+
+CMD ["/app/run-ci-e2e-tests.sh"]

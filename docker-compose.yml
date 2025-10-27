@@ -1,0 +1,231 @@
+# AutoPWN Docker Compose Configuration
+# This file provides services for development and testing environments
+
+# Environment variable guidance:
+# - Use .env.local for local development overrides
+# - Use .env.test for test environment configuration
+# - NODE_ENV is automatically set based on the compose profile
+
+x-app-environment: &app-environment
+  # Core application settings
+  NODE_ENV: ${NODE_ENV:-development}
+  PORT: 3001
+
+  # Database configuration
+  DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@database:5432/autopwn_${NODE_ENV:-development}
+
+  # Redis configuration
+  REDIS_URL: redis://redis:6379
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+
+  # Authentication
+  AUTH_SECRET: ${AUTH_SECRET:-your-secret-key-here-min-32-chars-long-please}
+  AUTH_URL: http://localhost:3001/auth
+  JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-here-min-32-chars-long-please}
+
+  # File upload settings
+  UPLOAD_DIR: ./uploads
+  MAX_FILE_SIZE: 100MB
+
+  # Frontend URL
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+
+  # Background job settings
+  DEFAULT_JOB_TIMEOUT: 300000
+  MAX_CONCURRENT_JOBS: 5
+
+  # Security settings
+  CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+  RATE_LIMIT_WINDOW: 900000
+  RATE_LIMIT_MAX: 100
+
+x-web-environment: &web-environment
+  NODE_ENV: ${NODE_ENV:-development}
+  NEXT_PUBLIC_API_URL: http://localhost:3001
+  NEXT_PUBLIC_APP_URL: ${FRONTEND_URL:-http://localhost:3000}
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:16-alpine
+    container_name: autopwn-db-${NODE_ENV:-development}
+    environment:
+      POSTGRES_DB: autopwn_${NODE_ENV:-development}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_${NODE_ENV:-development}:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+
+  # Redis for caching and job queues
+  redis:
+    image: redis:7-alpine
+    container_name: autopwn-redis-${NODE_ENV:-development}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_${NODE_ENV:-development}:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+
+  # API Service (Development)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        NODE_ENV: ${NODE_ENV:-development}
+    container_name: autopwn-api-${NODE_ENV:-development}
+    environment:
+      <<: *app-environment
+    ports:
+      - "3001:3001"
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["node", "apps/api/dist/index.js"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+    profiles:
+      - dev
+      - test
+
+  # Worker Service (Background jobs)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: autopwn-worker-${NODE_ENV:-development}
+    environment:
+      <<: *app-environment
+    command: sh -c "cd /app/apps/api && /app/apps/api/node_modules/.bin/tsx src/workers/index.ts"
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - /app/node_modules
+      - uploads_data_${NODE_ENV:-development}:/app/uploads
+    user: "apiuser"
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+    profiles:
+      - dev
+      - test
+
+  # Web Frontend (Development)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      target: development
+      args:
+        NODE_ENV: ${NODE_ENV:-development}
+    container_name: autopwn-web-${NODE_ENV:-development}
+    environment:
+      <<: *web-environment
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - /app/node_modules
+    user: "webuser"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+    profiles:
+      - dev
+
+  # Database Administration
+  adminer:
+    image: adminer:latest
+    container_name: autopwn-adminer-${NODE_ENV:-development}
+    ports:
+      - "1337:1337"
+    environment:
+      ADMINER_DEFAULT_SERVER: database
+    depends_on:
+      - database
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+    profiles:
+      - dev
+      - tools
+
+  # Redis Administration
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: autopwn-redis-ui-${NODE_ENV:-development}
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: "local:redis:6379"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - autopwn-network
+    profiles:
+      - dev
+      - tools
+
+volumes:
+  postgres_data_development:
+    driver: local
+  postgres_data_test:
+    driver: local
+  redis_data_development:
+    driver: local
+  redis_data_test:
+    driver: local
+  uploads_data_development:
+    driver: local
+  uploads_data_test:
+    driver: local
+
+networks:
+  autopwn-network:
+    driver: bridge
