@@ -45,4 +45,9 @@ export const auth = betterAuth({
     enabled: true,
     from: "AutoPWN <noreply@autopwn.local>",
   },
+  trustedOrigins: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    env.NODE_ENV === 'production' ? 'https://your-production-domain.com' : null
+  ].filter(Boolean),
 })

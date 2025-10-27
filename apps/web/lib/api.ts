@@ -45,15 +45,12 @@ apiClient.interceptors.response.use(
     if (error.response) {
       // Server responded with error status
       const message = error.response.data?.error || error.response.data?.message || error.message;
-      console.error('API Error:', message);
       throw new Error(message);
     } else if (error.request) {
       // Request was made but no response received
-      console.error('Network Error: No response received');
       throw new Error('Network error. Please check your connection.');
     } else {
       // Something else happened
-      console.error('Error:', error.message);
       throw new Error(error.message);
     }
   }

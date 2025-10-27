@@ -30,9 +30,9 @@ export function AvatarDropdown() {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu data-testid="avatar-dropdown">
       <DropdownMenuTrigger asChild>
-        <Avatar className="h-8 w-8 cursor-pointer">
+        <Avatar className="h-8 w-8 cursor-pointer" data-testid="user-menu">
           <AvatarFallback className="bg-primary text-primary-foreground">
             {user.name?.charAt(0) || 'A'}
           </AvatarFallback>

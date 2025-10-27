@@ -347,9 +347,6 @@ export function DictionaryGeneratorModal({ children }: DictionaryGeneratorModalP
       // Simulate generation process
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log('Generated dictionary with command:', generateCommand());
-      console.log('Estimated size:', estimateSize());
-
       // Close modal and reset form
       setOpen(false);
       setForm({
@@ -380,7 +377,6 @@ export function DictionaryGeneratorModal({ children }: DictionaryGeneratorModalP
         useMaxMemory: false,
       });
     } catch (error) {
-      console.error('Generation failed:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -391,7 +387,7 @@ export function DictionaryGeneratorModal({ children }: DictionaryGeneratorModalP
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col" data-testid="dictionary-generator-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-mono uppercase">
             <Zap className="h-5 w-5" />

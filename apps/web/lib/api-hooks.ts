@@ -38,9 +38,12 @@ export function useLogout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => authClient.signOut(),
+    mutationFn: () => authClient.signOut({
+      callbackURL: '/sign-in' // Redirect to sign-in after logout
+    }),
     onSuccess: () => {
       queryClient.clear()
+      // The redirect will be handled by Better Auth
     },
   })
 }

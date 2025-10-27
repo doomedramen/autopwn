@@ -99,9 +99,9 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-testid="dashboard">
       {/* Header with default shadcn colors */}
-      <header className="border-b">
+      <header className="border-b" data-testid="header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -136,7 +136,7 @@ export default function Page() {
       </header>
 
       {/* Stats Cards */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-testid="stats-cards-container">
         <StatsCards />
       </div>
 
@@ -154,6 +154,8 @@ export default function Page() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
+                data-testid={`tab-${tab.id}`}
+                data-tab={tab.id}
                 className={`py-4 px-1 border-b-2 font-medium text-sm font-mono uppercase tracking-wider flex items-center space-x-2 ${
                   activeTab === tab.id
                     ? 'border-primary text-primary'

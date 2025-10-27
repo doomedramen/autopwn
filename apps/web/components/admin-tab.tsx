@@ -57,7 +57,7 @@ export function AdminTab({ className }: AdminTabProps) {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    console.log('Saving admin settings:', {
+    const settingsData = {
       globalWorkloadProfile,
       globalRuntimeLimit: enableRuntimeLimit ? globalRuntimeLimit : null,
       globalOptimizedKernels,

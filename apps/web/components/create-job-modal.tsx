@@ -112,7 +112,7 @@ export function CreateJobModal({ children }: CreateJobModalProps) {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    console.log('Creating job:', {
+    const jobData = {
       name,
       attackMode,
       hashType,
@@ -121,7 +121,7 @@ export function CreateJobModal({ children }: CreateJobModalProps) {
       optimizedKernels,
       networks: selectedNetworks,
       dictionaries: selectedDictionaries,
-    });
+    };
 
     // Reset form
     setName('');
@@ -143,7 +143,7 @@ export function CreateJobModal({ children }: CreateJobModalProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col" data-testid="create-job-modal">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-mono uppercase">

@@ -196,7 +196,10 @@ class SecurityMonitoringService {
 
     // Check for brute force patterns
     if (event.type === SecurityEventType.LOGIN_FAILURE && eventsFromSameIP.length >= 5) {
-      this.logEvent({
+      // Add event directly to avoid recursion
+      const bruteForceEvent: SecurityEvent = {
+        id: this.generateEventId(),
+        timestamp: new Date(),
         type: SecurityEventType.BRUTE_FORCE_DETECTED,
         severity: 'high',
         ip: event.ip,
@@ -206,12 +209,17 @@ class SecurityMonitoringService {
           failureCount: eventsFromSameIP.filter(e => e.type === SecurityEventType.LOGIN_FAILURE).length,
           timeWindow: '1 hour'
         }
-      })
+      }
+      this.events.push(bruteForceEvent)
+      logger.security(bruteForceEvent.type, bruteForceEvent.severity, bruteForceEvent.details)
     }
 
     // Check for suspicious request patterns
     if (eventsFromSameIP.length >= 50) {
-      this.logEvent({
+      // Add event directly to avoid recursion
+      const suspiciousPatternEvent: SecurityEvent = {
+        id: this.generateEventId(),
+        timestamp: new Date(),
         type: SecurityEventType.SUSPICIOUS_REQUEST_PATTERN,
         severity: 'medium',
         ip: event.ip,
@@ -222,7 +230,9 @@ class SecurityMonitoringService {
           timeWindow: '1 hour',
           uniquePaths: [...new Set(eventsFromSameIP.map(e => e.path))].length
         }
-      })
+      }
+      this.events.push(suspiciousPatternEvent)
+      logger.security(suspiciousPatternEvent.type, suspiciousPatternEvent.severity, suspiciousPatternEvent.details)
     }
 
     // Check for data access patterns
@@ -232,7 +242,10 @@ class SecurityMonitoringService {
     )
 
     if (dataAccessEvents.length >= 20) {
-      this.logEvent({
+      // Add event directly to avoid recursion
+      const exfiltrationEvent: SecurityEvent = {
+        id: this.generateEventId(),
+        timestamp: new Date(),
         type: SecurityEventType.DATA_EXFILTRATION_ATTEMPT,
         severity: 'high',
         ip: event.ip,
@@ -242,7 +255,9 @@ class SecurityMonitoringService {
           dataAccessCount: dataAccessEvents.length,
           timeWindow: '1 hour'
         }
-      })
+      }
+      this.events.push(exfiltrationEvent)
+      logger.security(exfiltrationEvent.type, exfiltrationEvent.severity, exfiltrationEvent.details)
     }
   }
 

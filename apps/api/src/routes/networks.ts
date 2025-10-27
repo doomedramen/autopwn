@@ -2,20 +2,20 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '@/db'
-import { networks, selectNetworkSchema } from '@/db/schema'
+import { networks as networksSchema, selectNetworkSchema } from '@/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { authenticate, getUserId } from '@/middleware/auth'
 
-const networks = new Hono()
+const networksRouter = new Hono()
 
 // Apply authentication middleware to all routes
-networks.use('*', authenticate)
+networksRouter.use('*', authenticate)
 
 // Get all networks
-networks.get('/', async (c) => {
+networksRouter.get('/', async (c) => {
   try {
     const allNetworks = await db.query.networks.findMany({
-      orderBy: [desc(networks.createdAt)],
+      orderBy: [desc(networksSchema.createdAt)],
     })
 
     return c.json({
@@ -33,12 +33,12 @@ networks.get('/', async (c) => {
 })
 
 // Get single network by ID
-networks.get('/:id', async (c) => {
+networksRouter.get('/:id', async (c) => {
   const id = c.req.param('id')
 
   try {
     const network = await db.query.networks.findFirst({
-      where: eq(networks.id, id),
+      where: eq(networksSchema.id, id),
     })
 
     if (!network) {
@@ -62,7 +62,7 @@ networks.get('/:id', async (c) => {
 })
 
 // Create new network
-networks.post('/', zValidator('json', z.object({
+networksRouter.post('/', zValidator('json', z.object({
   ssid: z.string().optional(),
   bssid: z.string().min(1),
   encryption: z.string().min(1),
@@ -78,7 +78,7 @@ networks.post('/', zValidator('json', z.object({
   try {
     const userId = getUserId(c)
 
-    const [newNetwork] = await db.insert(networks)
+    const [newNetwork] = await db.insert(networksSchema)
       .values({
         ...data,
         userId,
@@ -100,7 +100,7 @@ networks.post('/', zValidator('json', z.object({
 })
 
 // Update network
-networks.put('/:id', zValidator('json', z.object({
+networksRouter.put('/:id', zValidator('json', z.object({
   ssid: z.string().optional(),
   encryption: z.string().optional(),
   channel: z.number().optional(),
@@ -114,9 +114,9 @@ networks.put('/:id', zValidator('json', z.object({
   const data = c.req.valid('json')
 
   try {
-    const [updatedNetwork] = await db.update(networks)
+    const [updatedNetwork] = await db.update(networksSchema)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(networks.id, id))
+      .where(eq(networksSchema.id, id))
       .returning()
 
     if (!updatedNetwork) {
@@ -140,12 +140,12 @@ networks.put('/:id', zValidator('json', z.object({
 })
 
 // Delete network
-networks.delete('/:id', async (c) => {
+networksRouter.delete('/:id', async (c) => {
   const id = c.req.param('id')
 
   try {
-    const [deletedNetwork] = await db.delete(networks)
-      .where(eq(networks.id, id))
+    const [deletedNetwork] = await db.delete(networksSchema)
+      .where(eq(networksSchema.id, id))
       .returning()
 
     if (!deletedNetwork) {
@@ -168,4 +168,4 @@ networks.delete('/:id', async (c) => {
   }
 })
 
-export { networks as networksRoutes }
+export { networksRouter as networksRoutes }

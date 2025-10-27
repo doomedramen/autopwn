@@ -21,8 +21,8 @@ export default defineConfig({
   workers: process.env.CI ? 2 : 4,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI
-    ? [['html', { outputFolder: 'playwright-report' }], ['list']]
-    : [['html', { outputFolder: 'playwright-report' }], ['list']],
+    ? [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']]
+    : [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -88,7 +88,7 @@ export default defineConfig({
   webServer: process.env.SKIP_WEB_SERVER ? undefined : [
     // Start API server
     {
-      command: 'cd ../.. && dotenv -e .env.test -- pnpm --filter @autopwn/api test:dev',
+      command: 'cd ../.. && pnpm --filter @autopwn/api test:dev',
       url: 'http://localhost:3001/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
@@ -99,7 +99,7 @@ export default defineConfig({
     },
     // Start Web server
     {
-      command: 'cd ../.. && dotenv -e .env.test -- pnpm --filter web test:dev',
+      command: 'cd ../.. && pnpm --filter web test:dev',
       url: process.env.BASE_URL || 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,

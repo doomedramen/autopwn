@@ -42,15 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log upload information
-    console.log(`${uploadType.toUpperCase()} file uploaded:`, {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      extension: fileExtension,
-      uploadType
-    });
-
+  
     // Simulate processing time based on file size
     const processingTime = Math.min(file.size / (1024 * 1024) * 100, 5000); // 100ms per MB, max 5s
     await new Promise(resolve => setTimeout(resolve, processingTime));

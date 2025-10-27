@@ -80,19 +80,16 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
 
     // Handle upload success
     uppy.on('upload-success', (file, response) => {
-      console.log('Upload success:', file, response);
       setUploadStatus(prev => ({ ...prev, [type]: 'success' }));
     });
 
     // Handle upload error
     uppy.on('upload-error', (file, error, response) => {
-      console.error('Upload error:', file, error, response);
       setUploadStatus(prev => ({ ...prev, [type]: 'error' }));
     });
 
     // Handle complete event
     uppy.on('complete', (result) => {
-      console.log('Upload complete:', result);
       if (result.successful.length > 0) {
         setUploadStatus(prev => ({ ...prev, [type]: 'success' }));
         setTimeout(() => {
@@ -306,7 +303,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col" data-testid="upload-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-mono uppercase">
             <Upload className="h-5 w-5" />

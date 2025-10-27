@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
@@ -56,7 +57,7 @@ export default function SignInPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-mono uppercase tracking-wider text-foreground">
+              <h1 className="text-2xl font-bold font-mono uppercase tracking-wider text-foreground" data-testid="branding-title">
                 AutoPWN
               </h1>
               <p className="text-sm text-muted-foreground font-mono">
@@ -66,7 +67,7 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <div className="bg-card rounded-lg shadow-lg p-6">
+        <div className="bg-card rounded-lg shadow-lg p-6" data-testid="signin-form-container">
           <h2 className="text-xl font-semibold mb-6">Sign In</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,6 +82,7 @@ export default function SignInPage() {
                 required
                 disabled={loading}
                 className="mt-1"
+                data-testid="signin-email-input"
               />
             </div>
 
@@ -95,19 +97,34 @@ export default function SignInPage() {
                 required
                 disabled={loading}
                 className="mt-1"
+                data-testid="signin-password-input"
               />
             </div>
 
             {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded" data-testid="signin-error-message">
                 {error}
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading} data-testid="signin-submit-button">
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+
+          {/* Sign up link */}
+          <div className="mt-6 text-center" data-testid="signup-link-container">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link
+                href="/sign-up"
+                className="text-primary hover:underline font-medium"
+                data-testid="signup-link"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

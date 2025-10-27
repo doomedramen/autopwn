@@ -81,12 +81,12 @@ export function JobsTab({ className }: JobsTabProps) {
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-6 ${className}`} data-testid="jobs-tab">
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between font-mono">
         <div></div>
         <CreateJobModal>
-          <Button className="font-mono text-sm">
+          <Button className="font-mono text-sm" data-testid="create-job-button">
             <Package className="h-4 w-4 mr-2" />
             create job
           </Button>
@@ -100,7 +100,7 @@ export function JobsTab({ className }: JobsTabProps) {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : jobsData?.data.length === 0 ? (
-          <div className="text-center py-12 font-mono px-6">
+          <div className="text-center py-12 font-mono px-6" data-testid="jobs-empty-state">
             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">
               no jobs found

@@ -28,7 +28,7 @@ function StatCard({ title, value, subtitle, icon, isLoading }: StatCardProps) {
   }
 
   return (
-    <div className="bg-card rounded-lg border p-6 shadow-sm">
+    <div className="bg-card rounded-lg border p-6 shadow-sm" data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground font-mono uppercase tracking-wider">
@@ -79,7 +79,7 @@ export function StatsCards() {
   const isLoading = networksLoading || dictionariesLoading || jobsLoading || usersLoading;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="stats-cards">
       <StatCard
         title="Networks"
         value={networks.length}

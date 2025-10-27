@@ -2,16 +2,16 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '@/db'
-import { dictionaries, selectDictionarySchema } from '@/db/schema'
+import { dictionaries as dictionariesSchema, selectDictionarySchema } from '@/db/schema'
 import { eq, desc } from 'drizzle-orm'
 
-const dictionaries = new Hono()
+const dictionariesRouter = new Hono()
 
 // Get all dictionaries
-dictionaries.get('/', async (c) => {
+dictionariesRouter.get('/', async (c) => {
   try {
     const allDictionaries = await db.query.dictionaries.findMany({
-      orderBy: [desc(dictionaries.createdAt)],
+      orderBy: [desc(dictionariesSchema.createdAt)],
     })
 
     return c.json({
@@ -29,12 +29,12 @@ dictionaries.get('/', async (c) => {
 })
 
 // Get single dictionary by ID
-dictionaries.get('/:id', async (c) => {
+dictionariesRouter.get('/:id', async (c) => {
   const id = c.req.param('id')
 
   try {
     const dictionary = await db.query.dictionaries.findFirst({
-      where: eq(dictionaries.id, id),
+      where: eq(dictionariesSchema.id, id),
     })
 
     if (!dictionary) {
@@ -57,4 +57,4 @@ dictionaries.get('/:id', async (c) => {
   }
 })
 
-export { dictionaries as dictionariesRoutes }
+export { dictionariesRouter as dictionariesRoutes }

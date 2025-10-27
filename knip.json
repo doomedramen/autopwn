@@ -1,0 +1,121 @@
+{
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/**/*.js",
+        "knip.js",
+        "knip.config.js"
+      ],
+      "project": [
+        "scripts/**/*.js",
+        "*.js",
+        "*.ts",
+        "*.json"
+      ]
+    },
+    "apps/api": {
+      "entry": [
+        "src/index.ts",
+        "src/**/*.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "drizzle.config.ts"
+      ],
+      "ignoreDependencies": [
+        "@types/bcryptjs",
+        "@types/uuid"
+      ]
+    },
+    "apps/web": {
+      "entry": [
+        "app/**/*.tsx",
+        "app/**/*.ts",
+        "components/**/*.tsx",
+        "lib/**/*.ts",
+        "pages/api/**/*.ts"
+      ],
+      "project": [
+        "app/**/*.ts",
+        "app/**/*.tsx",
+        "components/**/*.ts",
+        "components/**/*.tsx",
+        "lib/**/*.ts",
+        "pages/**/*.ts",
+        "pages/**/*.tsx",
+        "middleware.ts"
+      ],
+      "ignoreDependencies": [
+        "@types/node"
+      ]
+    },
+    "packages/ui": {
+      "entry": [
+        "src/**/*.ts",
+        "src/**/*.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx"
+      ]
+    },
+    "packages/eslint-config-custom": {
+      "entry": [
+        "index.js"
+      ],
+      "project": [
+        "*.js"
+      ]
+    },
+    "packages/tsconfig": {
+      "entry": [
+        "base.json",
+        "nextjs.json",
+        "react-library.json"
+      ],
+      "project": [
+        "*.json"
+      ]
+    }
+  },
+  "ignore": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/turbo/**",
+    "**/.turbo/**",
+    "**/playwright/**",
+    "**/.auth/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/test/**",
+    "**/tests/**",
+    "**/quarantine/**",
+    "**/uploads/**",
+    "**/logs/**",
+    "**/.env*.local",
+    "**/.DS_Store",
+    "**/Thumbs.db"
+  ],
+  "ignoreBinaries": [
+    "tsx",
+    "drizzle-kit",
+    "playwright",
+    "vitest"
+  ],
+  "ignoreDependencies": [
+    "eslint",
+    "prettier",
+    "typescript",
+    "@types/node",
+    "@types/react",
+    "@types/react-dom",
+    "tailwindcss",
+    "postcss",
+    "autoprefixer"
+  ]
+}
