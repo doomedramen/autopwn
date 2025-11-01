@@ -1,6 +1,8 @@
 import { Context, Next } from 'hono'
 import { createAuthenticationError, createAuthorizationError } from '../lib/error-handler'
 import { logger } from '../lib/logger'
+import type { User } from 'better-auth/types'
+import type { HonoAuthContext } from '../types/auth'
 
 export interface AuthContext {
   userId: string
@@ -12,10 +14,10 @@ export interface AuthContext {
  * Authentication middleware to protect API routes
  * Uses session and user from Hono context (set by middleware in index.ts)
  */
-export const authenticate = async (c: Context, next: Next) => {
+export const authenticate = async (c: Context<HonoAuthContext>, next: Next) => {
   try {
     // Get user from context (set by middleware in index.ts)
-    const user: any = c.get('user')
+    const user: User | null = c.get('user')
 
     if (!user) {
       return c.json({
@@ -54,7 +56,7 @@ export const authenticate = async (c: Context, next: Next) => {
 /**
  * Admin-only middleware - must be used after authenticate
  */
-export const requireAdmin = async (c: Context, next: Next) => {
+export const requireAdmin = async (c: Context<HonoAuthContext>, next: Next) => {
   const userRole = c.get('userRole') as string
   const userId = c.get('userId')
 
@@ -77,10 +79,10 @@ export const requireAdmin = async (c: Context, next: Next) => {
  * Optional authentication middleware - doesn't block unauthenticated users
  * but sets auth context if user is logged in
  */
-export const optionalAuth = async (c: Context, next: Next) => {
+export const optionalAuth = async (c: Context<HonoAuthContext>, next: Next) => {
   try {
     // Get user from context (set by middleware in index.ts)
-    const user: any = c.get('user')
+    const user: User | null = c.get('user')
 
     if (user) {
       const authContext: AuthContext = {
@@ -116,14 +118,14 @@ export const optionalAuth = async (c: Context, next: Next) => {
 /**
  * Helper function to get user ID from context
  */
-export const getUserId = (c: Context): string => {
+export const getUserId = (c: Context<HonoAuthContext>): string => {
   return c.get('userId') || ''
 }
 
 /**
  * Helper function to check if user is admin
  */
-export const isAdmin = (c: Context): boolean => {
+export const isAdmin = (c: Context<HonoAuthContext>): boolean => {
   return c.get('userRole') === 'admin'
 }
 
@@ -131,7 +133,7 @@ export const isAdmin = (c: Context): boolean => {
  * Helper function to require specific role
  */
 export const requireRole = (role: 'user' | 'admin' | 'superuser') => {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<HonoAuthContext>, next: Next) => {
     const userRole = c.get('userRole')
 
     if (!userRole) {
@@ -163,6 +165,6 @@ export const authMiddleware = authenticate
 /**
  * Helper function to get auth context
  */
-export const getAuthContext = (c: Context): AuthContext | undefined => {
+export const getAuthContext = (c: Context<HonoAuthContext>): AuthContext | undefined => {
   return c.get('auth')
 }

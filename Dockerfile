@@ -63,25 +63,27 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Start development server
 CMD ["node", "apps/api/dist/index.js"]
 
-# Production build target
-FROM base AS production
+# Production build target - use the development target as base
+FROM development AS production
 ENV NODE_ENV=production
 
-# Install dependencies for production
-RUN pnpm install --frozen-lockfile --prod
+# The user and directories are already created in the development stage
+# Just switch to the non-root user
+USER apiuser
 
-# Copy built application
-COPY --from=development /app/apps/api/dist ./apps/api/dist
-COPY --from=development /app/packages ./packages
+# Expose port
+EXPOSE 3001
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S apiuser -u 1001
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
 
-# Create upload directory and set permissions
-RUN mkdir -p /app/uploads /app/.turbo/cache && chown -R apiuser:nodejs /app
+# Production build target - use the development target as base
+FROM development AS production
+ENV NODE_ENV=production
 
-# Switch to non-root user
+# The user and directories are already created in the development stage
+# Just switch to the non-root user
 USER apiuser
 
 # Expose port
@@ -93,4 +95,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Start production server with dumb-init
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "apps/api/dist/index-minimal.js"]

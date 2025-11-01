@@ -2,14 +2,14 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { uploadRateLimit } from '@/middleware/rateLimit'
+import { fileSecurityMiddleware } from '@/middleware/fileSecurity'
 import { logger } from '@/lib/logger'
 import {
   createValidationError,
   createFileSystemError,
-  createSuccessResponse,
-} from '@/lib/errors'
+} from '@/lib/error-handler'
 import { db } from '@/db'
-import { users, networkCaptures, jobs } from '@/db/schema'
+import { users, networks, dictionaries, jobs } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { createJob, checkQueueHealth } from '@/lib/queue'
 import { v4 as uuidv4 } from 'uuid'
@@ -17,6 +17,8 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { env } from '@/config/env'
 import { authMiddleware as authenticate, getUserId } from '@/middleware/auth'
+import { validatePCAPFileByName, quickPCAPValidation, getPCAPFileInfo } from '@/lib/pcap-validator'
+import { analyzePCAPFile } from '@/lib/pcap-analyzer'
 
 // Upload request validation schema
 const uploadSchema = z.object({
@@ -35,9 +37,21 @@ const uploadSchema = z.object({
 
 const upload = new Hono()
 
-// Apply authentication and upload-specific rate limiting
+// Apply authentication and upload-specific middleware
 upload.use('*', authenticate)
-// upload.use('*', uploadRateLimit()) // Temporarily disabled
+upload.use('*', uploadRateLimit())
+upload.use('*', fileSecurityMiddleware({
+  maxFileSize: 100 * 1024 * 1024, // 100MB
+  allowedExtensions: ['.pcap', '.cap', '.pcapng', '.dmp'],
+  allowedMimeTypes: [
+    'application/octet-stream',
+    'application/vnd.tcpdump.pcap',
+    'application/x-pcap'
+  ],
+  scanFiles: true,
+  virusScanning: false, // Disable virus scanning for PCAP files (binary network data)
+  enableDeepScanning: true
+}))
 
 /**
  * Handle PCAP file uploads and create processing jobs
@@ -56,48 +70,113 @@ upload.post('/', zValidator('form', uploadSchema), async (c) => {
 
     // Save uploaded file with secure permissions
     const fileBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(fileBuffer)
     const fileName = `${Date.now()}-${file.name}`
     const filePath = path.join(uploadDir, fileName)
 
-    await fs.writeFile(filePath, Buffer.from(fileBuffer))
+    await fs.writeFile(filePath, buffer)
     await fs.chmod(filePath, 0o600) // Secure file permissions
 
-    // Validate file is a valid PCAP
-    if (!fileName.endsWith('.pcap') && !fileName.endsWith('.cap')) {
-      throw createValidationError(
-        'Only PCAP files (.pcap, .cap) are allowed',
-        'INVALID_FILE_TYPE'
-      )
+    // Quick PCAP validation using magic bytes
+    const isValidPCAP = await quickPCAPValidation(file.name, buffer)
+    if (!isValidPCAP) {
+      // Clean up invalid file
+      await fs.rm(uploadDir, { recursive: true, force: true }).catch(() => {})
+
+      return c.json({
+        success: false,
+        error: 'Invalid PCAP file',
+        message: 'The uploaded file is not a valid PCAP file. Please ensure the file is in PCAP format.',
+        code: 'INVALID_PCAP_FILE'
+      }, 400)
     }
 
-    // Create job record in database
+    // Detailed PCAP validation
+    try {
+      await validatePCAPFileByName(file.name, filePath)
+    } catch (validationError) {
+      // Clean up invalid file
+      await fs.rm(uploadDir, { recursive: true, force: true }).catch(() => {})
+
+      return c.json({
+        success: false,
+        error: 'PCAP validation failed',
+        message: validationError instanceof Error ? validationError.message : 'Unknown validation error',
+        code: 'PCAP_VALIDATION_ERROR'
+      }, 400)
+    }
+
+    // Get PCAP file information and analysis
+    let pcapInfo = null
+    let pcapAnalysis = null
+
+    try {
+      pcapInfo = await getPCAPFileInfo(filePath)
+
+      // Perform basic PCAP analysis
+      pcapAnalysis = await analyzePCAPFile(filePath, 50) // Analyze first 50 packets
+    } catch (error) {
+      logger.warn('Failed to analyze PCAP file', 'upload', {
+        filePath,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+
+    // Create job record in database only if network and dictionary are available
+    if (!metadata?.networkId || !metadata?.dictionaryId) {
+      return c.json({
+        success: false,
+        error: 'Missing required information',
+        message: 'Both networkId and dictionaryId are required to create a job',
+        code: 'MISSING_REQUIRED_FIELDS'
+      }, 400)
+    }
+
     const [jobRecord] = await db.insert(jobs).values({
       id: finalJobId,
       userId,
       name: `Upload: ${fileName}`,
       description: metadata?.description || `PCAP file upload: ${fileName}`,
-      type: 'pcap_processing',
       status: 'pending',
-      targetFile: filePath,
-      dictionaryId: metadata?.dictionaryId || null,
-      hashcatMode: 22000, // Default to handshake mode
+      config: {
+        targetFile: filePath,
+        hashcatMode: 22000, // Default to handshake mode
+        fileName,
+        originalName: file.name,
+        size: file.size,
+        pcapInfo: pcapInfo ? {
+          version: pcapInfo.version,
+          network: pcapInfo.network,
+          snaplen: pcapInfo.snaplen,
+          fileSize: pcapInfo.fileSize,
+          isBigEndian: pcapInfo.isBigEndian
+        } : null,
+        pcapAnalysis: pcapAnalysis ? {
+          totalPackets: pcapAnalysis.analysis.totalPackets,
+          estimatedNetworkCount: pcapAnalysis.estimatedNetworkCount,
+          hasWiFi: pcapAnalysis.analysis.hasWiFi,
+          hasIPv4: pcapAnalysis.analysis.hasIPv4,
+          hasTCP: pcapAnalysis.analysis.hasTCP,
+          hasUDP: pcapAnalysis.analysis.hasUDP,
+          estimatedNetworkTypes: pcapAnalysis.analysis.estimatedNetworkTypes,
+          bytesTotal: pcapAnalysis.analysis.bytesTotal,
+          duration: pcapAnalysis.analysis.duration
+        } : null
+      },
+      networkId: metadata.networkId,
+      dictionaryId: metadata.dictionaryId,
       progress: 0,
       createdAt: new Date(),
       updatedAt: new Date()
     }).returning()
 
-    // Create network capture record
-    const [networkRecord] = await db.insert(networkCaptures).values({
-      id: uuidv4(),
-      userId,
-      jobId: finalJobId,
-      filename: fileName,
-      originalName: file.name,
-      size: file.size,
-      uploadPath: filePath,
-      status: 'uploaded',
-      createdAt: new Date()
-    }).returning()
+    // Create network record if provided
+    let networkRecord = null
+    if (metadata?.networkId) {
+      networkRecord = await db.query.networks.findFirst({
+        where: eq(networks.id, metadata.networkId)
+      })
+    }
 
     // Add job to queue for processing
     const queueHealth = await checkQueueHealth()
@@ -119,28 +198,47 @@ upload.post('/', zValidator('form', uploadSchema), async (c) => {
         jobId: finalJobId,
         userId,
         fileName,
-        fileSize: file.size
+        originalName: file.name,
+        fileSize: file.size,
+        pcapInfo: pcapInfo ? {
+          version: pcapInfo.version,
+          network: pcapInfo.network,
+          snaplen: pcapInfo.snaplen
+        } : null
       })
     }
 
-    return createSuccessResponse(c, 'File uploaded successfully', {
-      job: jobRecord,
-      networkCapture: networkRecord,
-      queuedForProcessing: queueHealth.status === 'healthy'
+    return c.json({
+      success: true,
+      message: 'File uploaded successfully',
+      data: {
+        job: jobRecord,
+        network: networkRecord,
+        queuedForProcessing: queueHealth.status === 'healthy'
+      }
     })
 
   } catch (error) {
     logger.error('upload_error', 'upload', {
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       userId,
       fileName: c.req.valid('form')?.file?.name
     })
 
-    if (error.code === 'INVALID_FILE_TYPE') {
-      throw createValidationError(error.message, error.code)
+    if (error instanceof Error && error.message.includes('INVALID_FILE_TYPE')) {
+      return c.json({
+        success: false,
+        error: 'Invalid file type',
+        message: error.message,
+        code: 'INVALID_FILE_TYPE'
+      }, 400)
     }
 
-    throw createFileSystemError('File upload failed', 'UPLOAD_ERROR')
+    return c.json({
+      success: false,
+      error: 'File upload failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
   }
 })
 
@@ -153,33 +251,53 @@ upload.get('/:jobId/status', async (c) => {
     const userId = getUserId(c)
 
     // Verify user owns the job
-    const [job] = await db.select()
-      .from(jobs)
-      .where(eq(jobs.id, jobId) && eq(jobs.userId, userId))
-      .limit(1)
+    const job = await db.query.jobs.findFirst({
+      where: eq(jobs.id, jobId) && eq(jobs.userId, userId)
+    })
 
     if (!job) {
-      throw createValidationError('Job not found', 'JOB_NOT_FOUND')
+      return c.json({
+        success: false,
+        error: 'Job not found',
+        message: `No job found with ID: ${jobId}`,
+        code: 'JOB_NOT_FOUND'
+      }, 404)
     }
 
-    // Get network capture info
-    const [networkCapture] = await db.select()
-      .from(networkCaptures)
-      .where(eq(networkCaptures.jobId, jobId))
-      .limit(1)
+    // Get network info if available
+    let networkInfo = null
+    if (job.networkId) {
+      [networkInfo] = await db.select()
+        .from(networks)
+        .where(eq(networks.id, job.networkId))
+        .limit(1)
+    }
 
-    return createSuccessResponse(c, 'Upload status retrieved', {
-      job,
-      networkCapture,
-      uploadPath: job.targetFile
+    // Get upload path from config
+    const config = job.config as any
+    const uploadPath = config?.targetFile
+
+    return c.json({
+      success: true,
+      message: 'Upload status retrieved',
+      data: {
+        job,
+        network: networkInfo,
+        uploadPath
+      }
     })
 
   } catch (error) {
     logger.error('upload_status_error', 'upload', {
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       jobId: c.req.param('jobId')
     })
-    throw createValidationError('Failed to get upload status', 'STATUS_ERROR')
+    return c.json({
+      success: false,
+      error: 'Failed to get upload status',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: 'STATUS_ERROR'
+    }, 500)
   }
 })
 

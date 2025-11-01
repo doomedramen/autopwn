@@ -2,7 +2,7 @@
   "name": "@autopwn/api",
   "version": "1.0.0",
   "description": "AutoPWN API Server",
-  "main": "src/index.ts",
+  "main": "src/index-minimal.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

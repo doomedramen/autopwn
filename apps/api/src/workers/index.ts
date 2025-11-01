@@ -19,7 +19,6 @@ const redisConnection = new Redis({
   port: parseInt(env.REDIS_PORT),
   password: env.REDIS_PASSWORD,
   maxRetriesPerRequest: null,
-  retryDelayOnFailover: 100,
   lazyConnect: true,
   retryStrategy: (times) => {
     // Exponential backoff: start with 100ms, double each time, max 30 seconds
@@ -129,7 +128,7 @@ export const fileCleanupWorker = new Worker<FileCleanupJob>(
         userId,
       })
 
-      return { success: true, cleanedFiles: result.length }
+      return { success: true, cleanedFiles: (result as any).length || 0 }
     } catch (error) {
       console.error('File cleanup failed:', error)
       throw error

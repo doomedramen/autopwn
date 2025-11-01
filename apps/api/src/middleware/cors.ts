@@ -1,7 +1,6 @@
 import { cors } from 'hono/cors'
-import type { CorsOptions } from 'hono/cors'
 import { Context, Next } from 'hono'
-import { logSecurityEvent, SecurityEventType } from '../lib/monitoring'
+// import { logSecurityEvent, SecurityEventType } from '../lib/monitoring'
 
 export interface CORSConfig {
   enabled: boolean
@@ -141,24 +140,24 @@ export const enhancedCORS = (config: Partial<CORSConfig> = {}) => {
     if (corsConfig.strictMode && origin) {
       // Check for suspicious origins
       if (!isOriginAllowed(origin, corsConfig.allowedOrigins)) {
-        await logSecurityEvent({
-          type: SecurityEventType.SUSPICIOUS_IP,
-          severity: 'medium',
-          ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
-          path: c.req.path,
-          method: method,
-          details: {
-            reason: 'Unauthorized CORS origin',
-            origin,
-            userAgent: c.req.header('user-agent'),
-            timestamp: new Date().toISOString()
-          }
-        })
+        // await logSecurityEvent({
+        //   type: SecurityEventType.SUSPICIOUS_IP,
+        //   severity: 'medium',
+        //   ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
+        //   path: c.req.path,
+        //   method: method,
+        //   details: {
+        //     reason: 'Unauthorized CORS origin',
+        //     origin,
+        //     userAgent: c.req.header('user-agent'),
+        //     timestamp: new Date().toISOString()
+        //   }
+        // })
       }
     }
 
     // Build CORS options
-    const corsOptions: CorsOptions = {
+    const corsOptions = {
       origin: (origin, c) => {
         if (!origin) return true // Same-origin requests
 

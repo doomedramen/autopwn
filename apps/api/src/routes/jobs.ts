@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { jobs, selectJobSchema } from '@/db/schema'
 import { eq, desc, and, isNull } from 'drizzle-orm'
-import { createNotFoundError, createValidationError, createSuccessResponse } from '@/lib/error-handler'
+import { createNotFoundError, createValidationError } from '@/lib/error-handler'
 import { logger } from '@/lib/logger'
 
 // Job update schema
@@ -69,7 +69,11 @@ jobs.get('/', async (c) => {
       status: c.req.query('status')
     })
 
-    return createValidationError('Failed to fetch jobs')
+    return c.json({
+      success: false,
+      error: 'Failed to fetch jobs',
+      message: error.message
+    }, 500)
   }
 })
 
@@ -90,7 +94,11 @@ jobs.get('/:id', async (c) => {
     })
 
     if (!job) {
-      throw createNotFoundError('Job', id)
+      return c.json({
+        success: false,
+        error: 'Job not found',
+        message: `No job found with ID: ${id}`
+      }, 404)
     }
 
     return c.json({
@@ -103,7 +111,11 @@ jobs.get('/:id', async (c) => {
       jobId: id
     })
 
-    throw createValidationError('Failed to fetch job')
+    return c.json({
+      success: false,
+      error: 'Failed to fetch job',
+      message: error.message
+    }, 500)
   }
 })
 
@@ -123,13 +135,40 @@ jobs.post('/', zValidator('json', z.object({
     const userId = c.get('userId')
     const { name, description, type, dictionaryId, targetFile, hashcatMode, options } = c.req.valid('json')
 
+    // Validate required fields
+    if (!dictionaryId) {
+      return c.json({
+        success: false,
+        error: 'Validation failed',
+        message: 'dictionaryId is required',
+        code: 'MISSING_DICTIONARY_ID'
+      }, 400)
+    }
+
+    // For now, we'll require networkId to be provided via metadata
+    // In a real workflow, this might come from PCAP processing
+    const networkId = options?.networkId
+    if (!networkId) {
+      return c.json({
+        success: false,
+        error: 'Validation failed',
+        message: 'networkId is required (should be provided in options)',
+        code: 'MISSING_NETWORK_ID'
+      }, 400)
+    }
+
     const [newJob] = await db.insert(jobs).values({
       name,
       description,
-      type,
       userId,
+      networkId,
       dictionaryId,
-      hashcatMode: hashcatMode || 22000, // Default to handshake mode
+      config: {
+        type,
+        hashcatMode: hashcatMode || 22000, // Default to handshake mode
+        targetFile,
+        ...options
+      },
       status: 'pending',
       progress: 0,
       createdAt: new Date(),
@@ -154,7 +193,11 @@ jobs.post('/', zValidator('json', z.object({
       jobData: c.req.valid('json')
     })
 
-    throw createValidationError('Failed to create job')
+    return c.json({
+      success: false,
+      error: 'Failed to create job',
+      message: error.message
+    }, 500)
   }
 })
 
@@ -173,11 +216,19 @@ jobs.put('/:id', zValidator('json', updateJobSchema), async (c) => {
     })
 
     if (!existingJob) {
-      throw createNotFoundError('Job', id)
+      return c.json({
+        success: false,
+        error: 'Job not found',
+        message: `No job found with ID: ${id}`
+      }, 404)
     }
 
     if (existingJob.userId !== userId) {
-      throw createValidationError('You do not have permission to update this job')
+      return c.json({
+        success: false,
+        error: 'Permission denied',
+        message: 'You do not have permission to update this job'
+      }, 403)
     }
 
     const [updatedJob] = await db.update(jobs)
@@ -203,7 +254,11 @@ jobs.put('/:id', zValidator('json', updateJobSchema), async (c) => {
       updates: c.req.valid('json')
     })
 
-    throw createValidationError('Failed to update job')
+    return c.json({
+      success: false,
+      error: 'Failed to update job',
+      message: error.message
+    }, 500)
   }
 })
 
@@ -221,16 +276,28 @@ jobs.delete('/:id', async (c) => {
     })
 
     if (!existingJob) {
-      throw createNotFoundError('Job', id)
+      return c.json({
+        success: false,
+        error: 'Job not found',
+        message: `No job found with ID: ${id}`
+      }, 404)
     }
 
     if (existingJob.userId !== userId) {
-      throw createValidationError('You do not have permission to cancel this job')
+      return c.json({
+        success: false,
+        error: 'Permission denied',
+        message: 'You do not have permission to cancel this job'
+      }, 403)
     }
 
     // Only allow cancellation of pending jobs
     if (!['pending', 'running'].includes(existingJob.status)) {
-      throw createValidationError('Only pending or running jobs can be cancelled')
+      return c.json({
+        success: false,
+        error: 'Invalid job status',
+        message: 'Only pending or running jobs can be cancelled'
+      }, 400)
     }
 
     const [cancelledJob] = await db.update(jobs)
@@ -258,7 +325,11 @@ jobs.delete('/:id', async (c) => {
       userId: c.get('userId')
     })
 
-    throw createValidationError('Failed to cancel job')
+    return c.json({
+      success: false,
+      error: 'Failed to cancel job',
+      message: error.message
+    }, 500)
   }
 })
 
@@ -269,21 +340,20 @@ jobs.get('/stats', async (c) => {
   try {
     const userId = c.get('userId')
 
-    const [jobStats] = await db.query.jobs.findMany({
+    const userJobs = await db.query.jobs.findMany({
       where: eq(jobs.userId, userId),
       columns: {
-        status: true,
-        total: true
+        status: true
       }
     })
 
     const stats = {
-      total: jobStats.length,
-      pending: jobStats.filter(job => job.status === 'pending').length,
-      running: jobStats.filter(job => job.status === 'running').length,
-      completed: jobStats.filter(job => job.status === 'completed').length,
-      failed: jobStats.filter(job => job.status === 'failed').length,
-      cancelled: jobStats.filter(job => job.status === 'cancelled').length
+      total: userJobs.length,
+      pending: userJobs.filter(job => job.status === 'pending').length,
+      running: userJobs.filter(job => job.status === 'running').length,
+      completed: userJobs.filter(job => job.status === 'completed').length,
+      failed: userJobs.filter(job => job.status === 'failed').length,
+      cancelled: userJobs.filter(job => job.status === 'cancelled').length
     }
 
     return c.json({
@@ -296,7 +366,11 @@ jobs.get('/stats', async (c) => {
       userId: c.get('userId')
     })
 
-    throw createValidationError('Failed to get job statistics')
+    return c.json({
+      success: false,
+      error: 'Failed to get job statistics',
+      message: error.message
+    }, 500)
   }
 })
 

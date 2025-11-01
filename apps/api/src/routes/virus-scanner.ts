@@ -49,8 +49,7 @@ virusScannerRoutes.get('/status', async (c) => {
 
       quarantineStats = {
         files: files.filter(file => !file.endsWith('.meta.json')).length,
-        totalSize,
-        metadataFiles: metadataFiles.length
+        totalSize
       }
     } catch {
       // Quarantine directory doesn't exist or is inaccessible
@@ -190,7 +189,11 @@ virusScannerRoutes.get('/quarantine/:fileId', async (c) => {
           error: 'Quarantined file not found'
         }, 404)
       }
-      throw error
+      return c.json({
+        success: false,
+        error: 'Failed to access quarantined file',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }, 500)
     }
   } catch (error) {
     console.error('Error fetching quarantined file details:', error)

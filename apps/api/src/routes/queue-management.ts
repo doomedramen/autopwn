@@ -56,10 +56,15 @@ queueManagement.post('/crack', zValidator('json', z.object({
 
     // Create job record
     const [newJob] = await db.insert(jobs).values({
+      name: `Cracking Job for ${network.ssid || network.bssid}`,
       networkId: data.networkId,
       dictionaryId: data.dictionaryId,
-      status: 'queued',
-      attackMode: data.attackMode,
+      status: 'pending',
+      config: {
+        attackMode: data.attackMode,
+        queued: true,
+        type: 'cracking'
+      },
       userId,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -84,7 +89,7 @@ queueManagement.post('/crack', zValidator('json', z.object({
         networkId: data.networkId,
         dictionaryId: data.dictionaryId,
         attackMode: data.attackMode,
-        status: 'queued',
+        status: 'pending',
         createdAt: newJob.createdAt
       }
     })
@@ -143,8 +148,8 @@ queueManagement.post('/dictionary/generate', zValidator('json', z.object({
 queueManagement.get('/stats', async (c) => {
   try {
     // Get job counts by status
-    const [queuedJobs, runningJobs, completedJobs, failedJobs] = await Promise.all([
-      db.select().from(jobs).where(eq(jobs.status, 'queued')),
+    const [pendingJobs, runningJobs, completedJobs, failedJobs] = await Promise.all([
+      db.select().from(jobs).where(eq(jobs.status, 'pending')),
       db.select().from(jobs).where(eq(jobs.status, 'running')),
       db.select().from(jobs).where(eq(jobs.status, 'completed')),
       db.select().from(jobs).where(eq(jobs.status, 'failed')),
@@ -164,11 +169,11 @@ queueManagement.get('/stats', async (c) => {
     return c.json({
       success: true,
       stats: {
-        queued: queuedJobs.length,
+        pending: pendingJobs.length,
         running: runningJobs.length,
         completed: completedJobs.length,
         failed: failedJobs.length,
-        total: queuedJobs.length + runningJobs.length + completedJobs.length + failedJobs.length
+        total: pendingJobs.length + runningJobs.length + completedJobs.length + failedJobs.length
       },
       recentJobs,
       queues: {
@@ -260,9 +265,8 @@ queueManagement.post('/jobs/:id/retry', async (c) => {
     // Reset job status
     const [retriedJob] = await db.update(jobs)
       .set({
-        status: 'queued',
-        error: null,
-        failedAt: null,
+        status: 'pending',
+        errorMessage: null,
         updatedAt: new Date()
       })
       .where(eq(jobs.id, jobId))

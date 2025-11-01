@@ -3,15 +3,11 @@
 
 # Base stage with pnpm
 FROM node:20-alpine AS base
-# Install pnpm globally
-RUN npm install -g pnpm@10.4.1
+# Install pnpm globally and curl for health checks
+RUN npm install -g pnpm@10.4.1 && apk add --no-cache curl dumb-init
 
 # Set working directory
 WORKDIR /app
-
-# Development target
-FROM base AS development
-ENV NODE_ENV=development
 
 # Copy all package files first for better Docker layer caching
 COPY package*.json pnpm-lock.yaml* ./
@@ -22,21 +18,17 @@ COPY apps/web/package*.json ./apps/web/
 COPY apps/api/package*.json ./apps/api/
 COPY turbo.json ./
 
+# Development target
+FROM base AS development
+ENV NODE_ENV=development
+
 # Install all dependencies (including devDependencies for development)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code and skip build (use pre-built)
+# Copy source code
 COPY apps/web/src ./apps/web/src
 COPY apps/web/public ./apps/web/public
 COPY packages ./packages
-
-
-# Skip build to avoid Next.js dependency issues in Docker
-# Build entire workspace first - DISABLED
-# RUN pnpm run build
-
-# Then specifically build web application - DISABLED
-# RUN pnpm run build --filter=web
 
 # Create non-root user and cache directory with proper permissions
 RUN addgroup -g 1001 -S nodejs && \
@@ -46,9 +38,6 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Set working directory to web app
 WORKDIR /app/apps/web
-
-# Copy node_modules from API service which has dependencies installed
-COPY --from=development /app/apps/api/node_modules ./apps/api/node_modules
 
 # Switch to non-root user
 USER webuser
@@ -62,3 +51,35 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Start development server using system PATH
 CMD ["next", "dev"]
+
+# Production target - use pre-built assets
+FROM base AS production
+ENV NODE_ENV=production
+
+# Copy pre-built application (assumes local build was done)
+COPY --chown=webuser:nodejs apps/web/.next ./apps/web/.next
+COPY --chown=webuser:nodejs apps/web/public ./apps/web/public
+COPY --chown=webuser:nodejs apps/web/package.json ./apps/web/
+COPY --chown=webuser:nodejs apps/web/next.config.js* ./apps/web/
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S webuser -u 1001 && \
+    chown -R webuser:nodejs /app
+
+# Set working directory to web app
+WORKDIR /app/apps/web
+
+# Switch to non-root user
+USER webuser
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+# Start production server with dumb-init
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["next", "start"]
