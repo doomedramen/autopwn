@@ -14,6 +14,7 @@ import { usersRoutes } from './routes/users'
 import { jobsRoutes } from './routes/jobs'
 import { networksRoutes } from './routes/networks'
 import { dictionariesRoutes } from './routes/dictionaries'
+import { resultsRoutes } from './routes/results'
 import { queueRoutes } from './routes/queue-management'
 import { uploadRoutes } from './routes/upload'
 import { securityRoutes } from './routes/security-monitoring'
@@ -94,6 +95,7 @@ app.route('/api/users', usersRoutes)
 app.route('/api/jobs', jobsRoutes)
 app.route('/api/networks', networksRoutes)
 app.route('/api/dictionaries', dictionariesRoutes)
+app.route('/api/results', resultsRoutes)
 app.route('/api/queue', queueRoutes)
 app.route('/api/upload', uploadRoutes)
 app.route('/security', securityRoutes)
@@ -121,6 +123,7 @@ app.get('/api/info', publicApiCORS(), (c) => {
       '/api/jobs/*',
       '/api/networks/*',
       '/api/dictionaries/*',
+      '/api/results/*',
       '/api/queue/*',
       '/api/upload/*',
       '/security/*',
@@ -171,6 +174,7 @@ app.notFound((c) => {
       '/api/jobs/*',
       '/api/networks/*',
       '/api/dictionaries/*',
+      '/api/results/*',
       '/api/queue/*',
       '/api/upload/*',
       '/security/*',

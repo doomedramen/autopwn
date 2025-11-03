@@ -11,7 +11,7 @@ import {
 import { db } from '@/db'
 import { users, networks, dictionaries, jobs } from '@/db/schema'
 import { eq } from 'drizzle-orm'
-import { createJob, checkQueueHealth } from '@/lib/queue'
+import { addPCAPProcessingJob, checkQueueHealth } from '@/lib/queue'
 import { v4 as uuidv4 } from 'uuid'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -122,80 +122,24 @@ upload.post('/', zValidator('form', uploadSchema), async (c) => {
       })
     }
 
-    // Create job record in database only if network and dictionary are available
-    if (!metadata?.networkId || !metadata?.dictionaryId) {
-      return c.json({
-        success: false,
-        error: 'Missing required information',
-        message: 'Both networkId and dictionaryId are required to create a job',
-        code: 'MISSING_REQUIRED_FIELDS'
-      }, 400)
-    }
-
-    const [jobRecord] = await db.insert(jobs).values({
-      id: finalJobId,
-      userId,
-      name: `Upload: ${fileName}`,
-      description: metadata?.description || `PCAP file upload: ${fileName}`,
-      status: 'pending',
-      config: {
-        targetFile: filePath,
-        hashcatMode: 22000, // Default to handshake mode
-        fileName,
-        originalName: file.name,
-        size: file.size,
-        pcapInfo: pcapInfo ? {
-          version: pcapInfo.version,
-          network: pcapInfo.network,
-          snaplen: pcapInfo.snaplen,
-          fileSize: pcapInfo.fileSize,
-          isBigEndian: pcapInfo.isBigEndian
-        } : null,
-        pcapAnalysis: pcapAnalysis ? {
-          totalPackets: pcapAnalysis.analysis.totalPackets,
-          estimatedNetworkCount: pcapAnalysis.estimatedNetworkCount,
-          hasWiFi: pcapAnalysis.analysis.hasWiFi,
-          hasIPv4: pcapAnalysis.analysis.hasIPv4,
-          hasTCP: pcapAnalysis.analysis.hasTCP,
-          hasUDP: pcapAnalysis.analysis.hasUDP,
-          estimatedNetworkTypes: pcapAnalysis.analysis.estimatedNetworkTypes,
-          bytesTotal: pcapAnalysis.analysis.bytesTotal,
-          duration: pcapAnalysis.analysis.duration
-        } : null
-      },
-      networkId: metadata.networkId,
-      dictionaryId: metadata.dictionaryId,
-      progress: 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning()
-
-    // Create network record if provided
-    let networkRecord = null
-    if (metadata?.networkId) {
-      networkRecord = await db.query.networks.findFirst({
-        where: eq(networks.id, metadata.networkId)
-      })
-    }
-
-    // Add job to queue for processing
+    // Queue PCAP file for automatic network extraction
+    // No need for networkId at upload time - networks will be auto-created from PCAP
     const queueHealth = await checkQueueHealth()
     if (queueHealth.status === 'healthy') {
-      await createJob({
-        id: finalJobId,
-        type: 'pcap_processing',
+      await addPCAPProcessingJob({
+        // networkId is optional - not provided means auto-create networks
+        filePath,
+        originalFilename: file.name,
         userId,
-        targetFile: filePath,
-        options: {
-          fileName,
-          originalName: file.name,
-          size: file.size,
-          metadata
+        metadata: {
+          pcapInfo,
+          pcapAnalysis,
+          uploadId: finalJobId
         }
       })
 
-      logger.info('job_created', 'upload', {
-        jobId: finalJobId,
+      logger.info('pcap_queued_for_processing', 'upload', {
+        uploadId: finalJobId,
         userId,
         fileName,
         originalName: file.name,
@@ -210,11 +154,18 @@ upload.post('/', zValidator('form', uploadSchema), async (c) => {
 
     return c.json({
       success: true,
-      message: 'File uploaded successfully',
+      message: 'PCAP file uploaded successfully and queued for processing',
       data: {
-        job: jobRecord,
-        network: networkRecord,
-        queuedForProcessing: queueHealth.status === 'healthy'
+        uploadId: finalJobId,
+        fileName,
+        originalName: file.name,
+        size: file.size,
+        queuedForProcessing: queueHealth.status === 'healthy',
+        pcapInfo,
+        pcapAnalysis: pcapAnalysis ? {
+          totalPackets: pcapAnalysis.analysis.totalPackets,
+          estimatedNetworkCount: pcapAnalysis.estimatedNetworkCount,
+        } : null
       }
     })
 

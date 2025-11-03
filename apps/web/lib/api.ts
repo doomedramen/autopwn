@@ -98,4 +98,76 @@ export class ApiClient {
   }
 }
 
+// Results API methods
+export class ResultsApi {
+  static async getResults(params?: {
+    jobId?: string;
+    networkId?: string;
+    type?: 'password' | 'handshake' | 'error';
+    limit?: number;
+    offset?: number;
+  }) {
+    return ApiClient.get<{
+      success: boolean;
+      data: JobResult[];
+      count: number;
+      pagination: {
+        total: number;
+        limit: number;
+        offset: number;
+        hasMore: boolean;
+      };
+    }>('/api/results', params);
+  }
+
+  static async getResultsByJob(jobId: string) {
+    return ApiClient.get<{
+      success: boolean;
+      data: JobResult[];
+      count: number;
+    }>(`/api/results/by-job/${jobId}`);
+  }
+
+  static async getResultsByNetwork(networkId: string) {
+    return ApiClient.get<{
+      success: boolean;
+      data: JobResult[];
+      count: number;
+      network: {
+        id: string;
+        ssid: string;
+        bssid: string;
+        encryption: string;
+      };
+    }>(`/api/results/by-network/${networkId}`);
+  }
+
+  static async getResult(id: string) {
+    return ApiClient.get<{
+      success: boolean;
+      data: JobResult;
+    }>(`/api/results/${id}`);
+  }
+
+  static async getCrackedPasswords() {
+    return ApiClient.get<{
+      success: boolean;
+      data: JobResult[];
+      count: number;
+    }>('/api/results/passwords/cracked');
+  }
+
+  static async getResultsStats() {
+    return ApiClient.get<{
+      success: boolean;
+      data: {
+        byType: Record<string, number>;
+        crackedNetworks: number;
+        totalNetworks: number;
+        crackRate: number;
+      };
+    }>('/api/results/stats');
+  }
+}
+
 export default apiClient;

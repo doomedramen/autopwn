@@ -42,9 +42,9 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       id: `autopwn-uppy-${type}`,
       autoProceed: false,
       restrictions: {
-        maxFileSize: 100 * 1024 * 1024, // 100MB
+        maxFileSize: type === 'pcap' ? 500 * 1024 * 1024 : 10 * 1024 * 1024 * 1024, // 500MB for PCAP, 10GB for dictionaries
         maxNumberOfFiles: 10, // Allow multiple files
-        allowedFileTypes: type === 'pcap' ? ['.pcap'] : ['.txt'],
+        allowedFileTypes: type === 'pcap' ? ['.pcap', '.cap'] : ['.txt', '.lst', '.dict', '.wordlist'],
       },
       debug: process.env.NODE_ENV === 'development',
     });
@@ -68,9 +68,9 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
         // Add auth headers when we have real auth
         // 'Authorization': `Bearer ${token}`,
       },
-      timeout: 60000, // 60 seconds for larger files
-      limit: 5, // Number of concurrent uploads
-      chunkSize: 5000000, // 5MB chunks for resumable uploads
+      timeout: type === 'pcap' ? 120000 : 600000, // 2 min for PCAP, 10 min for large dictionaries
+      limit: 3, // Number of concurrent uploads
+      chunkSize: type === 'pcap' ? 5000000 : 10000000, // 5MB chunks for PCAP, 10MB for dictionaries
     });
 
     // Handle upload progress
@@ -81,6 +81,11 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
     // Handle upload success
     uppy.on('upload-success', (file, response) => {
       setUploadStatus(prev => ({ ...prev, [type]: 'success' }));
+
+      if (type === 'pcap') {
+        // Show success message with auto-extraction info
+        console.log('PCAP uploaded successfully - networks will be extracted automatically');
+      }
     });
 
     // Handle upload error
@@ -191,8 +196,8 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
     const Icon = type === 'pcap' ? Wifi : BookOpen;
     const title = type === 'pcap' ? 'Network Captures' : 'Password Dictionaries';
     const description = type === 'pcap'
-      ? 'Upload PCAP files for network analysis and cracking'
-      : 'Upload TXT dictionary files for password cracking';
+      ? 'Upload PCAP files - Networks will be automatically extracted'
+      : 'Upload TXT dictionary files for password cracking (up to 10GB)';
     const acceptedTypes = type === 'pcap' ? '.pcap' : '.txt';
     const uppy = uppyInstances[type];
     const files = uppy ? uppy.getFiles() : [];
@@ -273,7 +278,18 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
           </div>
         )}
 
-        
+        {/* Success Message */}
+        {uploadStatus[type] === 'success' && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-sm text-green-800 font-mono">
+              {type === 'pcap'
+                ? 'PCAP uploaded successfully! Networks are being extracted automatically.'
+                : 'Dictionary uploaded successfully!'}
+            </span>
+          </div>
+        )}
+
         {/* Upload Button */}
         <div className="flex justify-end">
           <Button
@@ -310,7 +326,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
             Upload Files
           </DialogTitle>
           <DialogDescription className="font-mono">
-            Upload PCAP files for network analysis and dictionaries for password cracking.
+            Upload PCAP files (auto-extract networks) and dictionaries for password cracking.
           </DialogDescription>
         </DialogHeader>
 

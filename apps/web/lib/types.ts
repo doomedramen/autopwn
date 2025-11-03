@@ -102,7 +102,30 @@ export interface CreateJobRequest {
   ruleFile?: string;
 }
 
+// Result types matching backend API
 export interface JobResult {
+  id: string;
+  jobId: string;
+  type: 'password' | 'handshake' | 'error';
+  data: any; // Contains password, handshake data, or error info
+  createdAt: string;
+  job?: {
+    id: string;
+    name: string;
+    networkId: string;
+    dictionaryId: string;
+    status: string;
+  };
+  network?: {
+    id: string;
+    ssid: string;
+    bssid: string;
+    encryption: string;
+  };
+}
+
+// Legacy JobResult for backward compatibility (for existing jobs)
+export interface LegacyJobResult {
   networkId: string;
   network: Network;
   password?: string;

@@ -36,14 +36,14 @@ export const pcapProcessingWorker = new Worker<PCAPProcessingJob>(
     const { networkId, filePath, originalFilename, userId } = job.data
 
     try {
-      await processPCAP({
-        networkId,
+      const result = await processPCAP({
+        networkId, // Can be undefined - networks will be auto-created
         filePath,
         originalFilename,
         userId,
       })
 
-      return { success: true, message: 'PCAP processed successfully' }
+      return { success: true, message: 'PCAP processed successfully', result }
     } catch (error) {
       console.error('PCAP processing failed:', error)
       throw error

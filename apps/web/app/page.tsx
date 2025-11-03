@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/api-hooks';
+import { useAuthSession, useNetworks, useDictionaries, useJobs, useUsers, useResults } from '@/lib/api-hooks';
 import { NetworksTab } from '@/components/networks-tab';
 import { DictionariesTab } from '@/components/dictionaries-tab';
 import { JobsTab } from '@/components/jobs-tab';
 import { UsersTab } from '@/components/users-tab';
+import { ResultsTab } from '@/components/results-tab';
 import { AdminTab } from '@/components/admin-tab';
 import { StatsCards } from '@/components/stats-cards';
 import { Button } from '@workspace/ui/components/button';
@@ -19,12 +20,13 @@ import {
   Skull,
   Upload,
   Plus,
-  Shield
+  Shield,
+  Key
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AvatarDropdown } from '@/components/avatar-dropdown';
 
-type TabType = 'networks' | 'dictionaries' | 'jobs' | 'users' | 'admin';
+type TabType = 'networks' | 'dictionaries' | 'jobs' | 'results' | 'users' | 'admin';
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState<TabType>('networks');
@@ -35,11 +37,13 @@ export default function Page() {
   const { data: dictionariesData } = useDictionaries();
   const { data: jobsData } = useJobs();
   const { data: usersData } = useUsers();
+  const { data: resultsData } = useResults();
 
   // Get counts for tabs
   const networksCount = networksData?.data?.length || 0;
   const dictionariesCount = dictionariesData?.data?.length || 0;
   const jobsCount = jobsData?.data?.length || 0;
+  const resultsCount = resultsData?.count || 0;
   const usersCount = usersData?.data?.length || 0;
 
   if (authData === undefined && !isLoading) {
@@ -72,6 +76,8 @@ export default function Page() {
         return <DictionariesTab />;
       case 'jobs':
         return <JobsTab />;
+      case 'results':
+        return <ResultsTab />;
       case 'users':
         return <UsersTab />;
       case 'admin':
@@ -89,6 +95,8 @@ export default function Page() {
         return <BookOpen className="h-4 w-4" />;
       case 'jobs':
         return <Package className="h-4 w-4" />;
+      case 'results':
+        return <Key className="h-4 w-4" />;
       case 'users':
         return <Users className="h-4 w-4" />;
       case 'admin':
@@ -148,6 +156,7 @@ export default function Page() {
               { id: 'networks', name: 'Networks', count: networksCount },
               { id: 'dictionaries', name: 'Dictionaries', count: dictionariesCount },
               { id: 'jobs', name: 'Jobs', count: jobsCount },
+              { id: 'results', name: 'Results', count: resultsCount },
               { id: 'users', name: 'Users', count: usersCount },
               ...(isAdmin ? [{ id: 'admin', name: 'Admin', count: 0 }] : []),
             ].map((tab) => (

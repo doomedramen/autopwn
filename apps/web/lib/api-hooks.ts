@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ApiClient } from './api'
+import { ApiClient, ResultsApi } from './api'
 import type {
   User,
   LoginRequest,
@@ -9,6 +9,7 @@ import type {
   Network,
   Dictionary,
   Job,
+  JobResult,
   PaginatedResponse,
 } from './types'
 
@@ -396,6 +397,93 @@ export function useCompleteUpload() {
 export function useDeleteUploadedFile(uploadId: string) {
   return useMutation({
     mutationFn: () => ApiClient.delete(`/api/upload/${uploadId}`),
+  })
+}
+
+// Results API hooks
+export function useResults(params?: {
+  jobId?: string;
+  networkId?: string;
+  type?: 'password' | 'handshake' | 'error';
+  limit?: number;
+  offset?: number;
+}) {
+  return useQuery({
+    queryKey: ['results', params],
+    queryFn: () => ResultsApi.getResults(params),
+    staleTime: 10 * 1000,
+    select: (data: any) => ({
+      data: data.data || [],
+      count: data.count || 0,
+      pagination: data.pagination || {
+        total: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false
+      }
+    }),
+  })
+}
+
+export function useResultsByJob(jobId: string) {
+  return useQuery({
+    queryKey: ['results', 'by-job', jobId],
+    queryFn: () => ResultsApi.getResultsByJob(jobId),
+    enabled: !!jobId,
+    staleTime: 10 * 1000,
+    select: (data: any) => ({
+      data: data.data || [],
+      count: data.count || 0
+    })
+  })
+}
+
+export function useResultsByNetwork(networkId: string) {
+  return useQuery({
+    queryKey: ['results', 'by-network', networkId],
+    queryFn: () => ResultsApi.getResultsByNetwork(networkId),
+    enabled: !!networkId,
+    staleTime: 10 * 1000,
+    select: (data: any) => ({
+      data: data.data || [],
+      count: data.count || 0,
+      network: data.network
+    })
+  })
+}
+
+export function useResult(id: string) {
+  return useQuery({
+    queryKey: ['results', id],
+    queryFn: () => ResultsApi.getResult(id),
+    enabled: !!id,
+    staleTime: 10 * 1000,
+  })
+}
+
+export function useCrackedPasswords() {
+  return useQuery({
+    queryKey: ['results', 'cracked-passwords'],
+    queryFn: () => ResultsApi.getCrackedPasswords(),
+    staleTime: 10 * 1000,
+    select: (data: any) => ({
+      data: data.data || [],
+      count: data.count || 0
+    })
+  })
+}
+
+export function useResultsStats() {
+  return useQuery({
+    queryKey: ['results', 'stats'],
+    queryFn: () => ResultsApi.getResultsStats(),
+    staleTime: 30 * 1000, // Stats change less frequently
+    select: (data: any) => ({
+      byType: data.data?.byType || {},
+      crackedNetworks: data.data?.crackedNetworks || 0,
+      totalNetworks: data.data?.totalNetworks || 0,
+      crackRate: data.data?.crackRate || 0
+    })
   })
 }
 

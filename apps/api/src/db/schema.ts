@@ -20,7 +20,7 @@ import {
 } from './jsonb-schemas'
 
 // Enums
-export const roleEnum = pgEnum('role', ['user', 'admin'])
+export const roleEnum = pgEnum('role', ['user', 'admin', 'superuser'])
 export const jobStatusEnum = pgEnum('job_status', ['pending', 'running', 'completed', 'failed', 'cancelled'])
 export const networkStatusEnum = pgEnum('network_status', ['ready', 'processing', 'failed'])
 export const dictionaryStatusEnum = pgEnum('dictionary_status', ['ready', 'uploading', 'processing', 'failed'])

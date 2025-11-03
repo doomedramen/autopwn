@@ -29,7 +29,8 @@ const envSchema = z.object({
 
   // File Upload
   UPLOAD_DIR: z.string().default('./uploads'),
-  MAX_FILE_SIZE: z.string().default('100MB'),
+  MAX_FILE_SIZE: z.string().default('500MB'),
+  MAX_DICTIONARY_SIZE: z.string().default('10GB'),
 
   // Email (for password reset, etc.)
   SMTP_HOST: z.string().optional(),
@@ -130,6 +131,7 @@ export const {
   JWT_SECRET,
   UPLOAD_DIR,
   MAX_FILE_SIZE,
+  MAX_DICTIONARY_SIZE,
   SMTP_HOST,
   SMTP_PORT,
   SMTP_USER,

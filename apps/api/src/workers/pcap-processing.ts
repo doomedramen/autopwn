@@ -8,7 +8,7 @@ import { analyzePCAPFile } from '@/lib/pcap-analyzer'
 import { logger } from '@/lib/logger'
 
 interface ProcessPCAPOptions {
-  networkId: string
+  networkId?: string // Optional - will create networks if not provided
   filePath: string
   originalFilename: string
   userId: string
@@ -22,21 +22,23 @@ export async function processPCAP({
 }: ProcessPCAPOptions) {
   try {
     logger.info('Starting PCAP processing', 'pcap-processing', {
-      networkId,
+      networkId: networkId || 'auto-create',
       filePath,
       originalFilename,
       userId
     })
 
-    // Update network status to processing
-    await db.update(networks)
-      .set({
-        status: 'processing',
-        updatedAt: new Date()
-      })
-      .where(eq(networks.id, networkId))
+    // If networkId is provided, update its status to processing
+    if (networkId) {
+      await db.update(networks)
+        .set({
+          status: 'processing',
+          updatedAt: new Date()
+        })
+        .where(eq(networks.id, networkId))
 
-    logger.info('Network status updated to processing', 'pcap-processing', { networkId })
+      logger.info('Network status updated to processing', 'pcap-processing', { networkId })
+    }
 
     // Analyze the PCAP file to extract network information
     const processedNetworks = await analyzePCAP(filePath)
@@ -57,35 +59,36 @@ export async function processPCAP({
       }))
     })
 
-    // Update the original network with extracted information
-    const mainNetwork = processedNetworks[0] // Use the first network as the main one
-    await db.update(networks)
-      .set({
+    const createdNetworkIds: string[] = []
+
+    // If networkId was provided, update it with the first network's info
+    // Otherwise, create new network records for all extracted networks
+    if (networkId) {
+      const mainNetwork = processedNetworks[0]
+      await db.update(networks)
+        .set({
+          ssid: mainNetwork.ssid,
+          bssid: mainNetwork.bssid,
+          encryption: mainNetwork.encryption,
+          channel: mainNetwork.channel,
+          frequency: mainNetwork.frequency,
+          signalStrength: mainNetwork.signalStrength,
+          status: 'ready',
+          notes: `Processed from ${originalFilename}. Found ${processedNetworks.length} networks.`,
+          updatedAt: new Date()
+        })
+        .where(eq(networks.id, networkId))
+
+      logger.info('Main network updated successfully', 'pcap-processing', {
+        networkId,
         ssid: mainNetwork.ssid,
         bssid: mainNetwork.bssid,
-        encryption: mainNetwork.encryption,
-        channel: mainNetwork.channel,
-        frequency: mainNetwork.frequency,
-        signalStrength: mainNetwork.signalStrength,
-        status: 'ready',
-        notes: `Processed from ${originalFilename}. Found ${processedNetworks.length} networks.`,
-        updatedAt: new Date()
-      })
-      .where(eq(networks.id, networkId))
-
-    logger.info('Main network updated successfully', 'pcap-processing', {
-      networkId,
-      ssid: mainNetwork.ssid,
-      bssid: mainNetwork.bssid,
-      encryption: mainNetwork.encryption
-    })
-
-    // Create additional network records if multiple networks found
-    if (processedNetworks.length > 1) {
-      logger.info('Creating additional network records', 'pcap-processing', {
-        additionalNetworks: processedNetworks.length - 1
+        encryption: mainNetwork.encryption
       })
 
+      createdNetworkIds.push(networkId)
+
+      // Create additional network records for remaining networks
       for (let i = 1; i < processedNetworks.length; i++) {
         const additionalNetwork = processedNetworks[i]
         const [newNetwork] = await db.insert(networks).values({
@@ -103,42 +106,80 @@ export async function processPCAP({
           updatedAt: new Date()
         }).returning()
 
+        createdNetworkIds.push(newNetwork.id)
+
         logger.debug('Additional network created', 'pcap-processing', {
           newNetworkId: newNetwork.id,
           ssid: additionalNetwork.ssid,
           bssid: additionalNetwork.bssid
         })
       }
+    } else {
+      // No networkId provided - create new network records for all extracted networks
+      logger.info('Creating new network records from PCAP', 'pcap-processing', {
+        networkCount: processedNetworks.length
+      })
+
+      for (let i = 0; i < processedNetworks.length; i++) {
+        const network = processedNetworks[i]
+        const [newNetwork] = await db.insert(networks).values({
+          ssid: network.ssid,
+          bssid: network.bssid,
+          encryption: network.encryption,
+          channel: network.channel,
+          frequency: network.frequency,
+          signalStrength: network.signalStrength,
+          status: 'ready',
+          notes: `Network ${i + 1} from ${originalFilename}`,
+          userId,
+          captureDate: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning()
+
+        createdNetworkIds.push(newNetwork.id)
+
+        logger.debug('Network created', 'pcap-processing', {
+          newNetworkId: newNetwork.id,
+          ssid: network.ssid,
+          bssid: network.bssid,
+          encryption: network.encryption
+        })
+      }
     }
 
     logger.info('PCAP processing completed successfully', 'pcap-processing', {
-      networkId,
+      networkId: networkId || 'auto-created',
       totalNetworks: processedNetworks.length,
+      createdNetworkIds,
       filePath
     })
 
     return {
       success: true,
       networksFound: processedNetworks.length,
-      networks: processedNetworks
+      networks: processedNetworks,
+      createdNetworkIds
     }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     logger.error('PCAP processing failed', 'pcap-processing', {
-      networkId,
+      networkId: networkId || 'none',
       filePath,
       error: errorMessage
     })
 
-    // Update network status to failed
-    await db.update(networks)
-      .set({
-        status: 'failed',
-        notes: `Processing failed: ${errorMessage}`,
-        updatedAt: new Date()
-      })
-      .where(eq(networks.id, networkId))
+    // If networkId was provided, update its status to failed
+    if (networkId) {
+      await db.update(networks)
+        .set({
+          status: 'failed',
+          notes: `Processing failed: ${errorMessage}`,
+          updatedAt: new Date()
+        })
+        .where(eq(networks.id, networkId))
+    }
 
     throw error
   }

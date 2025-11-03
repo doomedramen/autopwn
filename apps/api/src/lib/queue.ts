@@ -124,10 +124,11 @@ export const fileCleanupQueueEvents = new QueueEvents(QUEUE_NAMES.FILE_CLEANUP, 
 
 // Job types
 export interface PCAPProcessingJob {
-  networkId: string
+  networkId?: string // Optional - will be created if not provided
   filePath: string
   originalFilename: string
   userId: string
+  metadata?: any // Additional metadata from upload
 }
 
 export interface HashcatCrackingJob {

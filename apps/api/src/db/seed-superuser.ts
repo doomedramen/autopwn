@@ -56,8 +56,8 @@ export async function createSuperUser() {
     await db.insert(users).values({
       id: userId,
       email,
-      name: 'Admin User',
-      role: 'admin',
+      name: 'Super Admin',
+      role: 'superuser',
       emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),

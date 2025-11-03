@@ -6,7 +6,7 @@ import type { HonoAuthContext } from '../types/auth'
 
 export interface AuthContext {
   userId: string
-  userRole: 'user' | 'admin'
+  userRole: 'user' | 'admin' | 'superuser'
   userEmail: string
 }
 
@@ -30,7 +30,7 @@ export const authenticate = async (c: Context<HonoAuthContext>, next: Next) => {
     // Store user information in context
     const authContext: AuthContext = {
       userId: user.id,
-      userRole: (user.role as 'user' | 'admin') || 'user',
+      userRole: (user.role as 'user' | 'admin' | 'superuser') || 'user',
       userEmail: user.email
     }
 
@@ -55,12 +55,13 @@ export const authenticate = async (c: Context<HonoAuthContext>, next: Next) => {
 
 /**
  * Admin-only middleware - must be used after authenticate
+ * Note: Superuser also has admin privileges
  */
 export const requireAdmin = async (c: Context<HonoAuthContext>, next: Next) => {
   const userRole = c.get('userRole') as string
   const userId = c.get('userId')
 
-  if (userRole !== 'admin') {
+  if (userRole !== 'admin' && userRole !== 'superuser') {
     const adminError = createAuthorizationError('Access denied - Admin privileges required')
     logger.security('admin_access_denied', 'medium', {
       userId,
@@ -70,6 +71,28 @@ export const requireAdmin = async (c: Context<HonoAuthContext>, next: Next) => {
 
     // Re-throw to be handled by global error handler
     throw adminError
+  }
+
+  await next()
+}
+
+/**
+ * Superuser-only middleware - must be used after authenticate
+ */
+export const requireSuperuser = async (c: Context<HonoAuthContext>, next: Next) => {
+  const userRole = c.get('userRole') as string
+  const userId = c.get('userId')
+
+  if (userRole !== 'superuser') {
+    const superuserError = createAuthorizationError('Access denied - Superuser privileges required')
+    logger.security('superuser_access_denied', 'high', {
+      userId,
+      userRole,
+      attemptedResource: c.req.url
+    })
+
+    // Re-throw to be handled by global error handler
+    throw superuserError
   }
 
   await next()
@@ -87,7 +110,7 @@ export const optionalAuth = async (c: Context<HonoAuthContext>, next: Next) => {
     if (user) {
       const authContext: AuthContext = {
         userId: user.id,
-        userRole: (user.role as 'user' | 'admin') || 'user',
+        userRole: (user.role as 'user' | 'admin' | 'superuser') || 'user',
         userEmail: user.email
       }
 
@@ -123,10 +146,18 @@ export const getUserId = (c: Context<HonoAuthContext>): string => {
 }
 
 /**
- * Helper function to check if user is admin
+ * Helper function to check if user is admin or superuser
  */
 export const isAdmin = (c: Context<HonoAuthContext>): boolean => {
-  return c.get('userRole') === 'admin'
+  const userRole = c.get('userRole')
+  return userRole === 'admin' || userRole === 'superuser'
+}
+
+/**
+ * Helper function to check if user is superuser
+ */
+export const isSuperuser = (c: Context<HonoAuthContext>): boolean => {
+  return c.get('userRole') === 'superuser'
 }
 
 /**
