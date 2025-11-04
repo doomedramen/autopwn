@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AvatarDropdown } from '@/components/avatar-dropdown';
+import { SystemNotifications } from '@/components/system-notifications';
 
 type TabType = 'networks' | 'dictionaries' | 'jobs' | 'results' | 'users' | 'admin';
 
@@ -136,6 +137,7 @@ export default function Page() {
                   Create Jobs
                 </Button>
               </CreateJobModal>
+              <SystemNotifications />
               <ThemeToggle />
               <AvatarDropdown />
             </div>

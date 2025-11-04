@@ -49,8 +49,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
-# Start development server using system PATH
-CMD ["next", "dev"]
+# Start development server using npx
+CMD ["npx", "next", "dev"]
 
 # Production target - use pre-built assets
 FROM base AS production
@@ -82,4 +82,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Start production server with dumb-init
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["next", "start"]
+CMD ["npx", "next", "start"]

@@ -6,6 +6,7 @@ import { jobs, selectJobSchema } from '@/db/schema'
 import { eq, desc, and, isNull } from 'drizzle-orm'
 import { createNotFoundError, createValidationError } from '@/lib/error-handler'
 import { logger } from '@/lib/logger'
+import { getHashcatJob, removeHashcatJob } from '@/lib/queue'
 
 // Job update schema
 const updateJobSchema = z.object({
@@ -291,7 +292,7 @@ jobs.delete('/:id', async (c) => {
       }, 403)
     }
 
-    // Only allow cancellation of pending jobs
+    // Only allow cancellation of pending or running jobs
     if (!['pending', 'running'].includes(existingJob.status)) {
       return c.json({
         success: false,
@@ -300,23 +301,91 @@ jobs.delete('/:id', async (c) => {
       }, 400)
     }
 
+    let queueJobRemoved = false
+    let errorMessage = null
+
+    // Try to remove the job from the queue if it's pending or running
+    try {
+      const queueJob = await getHashcatJob(id)
+      if (queueJob) {
+        logger.info('removing_job_from_queue', 'jobs', {
+          jobId: id,
+          queueJobId: queueJob.id,
+          jobStatus: existingJob.status
+        })
+
+        await removeHashcatJob(id)
+        queueJobRemoved = true
+
+        logger.info('job_removed_from_queue', 'jobs', {
+          jobId: id,
+          queueJobRemoved: true
+        })
+      } else {
+        logger.warn('job_not_found_in_queue', 'jobs', {
+          jobId: id,
+          jobStatus: existingJob.status
+        })
+      }
+    } catch (queueError) {
+      logger.error('failed_to_remove_job_from_queue', 'jobs', {
+        jobId: id,
+        error: queueError instanceof Error ? queueError.message : 'Unknown error',
+        stack: queueError instanceof Error ? queueError.stack : undefined
+      })
+      errorMessage = queueError instanceof Error ? queueError.message : 'Unknown error'
+    }
+
+    // Update job status in database regardless of queue removal success
     const [cancelledJob] = await db.update(jobs)
       .set({
         status: 'cancelled',
+        endTime: new Date(),
+        errorMessage: errorMessage || 'Job cancelled by user',
         updatedAt: new Date()
       })
       .where(eq(jobs.id, id))
       .returning()
 
+    // Reset network status if job was running
+    if (existingJob.status === 'running' && existingJob.networkId) {
+      try {
+        const { networks } = await import('@/db/schema')
+        await db.update(networks)
+          .set({
+            status: 'ready',
+            updatedAt: new Date()
+          })
+          .where(eq(networks.id, existingJob.networkId))
+
+        logger.info('network_status_reset_after_job_cancellation', 'jobs', {
+          jobId: id,
+          networkId: existingJob.networkId
+        })
+      } catch (networkError) {
+        logger.error('failed_to_reset_network_status', 'jobs', {
+          jobId: id,
+          networkId: existingJob.networkId,
+          error: networkError instanceof Error ? networkError.message : 'Unknown error'
+        })
+      }
+    }
+
     logger.info('job_cancelled', 'jobs', {
       jobId: id,
       userId,
-      previousStatus: existingJob.status
+      previousStatus: existingJob.status,
+      queueJobRemoved,
+      errorMessage
     })
 
     return c.json({
       success: true,
-      data: cancelledJob
+      data: cancelledJob,
+      meta: {
+        queueJobRemoved,
+        wasRunning: existingJob.status === 'running'
+      }
     })
   } catch (error) {
     logger.error('cancel_job_error', 'jobs', {

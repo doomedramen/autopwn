@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { uploadRateLimit } from '@/middleware/rateLimit'
+// import { uploadRateLimit } from '@/middleware/rateLimit' // Temporarily disabled for testing
 import { fileSecurityMiddleware } from '@/middleware/fileSecurity'
 import { logger } from '@/lib/logger'
 import {
@@ -19,6 +19,7 @@ import { env } from '@/config/env'
 import { authMiddleware as authenticate, getUserId } from '@/middleware/auth'
 import { validatePCAPFileByName, quickPCAPValidation, getPCAPFileInfo } from '@/lib/pcap-validator'
 import { analyzePCAPFile } from '@/lib/pcap-analyzer'
+import { storageManager } from '@/lib/storage-manager'
 
 // Upload request validation schema
 const uploadSchema = z.object({
@@ -39,7 +40,7 @@ const upload = new Hono()
 
 // Apply authentication and upload-specific middleware
 upload.use('*', authenticate)
-upload.use('*', uploadRateLimit())
+// upload.use('*', uploadRateLimit()) // Temporarily disabled for testing
 upload.use('*', fileSecurityMiddleware({
   maxFileSize: 100 * 1024 * 1024, // 100MB
   allowedExtensions: ['.pcap', '.cap', '.pcapng', '.dmp'],
@@ -60,6 +61,28 @@ upload.post('/', zValidator('form', uploadSchema), async (c) => {
   try {
     const userId = getUserId(c)
     const { file, jobId, metadata } = c.req.valid('form')
+
+    if (!userId) {
+      return c.json({
+        success: false,
+        error: 'User not authenticated'
+      }, 401)
+    }
+
+    // Check storage quota before processing
+    const canUpload = await storageManager.checkUserQuota(userId, file.size)
+    if (!canUpload) {
+      const quotaInfo = await storageManager.getUserQuotaInfo(userId)
+      return c.json({
+        success: false,
+        error: 'QUOTA_EXCEEDED',
+        message: 'Storage quota exceeded',
+        data: {
+          quota: quotaInfo,
+          requestedSize: file.size
+        }
+      }, 413) // HTTP 413 Payload Too Large
+    }
 
     // Generate job ID if not provided
     const finalJobId = jobId || uuidv4()

@@ -161,10 +161,9 @@ export function ResultsTab({ className }: ResultsTabProps) {
             </div>
           </div>
           <div className="text-sm text-muted-foreground mt-2">
-            {statsData?.totalNetworks ? statsData.totalNetworks > 0
+            {statsData?.totalNetworks && statsData.totalNetworks > 0
               ? `${Math.round(statsData.crackRate)}% success rate`
-              : '0%'
-            }
+              : '0%'}
           </div>
         </div>
 

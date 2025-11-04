@@ -37,23 +37,7 @@ async function globalSetup() {
       }
     );
     console.log('✅ Database schema reset complete');
-
-    // Seed the superuser
-    console.log('👤 Creating test superuser...');
-    execSync(
-      `cd ${apiPath} && NODE_ENV=test DATABASE_URL="${databaseUrl}" pnpm run db:seed-superuser`,
-      {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          NODE_ENV: 'test',
-          DATABASE_URL: databaseUrl,
-          E2E_ADMIN_EMAIL: process.env.E2E_ADMIN_EMAIL || 'admin@autopwn.local',
-          E2E_ADMIN_PASSWORD: process.env.E2E_ADMIN_PASSWORD || 'admin123'
-        }
-      }
-    );
-    console.log('✅ Test superuser created');
+    console.log('👤 First user signup will automatically become admin');
 
   } catch (error) {
     console.error('❌ Database setup failed:', error);

@@ -108,7 +108,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["node", "apps/api/dist/index.js"]
+    command: ["sh", "-c", "cd apps/api && npx tsx src/index.ts"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s

@@ -6,12 +6,14 @@ import {
   PCAPProcessingJob,
   HashcatCrackingJob,
   DictionaryGenerationJob,
-  FileCleanupJob
+  FileCleanupJob,
+  StorageCleanupJob
 } from '@/lib/queue'
 import { processPCAP } from './pcap-processing'
 import { runHashcatAttack } from './hashcat'
 import { generateDictionary } from './dictionary-generation'
 import { cleanupFiles } from './file-cleanup'
+import { processStorageCleanup } from './storage-cleanup'
 
 // Create Redis connection for workers
 const redisConnection = new Redis({
@@ -131,6 +133,31 @@ export const fileCleanupWorker = new Worker<FileCleanupJob>(
       return { success: true, cleanedFiles: (result as any).length || 0 }
     } catch (error) {
       console.error('File cleanup failed:', error)
+      throw error
+    }
+  },
+  {
+    connection: redisConnection,
+    concurrency: 1,
+  }
+)
+
+// Storage Cleanup Worker
+export const storageCleanupWorker = new Worker<StorageCleanupJob>(
+  QUEUE_NAMES.STORAGE_CLEANUP,
+  async (job) => {
+    const { triggeredBy, retentionDays, dryRun } = job.data
+
+    try {
+      const result = await processStorageCleanup({
+        triggeredBy: triggeredBy || 'system',
+        retentionDays,
+        dryRun: dryRun || false,
+      })
+
+      return { success: true, ...result }
+    } catch (error) {
+      console.error('Storage cleanup failed:', error)
       throw error
     }
   },

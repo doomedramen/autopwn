@@ -30,6 +30,7 @@ export const QUEUE_NAMES = {
   HASHCAT_CRACKING: 'hashcat-cracking',
   DICTIONARY_GENERATION: 'dictionary-generation',
   FILE_CLEANUP: 'file-cleanup',
+  STORAGE_CLEANUP: 'storage-cleanup',
 } as const
 
 // Create queues
@@ -69,6 +70,15 @@ export const dictionaryGenerationQueue = new Queue(QUEUE_NAMES.DICTIONARY_GENERA
 })
 
 export const fileCleanupQueue = new Queue(QUEUE_NAMES.FILE_CLEANUP, {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 20,
+    attempts: 3,
+  },
+})
+
+export const storageCleanupQueue = new Queue(QUEUE_NAMES.STORAGE_CLEANUP, {
   connection: redisConnection,
   defaultJobOptions: {
     removeOnComplete: 100,
@@ -155,6 +165,12 @@ export interface FileCleanupJob {
   userId?: string
 }
 
+export interface StorageCleanupJob {
+  triggeredBy?: 'system' | 'manual'
+  retentionDays?: number
+  dryRun?: boolean
+}
+
 // Helper functions to add jobs
 export const addPCAPProcessingJob = async (data: PCAPProcessingJob) => {
   return await pcapProcessingQueue.add('process-pcap', data, {
@@ -170,6 +186,22 @@ export const addHashcatCrackingJob = async (data: HashcatCrackingJob) => {
   })
 }
 
+// Get job from queue by ID (for cancellation)
+export const getHashcatJob = async (jobId: string) => {
+  const job = await hashcatCrackingQueue.getJob(jobId)
+  return job
+}
+
+// Remove job from queue
+export const removeHashcatJob = async (jobId: string) => {
+  const job = await hashcatCrackingQueue.getJob(jobId)
+  if (job) {
+    await job.remove()
+    return job
+  }
+  return null
+}
+
 export const addDictionaryGenerationJob = async (data: DictionaryGenerationJob) => {
   return await dictionaryGenerationQueue.add('generate-dictionary', data, {
     priority: 8,
@@ -181,6 +213,13 @@ export const addFileCleanupJob = async (data: FileCleanupJob) => {
   return await fileCleanupQueue.add('cleanup-files', data, {
     priority: 1,
     delay: 1000 * 60 * 60, // 1 hour delay
+  })
+}
+
+export const addStorageCleanupJob = async (data: StorageCleanupJob) => {
+  return await storageCleanupQueue.add('cleanup-storage', data, {
+    priority: 2, // Higher priority than file cleanup
+    delay: 0,
   })
 }
 

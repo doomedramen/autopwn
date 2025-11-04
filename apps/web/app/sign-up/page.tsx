@@ -22,7 +22,7 @@ export default function SignUpPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-      const response = await fetch(`${apiUrl}/api/auth/sign-up`, {
+      const response = await fetch(`${apiUrl}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,8 +36,9 @@ export default function SignUpPage() {
         throw new Error(data.message || 'Sign up failed')
       }
 
-      // Redirect to sign-in page after successful sign up
-      router.push('/sign-in')
+      // Better Auth automatically signs in users after successful sign-up
+      // Redirect to dashboard
+      router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

@@ -1,6 +1,7 @@
 'use client';
 
 import { LogOut, Settings } from 'lucide-react';
+import Link from 'next/link';
 import {
   Avatar,
   AvatarFallback,
@@ -48,9 +49,11 @@ export function AvatarDropdown() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />

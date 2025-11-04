@@ -32,9 +32,17 @@ const envSchema = z.object({
   MAX_FILE_SIZE: z.string().default('500MB'),
   MAX_DICTIONARY_SIZE: z.string().default('10GB'),
 
+  // Storage Quotas
+  USER_QUOTA_BYTES: z.string().default('10737418240'), // 10GB per user
+  SYSTEM_QUOTA_BYTES: z.string().default('107374182400'), // 100GB system total
+  CLEANUP_THRESHOLD_PERCENT: z.string().default('85'), // Cleanup at 85% capacity
+  AUTO_CLEANUP_ENABLED: z.string().default('true'),
+  FILE_RETENTION_DAYS: z.string().default('30'), // Delete files unused for 30 days
+
   // Email (for password reset, etc.)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().default('587'),
+  SMTP_SECURE: z.string().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
@@ -48,8 +56,8 @@ const envSchema = z.object({
 
   // Security
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
-  RATE_LIMIT_WINDOW: z.string().default('900000'), // 15 minutes in ms
-  RATE_LIMIT_MAX: z.string().default('100'),
+  RATE_LIMIT_WINDOW: z.string().default('60000'), // 1 minute in ms
+  RATE_LIMIT_MAX: z.string().default('1000'), // 1000 requests per minute for development
 })
 
 function validateEnv() {
@@ -132,8 +140,14 @@ export const {
   UPLOAD_DIR,
   MAX_FILE_SIZE,
   MAX_DICTIONARY_SIZE,
+  USER_QUOTA_BYTES,
+  SYSTEM_QUOTA_BYTES,
+  CLEANUP_THRESHOLD_PERCENT,
+  AUTO_CLEANUP_ENABLED,
+  FILE_RETENTION_DAYS,
   SMTP_HOST,
   SMTP_PORT,
+  SMTP_SECURE,
   SMTP_USER,
   SMTP_PASS,
   SMTP_FROM,

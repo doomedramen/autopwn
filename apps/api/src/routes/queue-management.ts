@@ -105,41 +105,114 @@ queueManagement.post('/crack', zValidator('json', z.object({
 
 // Generate dictionary job
 queueManagement.post('/dictionary/generate', zValidator('json', z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(255),
   baseWords: z.array(z.string()).optional(),
   rules: z.array(z.string()).optional(),
   transformations: z.array(z.string()).optional(),
+  async: z.boolean().optional().default(true)
 })), async (c) => {
   const data = c.req.valid('json')
   const userId = getUserId(c)
 
   try {
-    // Add to queue
-    await addDictionaryGenerationJob({
-      name: data.name,
-      baseWords: data.baseWords,
-      rules: data.rules,
-      transformations: data.transformations,
-      userId
+    // Validate dictionary name uniqueness for user
+    const existingDictionary = await db.query.dictionaries.findFirst({
+      where: and(
+        eq(dictionaries.name, data.name),
+        eq(dictionaries.userId, userId)
+      )
     })
 
-    return c.json({
-      success: true,
-      message: 'Dictionary generation job queued successfully',
-      job: {
+    if (existingDictionary) {
+      return c.json({
+        success: false,
+        error: 'Dictionary name already exists',
+        message: 'You already have a dictionary with this name. Please choose a different name.'
+      }, 400)
+    }
+
+    // Validate input size to prevent resource exhaustion
+    if (data.baseWords && data.baseWords.length > 10000) {
+      return c.json({
+        success: false,
+        error: 'Too many base words',
+        message: 'Maximum 10,000 base words allowed per dictionary generation request.'
+      }, 400)
+    }
+
+    if (data.rules && data.rules.length > 100) {
+      return c.json({
+        success: false,
+        error: 'Too many rules',
+        message: 'Maximum 100 rules allowed per dictionary generation request.'
+      }, 400)
+    }
+
+    if (data.transformations && data.transformations.length > 50) {
+      return c.json({
+        success: false,
+        error: 'Too many transformations',
+        message: 'Maximum 50 transformations allowed per dictionary generation request.'
+      }, 400)
+    }
+
+    if (data.async) {
+      // Add to queue for asynchronous processing
+      const job = await addDictionaryGenerationJob({
         name: data.name,
-        baseWords: data.baseWords?.length || 0,
-        rules: data.rules?.length || 0,
-        transformations: data.transformations?.length || 0,
-        status: 'queued'
+        baseWords: data.baseWords || [],
+        rules: data.rules || [],
+        transformations: data.transformations || [],
+        userId
+      })
+
+      return c.json({
+        success: true,
+        message: 'Dictionary generation job queued successfully',
+        job: {
+          id: job.id,
+          name: data.name,
+          baseWords: data.baseWords?.length || 0,
+          rules: data.rules?.length || 0,
+          transformations: data.transformations?.length || 0,
+          status: 'queued'
+        },
+        estimatedTime: 'Dictionary generation will begin shortly and may take several minutes depending on complexity.'
+      })
+    } else {
+      // Synchronous generation for smaller requests
+      if (data.baseWords && data.baseWords.length > 1000) {
+        return c.json({
+          success: false,
+          error: 'Request too large for synchronous generation',
+          message: 'Requests with more than 1,000 base words must be processed asynchronously. Please set async=true.'
+        }, 400)
       }
-    })
+
+      // Import generateDictionary function for synchronous processing
+      const { generateDictionary } = await import('@/workers/dictionary-generation')
+
+      const newDictionary = await generateDictionary({
+        name: data.name,
+        baseWords: data.baseWords || [],
+        rules: data.rules || [],
+        transformations: data.transformations || [],
+        userId
+      })
+
+      return c.json({
+        success: true,
+        message: 'Dictionary generated successfully',
+        dictionary: newDictionary
+      })
+    }
 
   } catch (error) {
     console.error('Generate dictionary job error:', error)
     return c.json({
       success: false,
-      error: 'Failed to queue dictionary generation',
+      error: 'Failed to generate dictionary',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     }, 500)
   }
 })
@@ -189,6 +262,74 @@ queueManagement.get('/stats', async (c) => {
     return c.json({
       success: false,
       error: 'Failed to get queue statistics',
+    }, 500)
+  }
+})
+
+// Get predefined word lists and transformation options
+queueManagement.get('/dictionary/templates', async (c) => {
+  try {
+    const { defaultWordLists } = await import('@/workers/dictionary-generation')
+
+    const templates = {
+      wordLists: {
+        commonPasswords: {
+          name: 'Common Passwords',
+          description: 'Most frequently used passwords',
+          words: defaultWordLists.commonPasswords
+        },
+        commonWords: {
+          name: 'Common Words',
+          description: 'Frequently used English words',
+          words: defaultWordLists.commonWords
+        },
+        numbers: {
+          name: 'Numbers',
+          description: 'Single digits',
+          words: defaultWordLists.numbers
+        },
+        months: {
+          name: 'Months',
+          description: 'Month names',
+          words: defaultWordLists.months
+        }
+      },
+      transformations: [
+        { id: 'upper', name: 'Uppercase', description: 'Convert all letters to uppercase' },
+        { id: 'lower', name: 'Lowercase', description: 'Convert all letters to lowercase' },
+        { id: 'capitalize', name: 'Capitalize', description: 'Capitalize first letter only' },
+        { id: 'reverse', name: 'Reverse', description: 'Reverse the word' },
+        { id: 'leet', name: 'Leet Speak', description: 'Replace letters with numbers (e=3, a=4, o=0, s=5)' },
+        { id: 'duplicate', name: 'Duplicate', description: 'Duplicate the word (password -> passwordpassword)' },
+        { id: 'append_year', name: 'Append Year', description: 'Append current year (2024)' },
+        { id: 'append_1', name: 'Append 1', description: 'Append number 1' },
+        { id: 'prepend_1', name: 'Prepend 1', description: 'Prepend number 1' }
+      ],
+      commonRules: [
+        { rule: ':', name: 'No Change', description: 'Keep word as is' },
+        { rule: 'u', name: 'Uppercase', description: 'Convert to uppercase' },
+        { rule: 'l', name: 'Lowercase', description: 'Convert to lowercase' },
+        { rule: 'c', name: 'Capitalize', description: 'Capitalize first letter' },
+        { rule: 'r', name: 'Reverse', description: 'Reverse the word' },
+        { rule: 'd', name: 'Duplicate', description: 'Duplicate the word' },
+        { rule: '$1', name: 'Append 1', description: 'Append number 1' },
+        { rule: '$!', name: 'Append !', description: 'Append exclamation mark' },
+        { rule: '^1', name: 'Prepend 1', description: 'Prepend number 1' },
+        { rule: '^!', name: 'Prepend !', description: 'Prepend exclamation mark' }
+      ]
+    }
+
+    return c.json({
+      success: true,
+      data: templates
+    })
+
+  } catch (error) {
+    console.error('Get dictionary templates error:', error)
+    return c.json({
+      success: false,
+      error: 'Failed to get dictionary templates',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     }, 500)
   }
 })

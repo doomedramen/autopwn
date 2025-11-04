@@ -92,9 +92,12 @@ export const rateLimit = (options: {
   const {
     windowMs = parseInt(env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000, // 15 minutes default
     maxRequests = parseInt(env.RATE_LIMIT_MAX) || 100,
-    keyGenerator = (c: Context) => c.req.header('x-forwarded-for') ||
-                       c.req.header('x-real-ip') ||
-                       (c.env?.get?.('remote_addr')) || 'unknown',
+    keyGenerator = (c: Context) => {
+    if (!c?.req) return 'unknown'
+    return c.req.header('x-forwarded-for') ||
+           c.req.header('x-real-ip') ||
+           (c.env?.get?.('remote_addr')) || 'unknown'
+  },
     useRedis = env.NODE_ENV !== 'test' // Use Redis by default except in tests
   } = options
 
@@ -181,15 +184,21 @@ export const rateLimit = (options: {
     }
 
     // Add rate limit headers
-    c.res.headers.set('X-RateLimit-Limit', maxRequests.toString())
-    c.res.headers.set('X-RateLimit-Remaining', Math.max(0, maxRequests - count).toString())
-    c.res.headers.set('X-RateLimit-Backend', usingRedis ? 'redis' : 'memory')
+    if (c?.res?.headers) {
+      c.res.headers.set('X-RateLimit-Limit', maxRequests.toString())
+      c.res.headers.set('X-RateLimit-Remaining', Math.max(0, maxRequests - count).toString())
+      c.res.headers.set('X-RateLimit-Backend', usingRedis ? 'redis' : 'memory')
+    }
 
     try {
-      c.res.headers.set('X-RateLimit-Reset', new Date(resetTime).toISOString())
+      if (c?.res?.headers) {
+        c.res.headers.set('X-RateLimit-Reset', new Date(resetTime).toISOString())
+      }
     } catch (error) {
       // Fallback in case Date is mocked
-      c.res.headers.set('X-RateLimit-Reset', resetTime.toString())
+      if (c?.res?.headers) {
+        c.res.headers.set('X-RateLimit-Reset', resetTime.toString())
+      }
     }
 
     // Check if rate limit exceeded
@@ -209,7 +218,7 @@ export const rateLimit = (options: {
         windowMs,
         retryAfter,
         backend: usingRedis ? 'redis' : 'memory',
-        clientIP: (c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || (c.env?.get?.('remote_addr')))
+        clientIP: (c?.req?.header('x-forwarded-for') || c?.req?.header('x-real-ip') || (c?.env?.get?.('remote_addr')))
       })
 
       // Re-throw to be handled by global error handler
@@ -227,6 +236,7 @@ export const strictRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 10, // Stricter limit for auth endpoints
   keyGenerator: (c: Context) => {
+    if (!c?.req) return 'auth-unknown'
     const ip = c.req.header('x-forwarded-for') ||
                c.req.header('x-real-ip') ||
                (c.env?.get?.('remote_addr')) || 'unknown'
@@ -241,6 +251,7 @@ export const uploadRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   maxRequests: 20, // 20 uploads per hour
   keyGenerator: (c: Context) => {
+    if (!c?.req) return 'upload-unknown'
     const ip = c.req.header('x-forwarded-for') ||
                c.req.header('x-real-ip') ||
                (c.env?.get?.('remote_addr')) || 'unknown'

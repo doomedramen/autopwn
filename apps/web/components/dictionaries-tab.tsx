@@ -5,7 +5,7 @@ import { useDictionaries } from '@/lib/api-hooks';
 import { formatDate, formatFileSize, getStatusColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
 import { UploadModal } from '@/components/upload-modal';
-import { DictionaryGeneratorModal } from '@/components/dictionary-generator-modal';
+import { DictionaryGenerationModal } from '@/components/dictionary-generation-modal';
 import {
   BookOpen,
   FileText,
@@ -80,11 +80,11 @@ export function DictionariesTab({ className }: DictionariesTabProps) {
               Upload Dictionary
             </Button>
           </UploadModal>
-          <DictionaryGeneratorModal>
+          <DictionaryGenerationModal>
             <Button className="font-mono text-sm">
               Generate Dictionary
             </Button>
-          </DictionaryGeneratorModal>
+          </DictionaryGenerationModal>
         </div>
       </div>
 

@@ -40,8 +40,8 @@ COPY packages ./packages
 # Install API dependencies
 RUN cd apps/api && pnpm install
 
-# API build note: dist folder should be pre-built locally
-# RUN npx tsc --project apps/api/tsconfig.json --baseUrl . --outDir apps/api/dist --moduleResolution node
+# Install tsx for TypeScript execution
+RUN npm install -g tsx
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -60,8 +60,8 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3001/health || exit 1
 
-# Start development server
-CMD ["node", "apps/api/dist/index.js"]
+# Start development server with tsx (no compilation needed)
+CMD ["tsx", "watch", "apps/api/src/index.ts"]
 
 # Production build target - use the development target as base
 FROM development AS production
@@ -78,21 +78,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3001/health || exit 1
 
-# Production build target - use the development target as base
-FROM development AS production
-ENV NODE_ENV=production
-
-# The user and directories are already created in the development stage
-# Just switch to the non-root user
-USER apiuser
-
-# Expose port
-EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
-
-# Start production server with dumb-init
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "apps/api/dist/index-minimal.js"]
+# Start production server with tsx (same as development but different env)
+CMD ["tsx", "apps/api/src/index.ts"]

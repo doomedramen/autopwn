@@ -197,6 +197,10 @@ export function useJob(id: string) {
     queryFn: () => ApiClient.get(`/api/jobs/${id}`),
     enabled: !!id,
     staleTime: 5 * 1000,
+    select: (data: any) => ({
+      data: data.data,
+      success: data.success
+    })
   })
 }
 
@@ -262,11 +266,26 @@ export function useGenerateDictionary() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: { name: string; baseWords?: string[]; rules?: string[]; transformations?: string[] }) =>
+    mutationFn: (data: {
+      name: string;
+      baseWords?: string[];
+      rules?: string[];
+      transformations?: string[];
+      async?: boolean
+    }) =>
       ApiClient.post('/api/queue/dictionary/generate', data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['dictionaries'] })
+      queryClient.invalidateQueries({ queryKey: ['queue', 'stats'] })
     },
+  })
+}
+
+export function useDictionaryTemplates() {
+  return useQuery({
+    queryKey: ['dictionary', 'templates'],
+    queryFn: () => ApiClient.get('/api/queue/dictionary/templates'),
+    staleTime: 60 * 60 * 1000, // Cache templates for 1 hour
   })
 }
 
@@ -484,6 +503,68 @@ export function useResultsStats() {
       totalNetworks: data.data?.totalNetworks || 0,
       crackRate: data.data?.crackRate || 0
     })
+  })
+}
+
+// User profile hooks
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: { name?: string; image?: string }) =>
+      ApiClient.put('/auth/update-user', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'session'] })
+    },
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string; revokeOtherSessions?: boolean }) =>
+      ApiClient.post('/auth/change-password', data),
+  })
+}
+
+// Email verification hook
+export function useSendEmailVerification() {
+  return useMutation({
+    mutationFn: (data: { callbackURL?: string }) =>
+      ApiClient.post('/auth/send-verification-email', data),
+  })
+}
+
+// Password reset hooks
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (data: { email: string; redirectTo?: string }) =>
+      ApiClient.post('/auth/forgot-password', data),
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (data: { token: string; newPassword: string }) =>
+      ApiClient.post('/auth/reset-password', data),
+  })
+}
+
+// Storage statistics hooks
+export function useStorageStats() {
+  return useQuery({
+    queryKey: ['storage', 'stats'],
+    queryFn: () => ApiClient.get('/api/storage/stats'),
+    staleTime: 30 * 1000,
+    select: (data: any) => data.data || {}
+  })
+}
+
+export function useSystemStorageStats() {
+  return useQuery({
+    queryKey: ['storage', 'system-stats'],
+    queryFn: () => ApiClient.get('/api/storage/system-stats'),
+    staleTime: 30 * 1000,
+    select: (data: any) => data.data || {}
   })
 }
 

@@ -8,6 +8,7 @@ import path from 'path'
 import { validateFilePath, quotePathForShell, createSafePath } from '../lib/file-path-validator'
 import { logger } from '../lib/logger'
 import { extractHandshake, extractPMKID } from './pcap-processing'
+import { getWebSocketServer } from '../lib/websocket'
 
 const execAsync = promisify(exec)
 
@@ -139,7 +140,11 @@ export async function runHashcatAttack({
 
     // Execute hashcat with progress monitoring
     const result = await executeHashcat(hashcatCommand, jobId, (progress) => {
-      return updateJobProgress(jobId, progress)
+      return updateJobProgress(jobId, progress, {
+        stage: 'hashcat_execution',
+        attackMode,
+        command: hashcatCommand.replace(/\b([a-fA-F0-9]{32,})\b/g, '[REDACTED_HASH]')
+      })
     })
 
     logger.info('Hashcat execution completed', 'hashcat', {
@@ -149,6 +154,34 @@ export async function runHashcatAttack({
       stdoutLength: result.stdout.length,
       stderrLength: result.stderr.length
     })
+
+    // Check if job was cancelled before proceeding
+    const currentJob = await db.query.jobs.findFirst({
+      where: eq(jobs.id, jobId),
+      columns: { status: true }
+    })
+
+    if (currentJob && currentJob.status === 'cancelled') {
+      logger.info('Job was cancelled during hashcat execution', 'hashcat', {
+        jobId
+      })
+
+      // Update network status back to ready
+      await db.update(networks)
+        .set({
+          status: 'ready',
+          updatedAt: new Date()
+        })
+        .where(eq(networks.id, networkId))
+
+      // Job is already marked as cancelled in the database
+      // Just exit gracefully
+      return {
+        success: false,
+        cancelled: true,
+        message: 'Job was cancelled during execution'
+      }
+    }
 
     // Process results
     const crackedPasswords = await parseHashcatOutput(result, jobId)
@@ -346,6 +379,7 @@ async function executeHashcat(
 
   const startTime = Date.now()
   let lastProgressUpdate = 0
+  let childProcess: any = null
 
   try {
     // SECURITY: Split command to avoid shell injection
@@ -357,7 +391,7 @@ async function executeHashcat(
       throw new Error('Invalid command: must start with hashcat')
     }
 
-    const childProcess = require('child_process').spawn(commandParts[0], commandParts.slice(1), {
+    childProcess = require('child_process').spawn(commandParts[0], commandParts.slice(1), {
       cwd: workDir,
       shell: false, // SECURITY: Disabled to prevent shell injection
       stdio: ['ignore', 'pipe', 'pipe']
@@ -367,6 +401,44 @@ async function executeHashcat(
     let stderr = ''
     const stdoutChunks: Buffer[] = []
     const stderrChunks: Buffer[] = []
+
+    // Set up cancellation checking interval
+    const cancellationCheckInterval = setInterval(async () => {
+      try {
+        // Check if job has been cancelled in database
+        const job = await db.query.jobs.findFirst({
+          where: eq(jobs.id, jobId),
+          columns: { status: true }
+        })
+
+        if (job && job.status === 'cancelled') {
+          logger.info('Job cancellation detected, terminating hashcat process', 'hashcat', {
+            jobId,
+            currentStatus: job.status
+          })
+
+          // Kill the hashcat process gracefully
+          if (childProcess) {
+            childProcess.kill('SIGTERM')
+
+            // Force kill after 5 seconds if it doesn't terminate
+            setTimeout(() => {
+              if (childProcess && !childProcess.killed) {
+                logger.warn('Force killing hashcat process', 'hashcat', { jobId })
+                childProcess.kill('SIGKILL')
+              }
+            }, 5000)
+          }
+
+          clearInterval(cancellationCheckInterval)
+        }
+      } catch (error) {
+        logger.error('Error checking job cancellation status', 'hashcat', {
+          jobId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }
+    }, 2000) // Check every 2 seconds
 
     // Performance optimization: Stream output to reduce memory usage
     childProcess.stdout?.on('data', (chunk: Buffer) => {
@@ -388,13 +460,16 @@ async function executeHashcat(
 
     // Performance optimization: Add timeout handling
     const timeout = setTimeout(() => {
-      childProcess.kill('SIGTERM')
-      logger.warn('Hashcat execution timed out, terminating process', 'hashcat', { jobId })
+      if (childProcess && !childProcess.killed) {
+        childProcess.kill('SIGTERM')
+        logger.warn('Hashcat execution timed out, terminating process', 'hashcat', { jobId })
+      }
     }, 3600000) // 1 hour timeout
 
     return new Promise((resolve, reject) => {
       childProcess.on('close', (code: number) => {
         clearTimeout(timeout)
+        clearInterval(cancellationCheckInterval)
 
         const processingTime = Date.now() - startTime
 
@@ -420,6 +495,7 @@ async function executeHashcat(
 
       childProcess.on('error', (error: Error) => {
         clearTimeout(timeout)
+        clearInterval(cancellationCheckInterval)
         const processingTime = Date.now() - startTime
 
         logger.error('Hashcat process error', 'hashcat', {
@@ -658,21 +734,68 @@ async function ensureAttackFileExists(handshakePath: string, attackMode: 'pmkid'
 }
 
 /**
- * Update job progress in database
+ * Update job progress in database and broadcast via WebSocket
  */
-async function updateJobProgress(jobId: string, progress: number): Promise<void> {
+async function updateJobProgress(jobId: string, progress: number, metadata?: any): Promise<void> {
   try {
+    const updateData: any = {
+      progress: Math.max(0, Math.min(100, progress)),
+      updatedAt: new Date()
+    }
+
+    // Only update startTime if it's not already set
+    if (progress > 0) {
+      updateData.startTime = new Date()
+    }
+
     await db.update(jobs)
-      .set({
-        progress: Math.max(0, Math.min(100, progress)),
-        updatedAt: new Date()
-      })
+      .set(updateData)
       .where(eq(jobs.id, jobId))
 
     logger.debug('Job progress updated', 'hashcat', {
       jobId,
       progress
     })
+
+    // Broadcast progress update via WebSocket
+    try {
+      const wsServer = getWebSocketServer()
+
+      // Get current job data for the broadcast
+      const currentJob = await db.query.jobs.findFirst({
+        where: eq(jobs.id, jobId),
+        columns: {
+          id: true,
+          status: true,
+          progress: true,
+          startTime: true,
+          endTime: true,
+          errorMessage: true,
+          userId: true
+        }
+      })
+
+      if (currentJob) {
+        wsServer.broadcastJobUpdate({
+          id: currentJob.id,
+          status: currentJob.status,
+          progress: currentJob.progress,
+          startTime: currentJob.startTime?.toISOString(),
+          endTime: currentJob.endTime?.toISOString(),
+          errorMessage: currentJob.errorMessage || undefined,
+          metadata: {
+            ...metadata,
+            userId: currentJob.userId
+          }
+        })
+      }
+    } catch (wsError) {
+      logger.warn('Failed to broadcast progress update', 'hashcat', {
+        jobId,
+        progress,
+        error: wsError instanceof Error ? wsError.message : 'Unknown error'
+      })
+    }
   } catch (error) {
     logger.error('Failed to update job progress', 'hashcat', {
       jobId,

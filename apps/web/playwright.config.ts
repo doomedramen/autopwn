@@ -86,9 +86,12 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // Note: webServer management disabled to prevent resource conflicts and state pollution
-  // Tests are designed to work with SKIP_WEB_SERVER=true and external server management
-  webServer: undefined,
+  webServer: {
+    command: 'cd ../.. && SKIP_WEB_SERVER=false NODE_ENV=test PORT=3000 BASE_URL=http://localhost:3000 pnpm run dev',
+    port: 3000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000, // 2 minutes
+  },
   
   // Global setup for resource management
   globalSetup: './tests/global-setup',

@@ -1,7 +1,7 @@
 'use client';
 
-import { useNetworks, useDictionaries, useJobs, useUsers } from '@/lib/api-hooks';
-import { Radar, BookOpen, Package, Users } from 'lucide-react';
+import { useNetworks, useDictionaries, useJobs, useUsers, useStorageStats, useResultsStats } from '@/lib/api-hooks';
+import { Radar, BookOpen, Package, Users, HardDrive, Shield } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -54,6 +54,8 @@ export function StatsCards() {
   const { data: dictionariesData, isLoading: dictionariesLoading } = useDictionaries();
   const { data: jobsData, isLoading: jobsLoading } = useJobs();
   const { data: usersData, isLoading: usersLoading } = useUsers();
+  const { data: storageData, isLoading: storageLoading } = useStorageStats();
+  const { data: resultsStats, isLoading: resultsLoading } = useResultsStats();
 
   // Calculate stats
   const networks = networksData?.data || [];
@@ -66,7 +68,16 @@ export function StatsCards() {
   const totalJobs = jobs.length;
   const successRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
-  // Format word count
+  // Storage stats
+  const storageUsed = storageData?.totalSize || 0;
+  const storageQuota = storageData?.quota || 0;
+  const storagePercentage = storageQuota > 0 ? Math.round((storageUsed / storageQuota) * 100) : 0;
+
+  // Results stats
+  const crackedNetworks = resultsStats?.crackedNetworks || 0;
+  const crackRate = resultsStats?.crackRate || 0;
+
+  // Format functions
   const formatWordCount = (count: number) => {
     if (count >= 1000000) {
       return `${(count / 1000000).toFixed(1)}m`;
@@ -76,10 +87,21 @@ export function StatsCards() {
     return count.toString();
   };
 
-  const isLoading = networksLoading || dictionariesLoading || jobsLoading || usersLoading;
+  const formatStorageSize = (bytes: number) => {
+    if (bytes >= 1073741824) {
+      return `${(bytes / 1073741824).toFixed(1)}GB`;
+    } else if (bytes >= 1048576) {
+      return `${(bytes / 1048576).toFixed(1)}MB`;
+    } else if (bytes >= 1024) {
+      return `${(bytes / 1024).toFixed(1)}KB`;
+    }
+    return `${bytes}B`;
+  };
+
+  const isLoading = networksLoading || dictionariesLoading || jobsLoading || usersLoading || storageLoading || resultsLoading;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-testid="stats-cards">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4" data-testid="stats-cards">
       <StatCard
         title="Networks"
         value={networks.length}
@@ -107,6 +129,20 @@ export function StatsCards() {
         subtitle={`${completedJobs} of ${totalJobs} jobs`}
         icon={<Users className="h-6 w-6" />}
         isLoading={jobsLoading}
+      />
+      <StatCard
+        title="Storage Used"
+        value={`${storagePercentage}%`}
+        subtitle={`${formatStorageSize(storageUsed)} of ${formatStorageSize(storageQuota)}`}
+        icon={<HardDrive className="h-6 w-6" />}
+        isLoading={storageLoading}
+      />
+      <StatCard
+        title="Cracked"
+        value={`${crackRate}%`}
+        subtitle={`${crackedNetworks} networks`}
+        icon={<Shield className="h-6 w-6" />}
+        isLoading={resultsLoading}
       />
     </div>
   );

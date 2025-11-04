@@ -4,6 +4,8 @@ import { useJobs } from '@/lib/api-hooks';
 import { formatDate, formatDuration, getStatusColor } from '@/lib/utils';
 import { Button } from '@workspace/ui/components/button';
 import { CreateJobModal } from '@/components/create-job-modal';
+import { JobProgressBar } from '@/components/job-progress-bar';
+import { JobDetailModal } from '@/components/job-detail-modal';
 import {
   Play,
   Pause,
@@ -146,9 +148,11 @@ export function JobsTab({ className }: JobsTabProps) {
                 <tr key={job.id} className="hover:bg-muted/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium">
-                        {job.name}
-                      </div>
+                      <JobDetailModal jobId={job.id}>
+                        <button className="text-sm font-medium text-left hover:text-primary transition-colors">
+                          {job.name}
+                        </button>
+                      </JobDetailModal>
                       <div className="text-xs text-muted-foreground">
                         {formatDate(job.createdAt)}
                       </div>
@@ -161,17 +165,13 @@ export function JobsTab({ className }: JobsTabProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 bg-muted rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full"
-                          style={{ width: `${job.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-muted-foreground">
-                        {job.progress}%
-                      </span>
-                    </div>
+                    <JobProgressBar
+                      jobId={job.id}
+                      initialStatus={job.status}
+                      initialProgress={job.progress}
+                      showDetails={false}
+                      className="min-w-[200px]"
+                    />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className="inline-flex items-center gap-1">

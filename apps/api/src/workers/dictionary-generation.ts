@@ -4,6 +4,7 @@ import { env } from '@/config/env'
 import { promises as fs } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import { getWebSocketServer } from '@/lib/websocket'
 
 interface GenerateDictionaryOptions {
   name: string
@@ -11,6 +12,32 @@ interface GenerateDictionaryOptions {
   rules?: string[]
   transformations?: string[]
   userId: string
+}
+
+// Helper function to broadcast dictionary generation progress
+async function broadcastDictionaryProgress(
+  dictionaryId: string,
+  progress: number,
+  stage: string,
+  metadata?: any
+): Promise<void> {
+  try {
+    const wsServer = getWebSocketServer()
+
+    wsServer.broadcastJobUpdate({
+      id: dictionaryId,
+      status: 'running',
+      progress,
+      metadata: {
+        type: 'dictionary_generation',
+        stage,
+        ...metadata
+      }
+    })
+  } catch (error) {
+    // Log but don't fail the operation if WebSocket fails
+    console.warn('Failed to broadcast dictionary progress:', error)
+  }
 }
 
 export async function generateDictionary({
@@ -25,13 +52,25 @@ export async function generateDictionary({
     const workDir = path.join(process.cwd(), 'temp', 'dict-generation', crypto.randomUUID())
     await fs.mkdir(workDir, { recursive: true })
 
+    // Broadcast initial progress
+    await broadcastDictionaryProgress(name, 5, 'initializing', {
+      baseWordsCount: baseWords.length,
+      rulesCount: rules.length,
+      transformationsCount: transformations.length
+    })
+
     // Generate the dictionary content
+    await broadcastDictionaryProgress(name, 25, 'generating_content')
+
     const dictionaryContent = await createDictionaryContent({
       baseWords,
       rules,
       transformations,
       workDir
     })
+
+    // Broadcast content generation complete
+    await broadcastDictionaryProgress(name, 75, 'writing_file')
 
     // Generate unique filename
     const fileHash = crypto.createHash('sha256').update(dictionaryContent).digest('hex')
@@ -63,12 +102,24 @@ export async function generateDictionary({
       updatedAt: new Date()
     }).returning()
 
+    // Broadcast completion
+    await broadcastDictionaryProgress(name, 100, 'completed', {
+      wordCount,
+      size: dictionaryContent.length,
+      dictionaryId: newDictionary.id
+    })
+
     // Cleanup temporary directory
     await fs.rm(workDir, { recursive: true, force: true })
 
     return newDictionary
 
   } catch (error) {
+    // Broadcast error
+    await broadcastDictionaryProgress(name, 0, 'failed', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+
     throw new Error(`Dictionary generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }

@@ -6,43 +6,28 @@ import Link from 'next/link'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
+import { Alert, AlertDescription } from '@workspace/ui/components/alert'
+import { useLogin } from '@/lib/api-hooks'
+import { AlertCircle } from 'lucide-react'
 
 export default function SignInPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const loginMutation = useLogin()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-      const response = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    loginMutation.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          router.push('/')
+          router.refresh()
         },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || 'Sign in failed')
       }
-
-      // Redirect to home page after successful sign in
-      router.push('/')
-      router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
+    )
   }
 
   return (
@@ -72,7 +57,7 @@ export default function SignInPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="font-mono text-sm uppercase">Email</Label>
               <Input
                 id="email"
                 name="email"
@@ -80,14 +65,14 @@ export default function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading}
-                className="mt-1"
+                disabled={loginMutation.isPending}
+                className="mt-1 font-mono"
                 data-testid="signin-email-input"
               />
             </div>
 
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="font-mono text-sm uppercase">Password</Label>
               <Input
                 id="password"
                 name="password"
@@ -95,22 +80,36 @@ export default function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading}
-                className="mt-1"
+                disabled={loginMutation.isPending}
+                className="mt-1 font-mono"
                 data-testid="signin-password-input"
               />
             </div>
 
-            {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded" data-testid="signin-error-message">
-                {error}
-              </div>
+            {loginMutation.error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription data-testid="signin-error-message">
+                  {loginMutation.error.message || 'Sign in failed'}
+                </AlertDescription>
+              </Alert>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading} data-testid="signin-submit-button">
-              {loading ? 'Signing in...' : 'Sign In'}
+            <Button type="submit" className="w-full font-mono text-sm uppercase" disabled={loginMutation.isPending} data-testid="signin-submit-button">
+              {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+
+          {/* Forgot password link */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-primary hover:underline font-mono"
+              data-testid="forgot-password-link"
+            >
+              Forgot your password?
+            </Link>
+          </div>
 
           {/* Sign up link */}
           <div className="mt-6 text-center" data-testid="signup-link-container">

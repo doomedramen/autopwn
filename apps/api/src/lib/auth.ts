@@ -1,8 +1,10 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { eq, sql } from 'drizzle-orm'
 import { env } from '@/config/env'
 import { db } from '@/db'
 import * as schema from '@/db/schema'
+import { emailService } from '@/lib/email'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -19,7 +21,26 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false, // Set to true in production
     minPasswordLength: 8,
-    sendEmailVerificationOnSignUp: true,
+    sendResetPassword: async ({ user, url, token }, request) => {
+      await emailService.sendPasswordResetEmail(user.email, url)
+    },
+    onPasswordReset: async ({ user }, request) => {
+      console.log(`Password for user ${user.email} has been reset.`)
+    },
+    // Make first user who signs up a superuser
+    onSignUp: async ({ user }, request) => {
+      // Check if this is the first user in the system
+      const userCount = await db.select({ count: sql`count(*)` }).from(schema.users)
+      const isFirstUser = Number(userCount[0]?.count || 0) === 1
+
+      if (isFirstUser) {
+        // Make this user a superuser
+        await db.update(schema.users)
+          .set({ role: 'admin' })
+          .where(eq(schema.users.id, user.id))
+        console.log(`First user ${user.email} has been made a superuser.`)
+      }
+    },
   },
   socialProviders: {
     // Add social providers if needed
@@ -49,10 +70,11 @@ export const auth = betterAuth({
       enabled: true,
     },
   },
-  email: {
-    // Configure email settings
-    enabled: true,
-    from: "AutoPWN <noreply@autopwn.local>",
+  emailVerification: {
+    sendOnSignUp: false, // We'll handle this manually for now
+    sendVerificationEmail: async ({ user, url, token }, request) => {
+      await emailService.sendVerificationEmail(user.email, url)
+    },
   },
   trustedOrigins: [
     'http://localhost:3000',
