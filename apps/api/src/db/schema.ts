@@ -21,6 +21,12 @@ import {
 
 // Enums
 export const roleEnum = pgEnum("role", ["user", "admin", "superuser"]);
+export const jobPriorityEnum = pgEnum("job_priority", [
+  "low",
+  "normal",
+  "high",
+  "critical",
+]);
 export const jobStatusEnum = pgEnum("job_status", [
   "pending",
   "scheduled",
@@ -154,6 +160,7 @@ export const jobs = pgTable("jobs", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   status: jobStatusEnum("status").default("pending").notNull(),
+  priority: jobPriorityEnum("priority").default("normal").notNull(),
   networkId: uuid("network_id")
     .references(() => networks.id, { onDelete: "cascade" })
     .notNull(),
@@ -174,6 +181,7 @@ export const jobs = pgTable("jobs", {
   scheduledAt: timestamp("scheduled_at"),
   cancelledAt: timestamp("cancelled_at"),
   dependsOn: jsonb("depends_on").$type<string[]>().default([]),
+  tags: varchar("tags", { length: 255 }).array().default([]),
 });
 
 // Job results table for captured handshakes/cracked passwords
