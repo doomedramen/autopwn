@@ -11,7 +11,7 @@ import { environmentAwareCORS, publicApiCORS } from "./middleware/cors";
 // Import routes
 import { authRoutes } from "./routes/auth";
 import { usersRoutes } from "./routes/users";
-import { jobsRoutes } from "./routes/jobs";
+import { jobManagementRoutes } from "./routes/jobs";
 import { networksRoutes } from "./routes/networks";
 import { dictionariesRoutes } from "./routes/dictionaries";
 import { resultsRoutes } from "./routes/results";

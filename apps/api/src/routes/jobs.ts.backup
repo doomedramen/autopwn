@@ -9,22 +9,24 @@ import {
   createValidationError,
 } from "@/lib/error-handler";
 import { logger } from "@/lib/logger";
+import { getHashcatJob, removeHashcatJob } from "@/lib/queue";
 import { auditService } from "@/services/audit.service";
 import { getUserId } from "@/lib/auth";
-import { getHashcatJob, removeHashcatJob } from "@/lib/queue";
 
-const jobManagementRoutes = new Hono();
+const jobs = new Hono();
 
-jobManagementRoutes.use("*", async (c, next) => {
-  const userId = c.get("userId");
-  c.set("userId", userId);
-  await next();
+// Job update schema
+const updateJobSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  status: z
+    .enum(["pending", "running", "completed", "failed", "cancelled"])
+    .optional(),
+  progress: z.number().min(0).max(100).optional(),
+  hashcatMode: z.number().optional(),
 });
 
-/**
- * GET /api/jobs - Get all jobs with filtering and pagination
- */
-jobManagementRoutes.get("/", async (c) => {
+jobs.get("/", async (c) => {
   try {
     const userId = c.get("userId");
     const page = parseInt(c.req.query("page") || "1");
@@ -67,23 +69,20 @@ jobManagementRoutes.get("/", async (c) => {
   } catch (error) {
     logger.error("get_jobs_error", "jobs", {
       error: error.message,
+      userId: c.get("userId"),
     });
 
     return c.json(
       {
         success: false,
         error: "Failed to get jobs",
-        message: error.message,
       },
       500,
     );
   }
 });
 
-/**
- * GET /api/jobs/:id - Get a specific job
- */
-jobManagementRoutes.get("/:id", async (c) => {
+jobs.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
@@ -123,15 +122,13 @@ jobManagementRoutes.get("/:id", async (c) => {
   } catch (error) {
     logger.error("get_job_error", "jobs", {
       error: error.message,
-      id: c.req.param("id"),
-      userId: c.get("userId"),
+      jobId: c.req.param("id"),
     });
 
     return c.json(
       {
         success: false,
         error: "Failed to get job",
-        message: error.message,
       },
       500,
     );
@@ -141,17 +138,13 @@ jobManagementRoutes.get("/:id", async (c) => {
 /**
  * POST /api/jobs/:id/cancel - Cancel a job
  */
-jobManagementRoutes.post("/:id/cancel", async (c) => {
+jobs.post("/:id/cancel", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
 
     const existingJob = await db.query.jobs.findFirst({
       where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
     });
 
     if (!existingJob) {
@@ -295,7 +288,7 @@ jobManagementRoutes.post("/:id/cancel", async (c) => {
 /**
  * POST /api/jobs/bulk-cancel - Cancel multiple jobs
  */
-jobManagementRoutes.post(
+jobs.post(
   "/bulk-cancel",
   zValidator(
     "json",
@@ -309,15 +302,7 @@ jobManagementRoutes.post(
       const { jobIds } = c.req.valid("json");
 
       const jobsToCancel = await db.query.jobs.findMany({
-        where: and(
-          inArray(jobs.id, jobIds),
-          eq(jobs.userId, userId),
-          inArray(jobs.status, ["pending", "scheduled"]),
-        ),
-        with: {
-          network: true,
-          dictionary: true,
-        },
+        where: and(inArray(jobs.id, jobIds), eq(jobs.userId, userId)),
       });
 
       if (jobsToCancel.length === 0) {
@@ -353,6 +338,12 @@ jobManagementRoutes.post(
                   : "Unknown error",
             });
           }
+        } else if (["completed", "failed", "cancelled"].includes(job.status)) {
+          results.push({
+            id: job.id,
+            status: "error",
+            error: `Job is already ${job.status}`,
+          });
         } else {
           await db
             .update(jobs)
@@ -369,7 +360,7 @@ jobManagementRoutes.post(
             message: "Job cancelled successfully",
           });
 
-          if (job.networkId) {
+          if (job.networkId && job.status === "pending") {
             try {
               const { networks } = await import("@/db/schema");
               await db
@@ -441,7 +432,7 @@ jobManagementRoutes.post(
 /**
  * POST /api/jobs/:id/schedule - Schedule a job
  */
-jobManagementRoutes.post(
+jobs.post(
   "/:id/schedule",
   zValidator(
     "json",
@@ -456,15 +447,11 @@ jobManagementRoutes.post(
       const userId = c.get("userId");
       const { scheduledAt, dependsOn } = c.req.valid("json");
 
-      const existingJob = await db.query.jobs.findFirst({
+      const job = await db.query.jobs.findFirst({
         where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-        with: {
-          network: true,
-          dictionary: true,
-        },
       });
 
-      if (!existingJob) {
+      if (!job) {
         return c.json(
           {
             success: false,
@@ -474,7 +461,7 @@ jobManagementRoutes.post(
         );
       }
 
-      if (existingJob.userId !== userId) {
+      if (job.userId !== userId) {
         return c.json(
           {
             success: false,
@@ -485,15 +472,13 @@ jobManagementRoutes.post(
       }
 
       if (
-        ["running", "completed", "failed", "cancelled"].includes(
-          existingJob.status,
-        )
+        ["running", "completed", "failed", "cancelled"].includes(job.status)
       ) {
         return c.json(
           {
             success: false,
             error: "Job cannot be scheduled",
-            message: `Job is already ${existingJob.status}`,
+            message: `Job is already ${job.status}`,
           },
           400,
         );
@@ -516,7 +501,7 @@ jobManagementRoutes.post(
       if (dependsOn && dependsOn.length > 0) {
         const depJobs = await db.query.jobs.findMany({
           where: inArray(jobs.id, dependsOn),
-          columns: { id: true, name: true, status: true },
+          columns: { id: true, status: true },
         });
 
         const incompleteDeps = depJobs.filter((j) => j.status !== "completed");
@@ -595,8 +580,7 @@ jobManagementRoutes.post(
       return c.json({
         success: true,
         data: {
-          id: existingJob.id,
-          name: existingJob.name,
+          id: job.id,
           status: "scheduled",
           scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
           dependsOn,
@@ -634,7 +618,7 @@ jobManagementRoutes.post(
 /**
  * GET /api/jobs/scheduled - List scheduled jobs
  */
-jobManagementRoutes.get("/scheduled", async (c) => {
+jobs.get("/scheduled", async (c) => {
   try {
     const userId = c.get("userId");
     const page = parseInt(c.req.query("page") || "1");
@@ -700,17 +684,13 @@ jobManagementRoutes.get("/scheduled", async (c) => {
 /**
  * GET /api/jobs/:id/dependencies - Get job dependencies
  */
-jobManagementRoutes.get("/:id/dependencies", async (c) => {
+jobs.get("/:id/dependencies", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
 
     const job = await db.query.jobs.findFirst({
       where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
     });
 
     if (!job) {
@@ -723,22 +703,17 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
       );
     }
 
-    if (job.userId !== userId) {
-      return c.json(
-        {
-          success: false,
-          error: "Access denied",
-        },
-        403,
-      );
-    }
-
     let dependencies = [];
 
     if (job.dependsOn && job.dependsOn.length > 0) {
       const depJobs = await db.query.jobs.findMany({
         where: inArray(jobs.id, job.dependsOn),
-        columns: { id: true, name: true, status: true, scheduledAt: true },
+        columns: {
+          id: true,
+          name: true,
+          status: true,
+          scheduledAt: true,
+        },
       });
 
       dependencies = depJobs.map((depJob) => ({
@@ -756,7 +731,7 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
       where: and(
         eq(jobs.userId, userId),
         isNotNull(jobs.dependsOn),
-        sql`jsonb_array_exists(${job.dependsOn}, ?${id})`,
+        sql`jsonb_array_exists(${jobs.dependsOn}, ?${id})`,
       ),
       columns: {
         id: true,
@@ -767,7 +742,6 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
 
     logger.info("job_dependencies_retrieved", "jobs", {
       jobId: id,
-      userId,
       dependenciesCount: dependencies.length,
       dependentCount: dependentJobs.length,
     });
@@ -805,17 +779,13 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
 /**
  * POST /api/jobs/:id/retry - Retry failed job
  */
-jobManagementRoutes.post("/:id/retry", async (c) => {
+jobs.post("/:id/retry", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
 
     const job = await db.query.jobs.findFirst({
       where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
     });
 
     if (!job) {
@@ -924,4 +894,56 @@ jobManagementRoutes.post("/:id/retry", async (c) => {
   }
 });
 
-export { jobManagementRoutes };
+/**
+ * GET /api/jobs/stats - Get job statistics
+ */
+jobs.get("/stats", async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const userJobs = await db.query.jobs.findMany({
+      where: eq(jobs.userId, userId),
+      columns: {
+        status: true,
+      },
+    });
+
+    const stats = {
+      total: userJobs.length,
+      pending: userJobs.filter(
+        (job) => job.status === "pending" || job.status === "scheduled",
+      ).length,
+      running: userJobs.filter((job) => job.status === "running").length,
+      completed: userJobs.filter((job) => job.status === "completed").length,
+      failed: userJobs.filter((job) => job.status === "failed").length,
+      cancelled: userJobs.filter((job) => job.status === "cancelled").length,
+      scheduled: userJobs.filter((job) => job.status === "scheduled").length,
+    };
+
+    logger.info("job_stats_retrieved", "jobs", {
+      userId,
+      ...stats,
+    });
+
+    return c.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    logger.error("job_stats_error", "jobs", {
+      error: error.message,
+      userId: c.get("userId"),
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get job statistics",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+export { jobs as jobsRoutes };
