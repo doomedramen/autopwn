@@ -2,8 +2,6 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { db } from "./index";
-import { captures } from "./schema";
-import { eq, desc } from "drizzle-orm";
 import {
   authenticate,
   getUserId,
@@ -12,6 +10,9 @@ import {
 } from "./middleware/auth";
 import { logger } from "./lib/logger";
 import { CapturesService } from "./services/captures.service";
+import { createConfiguredRateLimit } from "../middleware/rate-limit";
+import { createConfiguredRateLimit } from "../middleware/rate-limit";
+import { createConfiguredRateLimit } from "../middleware/rate-limit";
 
 // TODO: Uncomment when rateLimit middleware is fixed
 // import { uploadRateLimit } from './middleware/rateLimit'
@@ -91,59 +92,63 @@ capturesRouter.get("/", async (c) => {
  * POST /api/v1/captures/upload
  * Upload a new PCAP file
  */
-capturesRouter.post("/upload", async (c) => {
-  try {
-    const userId = getUserId(c);
-    const { file, metadata } = c.req.valid("form");
+capturesRouter.post(
+  "/upload",
+  createConfiguredRateLimit("upload"),
+  async (c) => {
+    try {
+      const userId = getUserId(c);
+      const { file, metadata } = c.req.valid("form");
 
-    const capture = await CapturesService.create({
-      filename: file.name,
-      userId,
-      fileSize: file.size,
-      filePath: `/data/uploads/captures/${userId}/${file.name}`,
-      metadata,
-    });
+      const capture = await CapturesService.create({
+        filename: file.name,
+        userId,
+        fileSize: file.size,
+        filePath: `/data/uploads/captures/${userId}/${file.name}`,
+        metadata,
+      });
 
-    logger.info("Capture created", "captures", {
-      captureId: capture.id,
-      userId,
-      filename: file.name,
-      fileSize: file.size,
-    });
+      logger.info("Capture created", "captures", {
+        captureId: capture.id,
+        userId,
+        filename: file.name,
+        fileSize: file.size,
+      });
 
-    return c.json(
-      {
-        success: true,
-        data: {
-          id: capture.id,
-          filename: capture.filename,
-          fileSize: capture.fileSize,
-          status: capture.status,
-          uploadedAt: capture.uploadedAt,
+      return c.json(
+        {
+          success: true,
+          data: {
+            id: capture.id,
+            filename: capture.filename,
+            fileSize: capture.fileSize,
+            status: capture.status,
+            uploadedAt: capture.uploadedAt,
+          },
         },
-      },
-      201,
-    );
-  } catch (error) {
-    logger.error(
-      "Upload capture error",
-      "captures",
-      error instanceof Error ? error : new Error(String(error)),
-      {
-        userId: getUserId(c),
-        filename: c.req.valid("form")?.file?.name,
-      },
-    );
+        201,
+      );
+    } catch (error) {
+      logger.error(
+        "Upload capture error",
+        "captures",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          userId: getUserId(c),
+          filename: c.req.valid("form")?.file?.name,
+        },
+      );
 
-    return c.json(
-      {
-        success: false,
-        error: "Failed to upload capture",
-      },
-      500,
-    );
-  }
-});
+      return c.json(
+        {
+          success: false,
+          error: "Failed to upload capture",
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * GET /api/v1/captures/:id
