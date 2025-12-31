@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { config } from "@/db/schema";
+import { db } from "./index";
+import { config } from "./schema";
 
 const initialConfig = [
   {
@@ -17,39 +17,39 @@ const initialConfig = [
   },
   {
     id: "maxPcapSize",
-    value: 524288000, // 500MB in bytes
+    value: 524288000,
     description: "Maximum PCAP file upload size in bytes",
     category: "general" as const,
     type: "number" as const,
     defaultValue: 524288000,
-    minValue: 1048576, // 1MB
-    maxValue: 2147483648, // 2GB
+    minValue: 1048576,
+    maxValue: 2147483648,
     isReadOnly: false,
     requiresRestart: false,
     updatedAt: new Date(),
   },
   {
     id: "maxDictionarySize",
-    value: 10737418240, // 10GB in bytes
+    value: 10737418240,
     description: "Maximum dictionary file size in bytes",
     category: "general" as const,
     type: "number" as const,
     defaultValue: 10737418240,
-    minValue: 1048576, // 1MB
-    maxValue: 5368709120, // 500GB
+    minValue: 1048576,
+    maxValue: 5368709120,
     isReadOnly: false,
     requiresRestart: false,
     updatedAt: new Date(),
   },
   {
     id: "maxGeneratedDictSize",
-    value: 21474836480, // 20GB in bytes
+    value: 21474836480,
     description: "Maximum generated dictionary file size in bytes",
     category: "general" as const,
     type: "number" as const,
     defaultValue: 21474836480,
-    minValue: 1048576, // 1MB
-    maxValue: 107374182400, // 100GB
+    minValue: 1048576,
+    maxValue: 107374182400,
     isReadOnly: false,
     requiresRestart: false,
     updatedAt: new Date(),
@@ -70,13 +70,13 @@ const initialConfig = [
   },
   {
     id: "hashcatJobTimeout",
-    value: 86400, // 24 hours in seconds
+    value: 86400,
     description: "Maximum hashcat job execution time in seconds before timeout",
     category: "performance" as const,
     type: "number" as const,
     defaultValue: 86400,
-    minValue: 60, // 1 minute
-    maxValue: 604800, // 7 days
+    minValue: 60,
+    maxValue: 604800,
     isReadOnly: false,
     requiresRestart: false,
     updatedAt: new Date(),
@@ -95,13 +95,13 @@ const initialConfig = [
   },
   {
     id: "sessionExpiry",
-    value: 604800, // 7 days in seconds
+    value: 604800,
     description: "User session expiry time in seconds",
     category: "security" as const,
     type: "number" as const,
     defaultValue: 604800,
-    minValue: 3600, // 1 hour
-    maxValue: 2592000, // 30 days
+    minValue: 3600,
+    maxValue: 2592000,
     isReadOnly: false,
     requiresRestart: false,
     updatedAt: new Date(),
@@ -150,7 +150,7 @@ const initialConfig = [
 
 export async function seedConfig() {
   try {
-    console.log("🌱 Seeding configuration...");
+    console.log("Seeding configuration...");
 
     for (const configItem of initialConfig) {
       await db
@@ -160,12 +160,12 @@ export async function seedConfig() {
           target: config.id,
         });
 
-      console.log(`  ✓ ${configItem.id}`);
+      console.log(`  ${configItem.id}`);
     }
 
-    console.log("✅ Configuration seeded successfully!");
+    console.log("Configuration seeded successfully!");
   } catch (error) {
-    console.error("❌ Error seeding config:", error);
+    console.error("Error seeding config:", error);
     throw error;
   }
 }
