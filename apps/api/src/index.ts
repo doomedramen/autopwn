@@ -12,6 +12,7 @@ import { environmentAwareCORS, publicApiCORS } from "./middleware/cors";
 import { authRoutes } from "./routes/auth";
 import { usersRoutes } from "./routes/users";
 import { jobManagementRoutes } from "./routes/jobs";
+import { jobUpdateRoutes } from "./routes/jobs-update";
 import { networksRoutes } from "./routes/networks";
 import { dictionariesRoutes } from "./routes/dictionaries";
 import { resultsRoutes } from "./routes/results";
@@ -105,7 +106,8 @@ app.use("*", (c, next) => {
 // API routes
 app.route("/api/auth", authRoutes);
 app.route("/api/users", usersRoutes);
-app.route("/api/jobs", jobsRoutes);
+app.route("/api/jobs", jobManagementRoutes);
+app.route("/api/jobs/update", jobUpdateRoutes);
 app.route("/api/networks", networksRoutes);
 app.route("/api/dictionaries", dictionariesRoutes);
 app.route("/api/results", resultsRoutes);
