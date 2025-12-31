@@ -15,17 +15,10 @@ import { v4 as uuidv4 } from "uuid";
 import { captures } from "../db/schema";
 import { eq } from "drizzle-orm";
 import * as fs from "fs/promises";
+import { configService } from "../services/config.service";
 
 const uploadSchema = z.object({
-  file: z.instanceof(File).refine(
-    (file) => {
-      const maxSize = parseInt(process.env.MAX_PCAP_SIZE || "524288000");
-      return file.size <= maxSize;
-    },
-    {
-      message: "File size must be less than 500MB",
-    },
-  ),
+  file: z.instanceof(File),
   metadata: z.record(z.string()).optional(),
 });
 
@@ -43,6 +36,19 @@ upload.post("/", zValidator("form", uploadSchema), async (c) => {
       filename: file.name,
       fileSize: file.size,
     });
+
+    const maxPcapSize = await configService.getMaxPcapSize();
+
+    if (file.size > maxPcapSize) {
+      return c.json(
+        {
+          success: false,
+          error: "File size exceeds maximum allowed size",
+          message: `File size must be less than ${maxPcapSize} bytes`,
+        },
+        413,
+      );
+    }
 
     const canUpload = await storageManager.checkUserQuota(userId, file.size);
     if (!canUpload) {

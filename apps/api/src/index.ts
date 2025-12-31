@@ -18,6 +18,7 @@ import { resultsRoutes } from "./routes/results";
 import { queueRoutes } from "./routes/queue-management";
 import { capturesRoutes } from "./routes/captures";
 import { uploadRoutes } from "./routes/upload";
+import { configRoutes } from "./routes/config";
 import { securityRoutes } from "./routes/security-monitoring";
 import { virusScannerRoutes } from "./routes/virus-scanner";
 import { websocketRoutes } from "./routes/websocket";
@@ -37,6 +38,7 @@ import { errorHandler } from "./lib/error-handler";
 import { auth } from "./lib/auth";
 import { getWebSocketServer } from "./lib/websocket";
 import type { HonoAuthContext } from "./types/auth";
+import { configService } from "./services/config.service";
 
 const app = new Hono<HonoAuthContext>();
 
@@ -106,6 +108,7 @@ app.route("/api/results", resultsRoutes);
 app.route("/api/queue", queueRoutes);
 app.route("/api/upload", uploadRoutes);
 app.route("/api/captures", capturesRoutes);
+app.route("/api/config", configRoutes);
 app.route("/api/storage", storageRoutes);
 app.route("/api/websocket", websocketRoutes);
 app.route("/security", securityRoutes);
@@ -136,6 +139,8 @@ app.get("/api/info", publicApiCORS(), (c) => {
       "/api/results/*",
       "/api/queue/*",
       "/api/upload/*",
+      "/api/captures/*",
+      "/api/config/*",
       "/security/*",
       "/virus-scanner/*",
       "/health",
@@ -208,6 +213,10 @@ const port = parseInt(process.env.PORT || "3001");
 
 async function startServer() {
   try {
+    // Initialize config service
+    await configService.loadConfig();
+    console.log("✅ Config service initialized");
+
     // Start WebSocket server first
     const wsServer = getWebSocketServer();
     await wsServer.start();
