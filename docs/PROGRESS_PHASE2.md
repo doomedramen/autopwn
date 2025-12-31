@@ -197,7 +197,11 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 - Implemented job dependency checking in hashcat worker
 - Implemented job scheduling checks in hashcat worker
 - Enhanced job status updates for scheduled jobs
-- Created comprehensive job management API routes
+- Created comprehensive job management API routes (cancel, schedule, retry, dependencies)
+- Created database migration for job priority and tags
+- Added priority enum and tags columns to jobs schema
+- Updated job configuration schema to include priority and tags
+- Created job filtering endpoint with support for priority, tags, search
 
 **Key Features Implemented:**
 
@@ -206,32 +210,46 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 - Job scheduling: Worker checks scheduledAt timestamp for future jobs
 - Cancellation tracking: cancelled_at timestamp for audit trail
 - Dependency tracking: depends_on JSONB array for complex dependency chains
-- Enhanced status transitions (scheduled → running → completed/failed/cancelled)
+- Enhanced status transitions (pending → scheduled → running → completed/failed/cancelled)
+- Job priority: low, normal, high, critical
+- Job tags: array of strings for organization and filtering
 - Comprehensive error handling and logging
+- Job filtering by status, priority, tags, networkId, dictionaryId
+- Job search by name
+- Sorting by createdAt with configurable order
+- All operations logged via AuditService
 
 **Database Changes:**
 
 - Added scheduled_at: TIMESTAMP for scheduled job execution
 - Added cancelled_at: TIMESTAMP for cancellation tracking
-- Added depends_on: JSONB array of dependent job IDs
+- Added depends_on: JSONB array for job dependencies
 - Added indexes for efficient queries (scheduled_at, cancelled_at, GIN index on depends_on)
-- Added scheduled status to jobStatusEnum
+- Added "scheduled" status to jobStatusEnum
+- Added priority column: job_priority enum (low, normal, high, critical)
+- Added tags column: VARCHAR(255) array for job tags
+- Added indexes for priority and tags
 
 **API Endpoints Created:**
 
+- `GET /api/jobs` - List jobs with filtering and pagination
+- `GET /api/jobs/:id` - Get specific job
 - `POST /api/jobs/:id/cancel` - Cancel a job
 - `POST /api/jobs/bulk-cancel` - Cancel multiple jobs
-- `POST /api/jobs/:id/schedule` - Reschedule a job
+- `POST /api/jobs/:id/schedule` - Schedule a job
 - `GET /api/jobs/scheduled` - List scheduled jobs
 - `GET /api/jobs/:id/dependencies` - Get job dependencies
 - `POST /api/jobs/:id/retry` - Retry failed job
+- `GET /api/jobs/stats` - Get job statistics
+- `GET /api/jobs/filter` - Search and filter jobs (NEW)
+- `GET /api/jobs/tags` - Get all unique tags (NEW)
 
 **Worker Enhancements:**
 
 - Cancellation check before execution
 - Dependency validation (checks all deps completed)
 - Scheduling check (only executes at or after scheduledAt)
-- Enhanced status transitions (pending → scheduled → running → completed/failed/cancelled)
+- Enhanced status transitions
 - Circular dependency prevention
 - Network status reset on job cancellation
 - Email notifications via EmailQueue for job operations
@@ -239,23 +257,23 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 **Files Created:**
 
 - `apps/api/src/db/migrations/0004_add_job_scheduling.sql` (30 lines)
-- `apps/api/src/routes/jobs.ts.backup` (1750 lines)
+- `apps/api/src/db/migrations/0005_add_job_priority_tags.sql` (22 lines)
+- `apps/api/src/routes/jobs.backup` (1750 lines - backup of original)
 
 **Files Modified:**
 
-- `apps/api/src/db/schema.ts` - Added job scheduling columns
-- `apps/api/src/routes/jobs.ts` - Complete rewrite with job management endpoints (950 lines)
+- `apps/api/src/db/schema.ts` - Added scheduling, priority, tags columns
+- `apps/api/src/db/jsonb-schemas.ts` - Added priority and tags to job config
 - `apps/api/src/workers/hashcat.ts` - Added cancellation/dependency/scheduling logic
 - `apps/api/src/index.ts` - Updated import to jobManagementRoutes
+- `docs/PROGRESS_PHASE2.md` - Updated progress
 
 **Still To Do (Days 4-8):**
 
-- Job priority management
+- PATCH /api/jobs/:id/priority - Update job priority
+- PATCH /api/jobs/:id/tags - Update job tags
 - Job templates/save functionality
-- Job tags management
-- Search and filtering improvements
 - UI components for job management
-- Job dependency visualization UI
 - Unit and integration tests
 
 **Test Requirements:**
@@ -263,6 +281,7 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 - [ ] Unit tests for job cancellation
 - [ ] Unit tests for job dependencies
 - [ ] Unit tests for job scheduling
+- [ ] Unit tests for job filtering
 - [ ] Integration tests for all new endpoints
 - [ ] E2E tests for job management workflow
 
@@ -270,18 +289,17 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 - No UI components for job management
 - No job templates functionality
-- No search/filtering improvements
+- No search API endpoint (just filtering)
 - No job priority queue (uses standard worker priority)
 - No dependency graph visualization
 - No unit tests yet
 
 **Next Steps:**
 
-- Implement job priority management
-- Create job templates system
-- Build UI components for job scheduling and management
-- Add search and filtering capabilities
+- Implement PATCH endpoints for updating job priority and tags
+- Create UI components for job management
 - Write comprehensive test suite
+- Create job templates system (optional)
 
 **Planned Features:**
 

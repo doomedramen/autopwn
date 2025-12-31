@@ -9,22 +9,24 @@ import {
   createValidationError,
 } from "@/lib/error-handler";
 import { logger } from "@/lib/logger";
+import { getHashcatJob, removeHashcatJob } from "@/lib/queue";
 import { auditService } from "@/services/audit.service";
 import { getUserId } from "@/lib/auth";
-import { getHashcatJob, removeHashcatJob } from "@/lib/queue";
 
-const jobManagementRoutes = new Hono();
+const jobs = new Hono();
 
-jobManagementRoutes.use("*", async (c, next) => {
-  const userId = c.get("userId");
-  c.set("userId", userId);
-  await next();
+// Job update schema
+const updateJobSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  status: z
+    .enum(["pending", "running", "completed", "failed", "cancelled"])
+    .optional(),
+  progress: z.number().min(0).max(100).optional(),
+  hashcatMode: z.number().optional(),
 });
 
-/**
- * GET /api/jobs - Get all jobs with filtering and pagination
- */
-jobManagementRoutes.get("/", async (c) => {
+jobs.get("/", async (c) => {
   try {
     const userId = c.get("userId");
     const page = parseInt(c.req.query("page") || "1");
@@ -67,23 +69,20 @@ jobManagementRoutes.get("/", async (c) => {
   } catch (error) {
     logger.error("get_jobs_error", "jobs", {
       error: error.message,
+      userId: c.get("userId"),
     });
 
     return c.json(
       {
         success: false,
         error: "Failed to get jobs",
-        message: error.message,
       },
       500,
     );
   }
 });
 
-/**
- * GET /api/jobs/:id - Get a specific job
- */
-jobManagementRoutes.get("/:id", async (c) => {
+jobs.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
@@ -123,15 +122,13 @@ jobManagementRoutes.get("/:id", async (c) => {
   } catch (error) {
     logger.error("get_job_error", "jobs", {
       error: error.message,
-      id: c.req.param("id"),
-      userId: c.get("userId"),
+      jobId: c.req.param("id"),
     });
 
     return c.json(
       {
         success: false,
         error: "Failed to get job",
-        message: error.message,
       },
       500,
     );
@@ -141,17 +138,13 @@ jobManagementRoutes.get("/:id", async (c) => {
 /**
  * POST /api/jobs/:id/cancel - Cancel a job
  */
-jobManagementRoutes.post("/:id/cancel", async (c) => {
+jobs.post("/:id/cancel", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
 
     const existingJob = await db.query.jobs.findFirst({
       where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
     });
 
     if (!existingJob) {
@@ -295,7 +288,7 @@ jobManagementRoutes.post("/:id/cancel", async (c) => {
 /**
  * POST /api/jobs/bulk-cancel - Cancel multiple jobs
  */
-jobManagementRoutes.post(
+jobs.post(
   "/bulk-cancel",
   zValidator(
     "json",
@@ -309,15 +302,7 @@ jobManagementRoutes.post(
       const { jobIds } = c.req.valid("json");
 
       const jobsToCancel = await db.query.jobs.findMany({
-        where: and(
-          inArray(jobs.id, jobIds),
-          eq(jobs.userId, userId),
-          inArray(jobs.status, ["pending", "scheduled"]),
-        ),
-        with: {
-          network: true,
-          dictionary: true,
-        },
+        where: and(inArray(jobs.id, jobIds), eq(jobs.userId, userId)),
       });
 
       if (jobsToCancel.length === 0) {
@@ -353,6 +338,12 @@ jobManagementRoutes.post(
                   : "Unknown error",
             });
           }
+        } else if (["completed", "failed", "cancelled"].includes(job.status)) {
+          results.push({
+            id: job.id,
+            status: "error",
+            error: `Job is already ${job.status}`,
+          });
         } else {
           await db
             .update(jobs)
@@ -369,7 +360,7 @@ jobManagementRoutes.post(
             message: "Job cancelled successfully",
           });
 
-          if (job.networkId) {
+          if (job.networkId && job.status === "pending") {
             try {
               const { networks } = await import("@/db/schema");
               await db
@@ -441,7 +432,7 @@ jobManagementRoutes.post(
 /**
  * POST /api/jobs/:id/schedule - Schedule a job
  */
-jobManagementRoutes.post(
+jobs.post(
   "/:id/schedule",
   zValidator(
     "json",
@@ -456,15 +447,11 @@ jobManagementRoutes.post(
       const userId = c.get("userId");
       const { scheduledAt, dependsOn } = c.req.valid("json");
 
-      const existingJob = await db.query.jobs.findFirst({
+      const job = await db.query.jobs.findFirst({
         where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-        with: {
-          network: true,
-          dictionary: true,
-        },
       });
 
-      if (!existingJob) {
+      if (!job) {
         return c.json(
           {
             success: false,
@@ -474,7 +461,7 @@ jobManagementRoutes.post(
         );
       }
 
-      if (existingJob.userId !== userId) {
+      if (job.userId !== userId) {
         return c.json(
           {
             success: false,
@@ -485,15 +472,13 @@ jobManagementRoutes.post(
       }
 
       if (
-        ["running", "completed", "failed", "cancelled"].includes(
-          existingJob.status,
-        )
+        ["running", "completed", "failed", "cancelled"].includes(job.status)
       ) {
         return c.json(
           {
             success: false,
             error: "Job cannot be scheduled",
-            message: `Job is already ${existingJob.status}`,
+            message: `Job is already ${job.status}`,
           },
           400,
         );
@@ -516,7 +501,7 @@ jobManagementRoutes.post(
       if (dependsOn && dependsOn.length > 0) {
         const depJobs = await db.query.jobs.findMany({
           where: inArray(jobs.id, dependsOn),
-          columns: { id: true, name: true, status: true },
+          columns: { id: true, status: true },
         });
 
         const incompleteDeps = depJobs.filter((j) => j.status !== "completed");
@@ -595,8 +580,7 @@ jobManagementRoutes.post(
       return c.json({
         success: true,
         data: {
-          id: existingJob.id,
-          name: existingJob.name,
+          id: job.id,
           status: "scheduled",
           scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
           dependsOn,
@@ -634,7 +618,7 @@ jobManagementRoutes.post(
 /**
  * GET /api/jobs/scheduled - List scheduled jobs
  */
-jobManagementRoutes.get("/scheduled", async (c) => {
+jobs.get("/scheduled", async (c) => {
   try {
     const userId = c.get("userId");
     const page = parseInt(c.req.query("page") || "1");
@@ -700,17 +684,13 @@ jobManagementRoutes.get("/scheduled", async (c) => {
 /**
  * GET /api/jobs/:id/dependencies - Get job dependencies
  */
-jobManagementRoutes.get("/:id/dependencies", async (c) => {
+jobs.get("/:id/dependencies", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
 
     const job = await db.query.jobs.findFirst({
       where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
     });
 
     if (!job) {
@@ -723,22 +703,17 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
       );
     }
 
-    if (job.userId !== userId) {
-      return c.json(
-        {
-          success: false,
-          error: "Access denied",
-        },
-        403,
-      );
-    }
-
     let dependencies = [];
 
     if (job.dependsOn && job.dependsOn.length > 0) {
       const depJobs = await db.query.jobs.findMany({
         where: inArray(jobs.id, job.dependsOn),
-        columns: { id: true, name: true, status: true, scheduledAt: true },
+        columns: {
+          id: true,
+          name: true,
+          status: true,
+          scheduledAt: true,
+        },
       });
 
       dependencies = depJobs.map((depJob) => ({
@@ -756,7 +731,7 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
       where: and(
         eq(jobs.userId, userId),
         isNotNull(jobs.dependsOn),
-        sql`jsonb_array_exists(${job.dependsOn}, ?${id})`,
+        sql`jsonb_array_exists(${jobs.dependsOn}, ?${id})`,
       ),
       columns: {
         id: true,
@@ -767,7 +742,6 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
 
     logger.info("job_dependencies_retrieved", "jobs", {
       jobId: id,
-      userId,
       dependenciesCount: dependencies.length,
       dependentCount: dependentJobs.length,
     });
@@ -805,17 +779,13 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
 /**
  * POST /api/jobs/:id/retry - Retry failed job
  */
-jobManagementRoutes.post("/:id/retry", async (c) => {
+jobs.post("/:id/retry", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
 
     const job = await db.query.jobs.findFirst({
       where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
     });
 
     if (!job) {
@@ -921,6 +891,394 @@ jobManagementRoutes.post("/:id/retry", async (c) => {
       },
       500,
     );
+  }
+});
+
+/**
+ * GET /api/jobs/stats - Get job statistics
+ */
+jobs.get("/stats", async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const userJobs = await db.query.jobs.findMany({
+      where: eq(jobs.userId, userId),
+      columns: {
+        status: true,
+      },
+    });
+
+    const stats = {
+      total: userJobs.length,
+      pending: userJobs.filter(
+        (job) => job.status === "pending" || job.status === "scheduled",
+      ).length,
+      running: userJobs.filter((job) => job.status === "running").length,
+      completed: userJobs.filter((job) => job.status === "completed").length,
+      failed: userJobs.filter((job) => job.status === "failed").length,
+      cancelled: userJobs.filter((job) => job.status === "cancelled").length,
+      scheduled: userJobs.filter((job) => job.status === "scheduled").length,
+    };
+
+    logger.info("job_stats_retrieved", "jobs", {
+      userId,
+      ...stats,
+    });
+
+    return c.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    logger.error("job_stats_error", "jobs", {
+      error: error.message,
+      userId: c.get("userId"),
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get job statistics",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+export { jobs as jobsRoutes };
+});
+
+/**
+ * PATCH /api/jobs/:id/priority - Update job priority
+ */
+jobManagementRoutes.patch('/:id/priority', zValidator('json', z.object({
+  priority: z.enum(['low', 'normal', 'high', 'critical'])
+})), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    const { priority } = c.req.valid('json');
+
+    const job = await db.query.jobs.findFirst({
+      where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
+      with: {
+        network: true,
+        dictionary: true,
+      },
+    });
+
+    if (!job) {
+      return c.json({
+        success: false,
+        error: 'Job not found',
+      }, 404);
+    }
+
+    if (job.userId !== userId) {
+      return c.json({
+        success: false,
+        error: 'Access denied',
+      }, 403);
+    }
+
+    if (['running', 'completed', 'failed', 'cancelled'].includes(job.status)) {
+      return c.json({
+        success: false,
+        error: 'Job priority cannot be changed',
+        message: `Job is already ${job.status}`,
+      }, 400);
+    }
+
+    await db.update(jobs)
+      .set({
+        priority,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
+
+    await auditService.logEvent({
+      userId,
+      action: 'update_job_priority',
+      entityType: 'job',
+      entityId: id,
+      details: { oldPriority: job.priority, newPriority: priority },
+      success: true,
+    });
+
+    logger.info('job_priority_updated', 'jobs', {
+      jobId: id,
+      userId,
+      oldPriority: job.priority,
+      newPriority: priority,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        id: job.id,
+        priority,
+      },
+      message: 'Job priority updated successfully',
+    });
+  } catch (error) {
+    logger.error('update_job_priority_error', 'jobs', {
+      error: error.message,
+      jobId: c.req.param('id'),
+      userId: c.get('userId'),
+    });
+
+    await auditService.logEvent({
+      userId: c.get('userId'),
+      action: 'update_job_priority',
+      entityType: 'job',
+      entityId: c.req.param('id'),
+      success: false,
+      details: { error: String(error) },
+    });
+
+    return c.json({
+      success: false,
+      error: 'Failed to update job priority',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * PATCH /api/jobs/:id/tags - Update job tags
+ */
+jobManagementRoutes.patch('/:id/tags', zValidator('json', z.object({
+  tags: z.array(z.string().min(1).max(50)).max(10)
+})), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const userId = c.get('userId');
+    const { tags } = c.req.valid('json');
+
+    const job = await db.query.jobs.findFirst({
+      where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
+      with: {
+        network: true,
+        dictionary: true,
+      },
+    });
+
+    if (!job) {
+      return c.json({
+        success: false,
+        error: 'Job not found',
+      }, 404);
+    }
+
+    if (job.userId !== userId) {
+      return c.json({
+        success: false,
+        error: 'Access denied',
+      }, 403);
+    }
+
+    await db.update(jobs)
+      .set({
+        tags,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
+
+    await auditService.logEvent({
+      userId,
+      action: 'update_job_tags',
+      entityType: 'job',
+      entityId: id,
+      details: { oldTags: job.tags || [], newTags: tags },
+      success: true,
+    });
+
+    logger.info('job_tags_updated', 'jobs', {
+      jobId: id,
+      userId,
+      oldTags: job.tags || [],
+      newTags: tags,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        id: job.id,
+        tags,
+      },
+      message: 'Job tags updated successfully',
+    });
+  } catch (error) {
+    logger.error('update_job_tags_error', 'jobs', {
+      error: error.message,
+      jobId: c.req.param('id'),
+      userId: c.get('userId'),
+    });
+
+    await auditService.logEvent({
+      userId: c.get('userId'),
+      action: 'update_job_tags',
+      entityType: 'job',
+      entityId: c.req.param('id'),
+      success: false,
+      details: { error: String(error) },
+    });
+
+    return c.json({
+      success: false,
+      error: 'Failed to update job tags',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * GET /api/jobs/filter - Search and filter jobs
+ */
+jobManagementRoutes.get('/filter', async (c) => {
+  try {
+    const userId = c.get('userId');
+    const {
+      status,
+      priority,
+      tags,
+      networkId,
+      dictionaryId,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = c.req.query();
+
+    let whereConditions = [eq(jobs.userId, userId)];
+
+    if (status) {
+      whereConditions.push(eq(jobs.status, status));
+    }
+
+    if (priority) {
+      whereConditions.push(eq(jobs.priority, priority));
+    }
+
+    if (tags && tags.length > 0) {
+      const tagList = tags.split(',');
+      whereConditions.push(sql`jsonb_array_contains(${jobs.tags}, ?${tagList.map(() => '?').join(',')})`);
+    }
+
+    if (networkId) {
+      whereConditions.push(eq(jobs.networkId, networkId));
+    }
+
+    if (dictionaryId) {
+      whereConditions.push(eq(jobs.dictionaryId, dictionaryId));
+    }
+
+    if (search) {
+      const searchTerm = `%${search}%`;
+      whereConditions.push(sql`name ILIKE ?${searchTerm}`);
+    }
+
+    const page = parseInt(page || '1');
+    const limit = parseInt(limit || '20');
+    const offset = (page - 1) * limit;
+
+    const allJobs = await db.query.jobs.findMany({
+      where: whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0],
+      orderBy: sortOrder === 'asc' ? [asc(jobs[sortBy])] : [desc(jobs[sortBy])],
+      with: {
+        network: true,
+        dictionary: true,
+      },
+      limit,
+      offset,
+    });
+
+    const totalCount = await db.query.jobs.findMany({
+      where: whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0],
+    });
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    logger.info('jobs_filtered', 'jobs', {
+      userId,
+      filters: { status, priority, tags, networkId, dictionaryId, search },
+      page,
+      limit,
+      totalFound: totalCount,
+    });
+
+    return c.json({
+      success: true,
+      data: allJobs,
+      meta: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+        filters: { status, priority, tags, networkId, dictionaryId, search },
+      }
+    });
+  } catch (error) {
+    logger.error('filter_jobs_error', 'jobs', {
+      error: error.message,
+      userId: c.get('userId'),
+      query: c.req.query(),
+    });
+
+    return c.json({
+      success: false,
+      error: 'Failed to filter jobs',
+      message: error.message,
+    }, 500);
+  }
+});
+
+/**
+ * GET /api/jobs/tags - Get all unique tags
+ */
+jobManagementRoutes.get('/tags', async (c) => {
+  try {
+    const userId = c.get('userId');
+
+    const allJobs = await db.query.jobs.findMany({
+      where: eq(jobs.userId, userId),
+      columns: {
+        tags: true,
+      },
+    });
+
+    const allTags = new Set<string>();
+    for (const job of allJobs) {
+      if (job.tags) {
+        for (const tag of job.tags) {
+          allTags.add(tag);
+        }
+      }
+    }
+
+    const uniqueTags = Array.from(allTags).sort();
+
+    logger.info('job_tags_retrieved', 'jobs', {
+      userId,
+      totalJobs: allJobs.length,
+      uniqueTags: uniqueTags.length,
+    });
+
+    return c.json({
+      success: true,
+      data: uniqueTags,
+    });
+  } catch (error) {
+    logger.error('get_job_tags_error', 'jobs', {
+      error: error.message,
+      userId: c.get('userId'),
+    });
+
+    return c.json({
+      success: false,
+      error: 'Failed to get job tags',
+      message: error.message,
+    }, 500);
   }
 });
 
