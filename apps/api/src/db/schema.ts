@@ -23,6 +23,7 @@ import {
 export const roleEnum = pgEnum("role", ["user", "admin", "superuser"]);
 export const jobStatusEnum = pgEnum("job_status", [
   "pending",
+  "scheduled",
   "running",
   "completed",
   "failed",

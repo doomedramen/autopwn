@@ -58,6 +58,27 @@ export async function runHashcatAttack({
       throw new Error(`Job ${jobId} not found or access denied`);
     }
 
+    // Check if job is already cancelled
+    if (job.status === "cancelled") {
+      logger.info("Job is already cancelled, skipping execution", "hashcat", {
+        jobId,
+      });
+
+      await db
+        .update(networks)
+        .set({
+          status: "ready",
+          updatedAt: new Date(),
+        })
+        .where(eq(networks.id, networkId));
+
+      return {
+        success: false,
+        cancelled: true,
+        message: "Job was cancelled before execution",
+      };
+    }
+
     const network = await db.query.networks.findFirst({
       where: and(eq(networks.id, networkId), eq(networks.userId, userId)),
     });
@@ -66,11 +87,96 @@ export async function runHashcatAttack({
       throw new Error(`Network ${networkId} not found or access denied`);
     }
 
+    // Check if job is already cancelled
+    if (job.status === "cancelled") {
+      logger.info("Job is already cancelled, skipping execution", "hashcat", {
+        jobId,
+      });
+
+      await db
+        .update(networks)
+        .set({
+          status: "ready",
+          updatedAt: new Date(),
+        })
+        .where(eq(networks.id, networkId));
+
+      return {
+        success: false,
+        cancelled: true,
+        message: "Job was cancelled before execution",
+      };
+    }
+
+    // Check job dependencies
+    if (job.dependsOn && job.dependsOn.length > 0) {
+      const dependencyIds = job.dependsOn;
+
+      for (const depId of dependencyIds) {
+        const depJob = await db.query.jobs.findFirst({
+          where: eq(jobs.id, depId),
+        });
+
+        if (!depJob || depJob.status !== "completed") {
+          logger.info("Job dependencies not met, skipping execution", "hashcat", {
+            jobId,
+            dependencies: dependencyIds,
+          });
+
+          return {
+            success: false,
+            skipped: true,
+            message: "Job dependencies not met, job will be queued again when dependencies complete",
+            dependencies: dependencyIds,
+          };
+        }
+      }
+
+      logger.info("Job dependencies verified", "hashcat", {
+        jobId,
+        dependencies: dependencyIds,
+      });
+    }
+
+    // Check if job is scheduled for later
+    if (job.scheduledAt && new Date(job.scheduledAt) > new Date()) {
+      logger.info("Job scheduled for later, skipping execution", "hashcat", {
+        jobId,
+        scheduledAt: job.scheduledAt,
+      });
+
+      return {
+        success: false,
+        scheduled: true,
+        message: "Job is scheduled for future execution",
+        scheduledAt: job.scheduledAt,
+      };
+    }
+
     logger.info("Job and network validation passed", "hashcat", {
       jobId,
       networkId,
       networkSSID: network.ssid,
       networkBSSID: network.bssid,
+    });
+
+    // Update job status to running or scheduled
+    const targetStatus = job.scheduledAt ? "scheduled" : "running";
+
+    await db
+      .update(jobs)
+      .set({
+        status: targetStatus,
+        startTime: job.scheduledAt ? null : new Date(),
+        scheduledAt: job.scheduledAt || null,
+        updatedAt: new Date(),
+        progress: 0,
+      })
+      .where(eq(jobs.id, jobId));
+
+    logger.info(`Job status updated to ${targetStatus}`, "hashcat", {
+      jobId,
+      status: targetStatus,
     });
 
     // Ensure handshake/PMKID files exist and are properly extracted

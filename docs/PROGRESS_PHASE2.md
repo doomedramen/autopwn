@@ -185,7 +185,94 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 ---
 
-## Day 4-8: Advanced Job Management (UPCOMING)
+## Day 4-8: Advanced Job Management (IN PROGRESS)
+
+**Status:** IN PROGRESS
+
+**What Has Been Accomplished:**
+
+- Created database migration for job scheduling (scheduled_at, cancelled_at, depends_on)
+- Updated jobs schema with new columns
+- Added "scheduled" status to jobStatusEnum
+- Implemented job cancellation logic in hashcat worker
+- Implemented job dependency checking in hashcat worker
+- Implemented job scheduling checks in hashcat worker
+- Enhanced job status updates for scheduled jobs
+
+**Key Features Implemented:**
+
+- Job cancellation: Worker checks if job is cancelled before execution
+- Job dependencies: Worker validates all dependent jobs completed before starting
+- Job scheduling: Worker checks scheduledAt timestamp for future jobs
+- Cancellation tracking: cancelled_at timestamp for audit trail
+- Dependency tracking: depends_on JSONB array for complex dependency chains
+- Enhanced logging for all job state transitions
+
+**Database Changes:**
+
+- Added scheduled_at: TIMESTAMP for scheduled job execution
+- Added cancelled_at: TIMESTAMP for cancellation tracking
+- Added depends_on: JSONB array for job dependencies
+- Added indexes for efficient queries (scheduled_at, cancelled_at, depends_on)
+- Added "scheduled" status to jobStatusEnum
+
+**Worker Enhancements:**
+
+- Cancellation check before execution
+- Dependency validation (checks all deps are completed)
+- Scheduling check (only executes at or after scheduledAt)
+- Enhanced status transitions (scheduled → running → completed/failed/cancelled)
+- Comprehensive error handling and logging
+
+**Still To Do (Days 4-8):**
+
+- Job scheduling API (schedule jobs for future execution)
+- Job rescheduling API (reschedule cancelled jobs)
+- Job dependency API (set dependencies when creating jobs)
+- Bulk job operations (cancel multiple, restart failed)
+- Job retry API (retry failed jobs)
+- Job dependency visualization (graph of dependencies)
+
+**API Endpoints Planned:**
+
+- `POST /api/jobs/:id/cancel` - Cancel a job
+- `POST /api/jobs/bulk-cancel` - Cancel multiple jobs
+- `POST /api/jobs/:id/reschedule` - Reschedule a job
+- `POST /api/jobs/:id/retry` - Retry failed job
+- `POST /api/jobs/scheduled` - List scheduled jobs
+- `GET /api/jobs/:id/dependencies` - Get job dependencies
+
+**Files Created:**
+
+- `apps/api/src/db/migrations/0004_add_job_scheduling.sql` (30 lines)
+
+**Files Modified:**
+
+- `apps/api/src/db/schema.ts` - Added job scheduling columns
+- `apps/api/src/workers/hashcat.ts` - Added cancellation/dependency/scheduling logic
+
+**Test Requirements:**
+
+- [ ] Unit tests for job cancellation
+- [ ] Unit tests for job dependencies
+- [ ] Unit tests for job scheduling
+- [ ] Integration tests for scheduling APIs
+- [ ] E2E tests for job management workflow
+
+**Known Limitations:**
+
+- No API endpoints yet for user to manage scheduled/cancelled jobs
+- No UI for job scheduling visualization
+- No bulk operations UI
+- No dependency graph visualization
+
+**Next Steps:**
+
+- Implement job scheduling API endpoints
+- Implement job cancellation API endpoints
+- Implement bulk operations API endpoints
+- Implement job retry endpoints
+- Create UI components for job management
 
 **Planned Features:**
 
