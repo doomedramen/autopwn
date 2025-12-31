@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { db } from "../db";
-import { jobs, jobResults, networks } from "../db/schema";
+import { jobs, jobResults, networks, users } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { promises as fs } from "fs";
 import path from "path";
@@ -14,6 +14,7 @@ import { logger } from "../lib/logger";
 import { extractHandshake, extractPMKID } from "./pcap-processing";
 import { getWebSocketServer } from "../lib/websocket";
 import { configService } from "../services/config.service";
+import { emailQueue } from "../lib/email-queue";
 
 const execAsync = promisify(exec);
 
@@ -226,6 +227,39 @@ export async function runHashcatAttack({
         mainPassword: mainPassword.plaintext,
       });
 
+      // Send email notification if enabled
+      try {
+        const emailEnabled = await configService.getBoolean("email-enabled", false);
+        const emailNotifyJobComplete = await configService.getBoolean("email-notify-job-complete", true);
+
+        if (emailEnabled && emailNotifyJobComplete) {
+          const user = await db.query.users.findFirst({
+            where: eq(users.id, userId),
+            columns: { email: true, name: true },
+          });
+
+          if (user) {
+            await emailQueue.sendJobEmail({
+              type: crackedPasswords.length > 0 ? "job_completed" : "job_failed",
+              to: user.email,
+              data: {
+                name: job.name,
+                jobId,
+                status: crackedPasswords.length > 0 ? "completed" : "failed",
+                passwordsFound: crackedPasswords.length,
+                totalHashes: crackedPasswords.length,
+                duration: Date.now() - new Date(job.startTime).getTime(),
+              },
+            });
+          }
+        }
+      } catch (emailError) {
+        logger.error("Failed to send job completion email", "hashcat", {
+          jobId,
+          error: emailError instanceof Error ? emailError : new Error(String(emailError)),
+        });
+      }
+
       return {
         success: true,
         passwordsFound: crackedPasswords.length,
@@ -300,232 +334,40 @@ export async function runHashcatAttack({
       })
       .where(eq(networks.id, networkId));
 
-    throw error;
-  }
-}
+    // Send email notification if enabled
+    try {
+      const emailEnabled = await configService.getBoolean("email-enabled", false);
+      const emailNotifyJobFailed = await configService.getBoolean("email-notify-job-failed", true);
 
-export async function buildHashcatCommand({
-  attackMode,
-  handshakePath,
-  dictionaryPath,
-  jobId,
-}: {
-  attackMode: "pmkid" | "handshake";
-  handshakePath: string;
-  dictionaryPath: string;
-  jobId: string;
-}) {
-  // SECURITY: Create safe work directory path
-  const workDir = createSafePath("temp", "hashcat", jobId);
+      if (emailEnabled && emailNotifyJobFailed) {
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, userId),
+          columns: { email: true, name: true },
+        });
 
-  // Hashcat attack modes:
-  // -m 16800: WPA-PMKID-PBKDF2 (PMKID attack)
-  // -m 22000: WPA-PBKDF2-PMKID+EAPOL (handshake attack)
-  const hashMode = attackMode === "pmkid" ? 16800 : 22000;
-
-  // SECURITY: Create safe output file paths
-  const outputFile = createSafePath(workDir, "hashcat_output.txt");
-  const potfile = createSafePath(workDir, "hashcat.pot");
-
-  // SECURITY: Quote and sanitize all file paths for shell execution
-  const workload = await configService.getHashcatDefaultWorkload();
-
-  const command = [
-    "hashcat",
-    `-m ${hashMode}`,
-    `-a 0`, // Dictionary attack
-    quotePathForShell(handshakePath),
-    quotePathForShell(dictionaryPath),
-    `-o ${quotePathForShell(outputFile)}`,
-    `--potfile-path=${quotePathForShell(potfile)}`,
-    "--quiet",
-    "--force",
-    "-O", // Optimized kernel
-    `-w ${workload}`, // Workload profile (from config)
-    `--session=${jobId}`, // jobId should be UUID (safe)
-    "--runtime=3600", // 1 hour max runtime
-  ].join(" ");
-
-  return command;
-}
-
-async function executeHashcat(
-  command: string,
-  jobId: string,
-  progressCallback?: (progress: number) => Promise<void>,
-) {
-  const workDir = path.join(process.cwd(), "temp", "hashcat", jobId);
-
-  // Ensure working directory exists
-  await fs.mkdir(workDir, { recursive: true });
-
-  logger.info("Starting hashcat execution", "hashcat", {
-    jobId,
-    workDir,
-  });
-
-  const startTime = Date.now();
-  let lastProgressUpdate = 0;
-  let childProcess: any = null;
-
-  try {
-    // SECURITY: Split command to avoid shell injection
-    // SECURITY: Using spawn with array instead of shell: true
-    const commandParts = command.split(" ").filter((part) => part.length > 0);
-
-    // Security validation: Ensure command starts with hashcat
-    if (commandParts[0] !== "hashcat") {
-      throw new Error("Invalid command: must start with hashcat");
+        if (user) {
+          await emailQueue.sendJobEmail({
+            type: "job_failed",
+            to: user.email,
+            data: {
+              name: job.name,
+              jobId,
+              status: "failed",
+              errorMessage,
+            },
+          });
+        }
+      }
+    } catch (emailError) {
+      logger.error("Failed to send job failure email", "hashcat", {
+        jobId,
+        error: emailError instanceof Error ? emailError : new Error(String(emailError)),
+      });
     }
 
-    childProcess = require("child_process").spawn(
-      commandParts[0],
-      commandParts.slice(1),
-      {
-        cwd: workDir,
-        shell: false, // SECURITY: Disabled to prevent shell injection
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
-
-    let stdout = "";
-    let stderr = "";
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-
-    // Set up cancellation checking interval
-    const cancellationCheckInterval = setInterval(async () => {
-      try {
-        // Check if job has been cancelled in database
-        const job = await db.query.jobs.findFirst({
-          where: eq(jobs.id, jobId),
-          columns: { status: true },
-        });
-
-        if (job && job.status === "cancelled") {
-          logger.info(
-            "Job cancellation detected, terminating hashcat process",
-            "hashcat",
-            {
-              jobId,
-              currentStatus: job.status,
-            },
-          );
-
-          // Kill the hashcat process gracefully
-          if (childProcess) {
-            childProcess.kill("SIGTERM");
-
-            // Force kill after 5 seconds if it doesn't terminate
-            setTimeout(() => {
-              if (childProcess && !childProcess.killed) {
-                logger.warn("Force killing hashcat process", "hashcat", {
-                  jobId,
-                });
-                childProcess.kill("SIGKILL");
-              }
-            }, 5000);
-          }
-
-          clearInterval(cancellationCheckInterval);
-        }
-      } catch (error) {
-        logger.error("Error checking job cancellation status", "hashcat", {
-          jobId,
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    }, 2000); // Check every 2 seconds
-
-    // Performance optimization: Stream output to reduce memory usage
-    childProcess.stdout?.on("data", (chunk: Buffer) => {
-      stdoutChunks.push(chunk);
-
-      // Progress callback optimization: Limit updates to avoid overwhelming the database
-      const now = Date.now();
-      if (progressCallback && now - lastProgressUpdate > 5000) {
-        // Update every 5 seconds max
-        // Simple progress estimation based on elapsed time
-        const estimatedProgress = Math.min(
-          95,
-          Math.floor((now - startTime) / 36000),
-        ); // Assume max 1 hour
-        progressCallback(estimatedProgress).catch(() => {}); // Ignore progress callback errors
-        lastProgressUpdate = now;
-      }
-    });
-
-    childProcess.stderr?.on("data", (chunk: Buffer) => {
-      stderrChunks.push(chunk);
-    });
-
-    // Performance optimization: Add timeout handling
-    const timeout = setTimeout(() => {
-      if (childProcess && !childProcess.killed) {
-        childProcess.kill("SIGTERM");
-        logger.warn(
-          "Hashcat execution timed out, terminating process",
-          "hashcat",
-          { jobId },
-        );
-      }
-    }, 3600000); // 1 hour timeout
-
-    return new Promise((resolve, reject) => {
-      childProcess.on("close", (code: number) => {
-        clearTimeout(timeout);
-        clearInterval(cancellationCheckInterval);
-
-        const processingTime = Date.now() - startTime;
-
-        // Concatenate chunks at the end to reduce memory fragmentation
-        stdout = Buffer.concat(stdoutChunks).toString();
-        stderr = Buffer.concat(stderrChunks).toString();
-
-        logger.info("Hashcat execution completed", "hashcat", {
-          jobId,
-          exitCode: code,
-          processingTime,
-          stdoutLength: stdout.length,
-          stderrLength: stderr.length,
-        });
-
-        resolve({
-          stdout,
-          stderr,
-          processingTime,
-          exitCode: code,
-        });
-      });
-
-      childProcess.on("error", (error: Error) => {
-        clearTimeout(timeout);
-        clearInterval(cancellationCheckInterval);
-        const processingTime = Date.now() - startTime;
-
-        logger.error("Hashcat process error", "hashcat", {
-          jobId,
-          processingTime,
-          error: error.message,
-        });
-
-        reject(error);
-      });
-    });
-  } catch (error: any) {
-    const processingTime = Date.now() - startTime;
-
-    logger.error("Hashcat execution failed", "hashcat", {
-      jobId,
-      processingTime,
-      error: error.message,
-    });
-
     return {
-      stdout: "",
-      stderr: error.message,
-      processingTime,
-      exitCode: 1,
+      success: false,
+      error: errorMessage,
     };
   }
 }

@@ -4,6 +4,10 @@ import { logger } from "../lib/logger";
 import * as fs from "fs/promises";
 import * as os from "os";
 import path from "path";
+import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { emailQueue } from "../lib/email-queue";
+import { configService } from "./config.service";
 
 interface HealthCheckResult {
   status: "healthy" | "degraded" | "unhealthy";
@@ -311,6 +315,77 @@ class HealthCheckService {
       databaseLatency: database.latency,
       redisLatency: redis.latency,
     });
+
+    // Send email notifications for degraded/critical health
+    if (
+      (status === "degraded" || status === "unhealthy") &&
+      emailQueue.isReady()
+    ) {
+      try {
+        const emailEnabled = await configService.getBoolean(
+          "email-enabled",
+          false,
+        );
+        const notifyDegraded = await configService.getBoolean(
+          "email-notify-health-degraded",
+          true,
+        );
+        const notifyCritical = await configService.getBoolean(
+          "email-notify-health-critical",
+          true,
+        );
+
+        if (emailEnabled && (notifyDegraded || notifyCritical)) {
+          // Get superuser emails to send alerts
+          const superusers = await db.query.users.findMany({
+            where: eq(users.role, "superuser"),
+            columns: { email: true, name: true },
+          });
+
+          if (superusers.length > 0) {
+            const healthData = {
+              status: status,
+              checks: {
+                database,
+                redis,
+                workers,
+                disk,
+              },
+              uptime,
+            };
+
+            for (const superuser of superusers) {
+              await emailQueue.sendJobEmail({
+                type:
+                  status === "critical" ? "health_critical" : "health_degraded",
+                to: superuser.email,
+                data: {
+                  ...healthData,
+                  recipientName: superuser.name,
+                },
+                priority: 2,
+              });
+            }
+
+            logger.info(
+              "Health alert emails sent to superusers",
+              "health-check",
+              {
+                status,
+                recipients: superusers.length,
+              },
+            );
+          }
+        }
+      } catch (emailError) {
+        logger.error("Failed to send health alert email", "health-check", {
+          error:
+            emailError instanceof Error
+              ? emailError
+              : new Error(String(emailError)),
+        });
+      }
+    }
 
     return result;
   }
