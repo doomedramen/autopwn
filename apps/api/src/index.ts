@@ -42,6 +42,7 @@ import { auth } from "./lib/auth";
 import { getWebSocketServer } from "./lib/websocket";
 import type { HonoAuthContext } from "./types/auth";
 import { configService } from "./services/config.service";
+import { emailQueue } from "./lib/email-queue";
 
 const app = new Hono<HonoAuthContext>();
 
@@ -243,6 +244,16 @@ async function startServer() {
       }
     } else {
       console.log("⏭  Email service disabled");
+    }
+
+    // Initialize email queue
+    if (emailEnabled) {
+      try {
+        await emailQueue.initialize();
+        console.log("✅ Email queue initialized");
+      } catch (error) {
+        console.error("⚠️  Failed to initialize email queue", error);
+      }
     }
 
     // Start WebSocket server first

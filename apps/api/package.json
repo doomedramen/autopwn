@@ -24,6 +24,7 @@
     "test:db:push": "NODE_ENV=test drizzle-kit push",
     "test:performance": "vitest run --config vitest.performance.config.ts",
     "worker": "tsx src/workers/index.ts",
+    "worker:email": "tsx src/workers/email-worker.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:push": "drizzle-kit push",

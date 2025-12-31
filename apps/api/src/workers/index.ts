@@ -14,6 +14,7 @@ import { runHashcatAttack } from "./hashcat";
 import { generateDictionary } from "./dictionary-generation";
 import { cleanupFiles } from "./file-cleanup";
 import { processStorageCleanup } from "./storage-cleanup";
+import { startEmailWorker } from "./email-worker";
 
 // Create Redis connection for workers
 const redisConnection = new Redis({
@@ -30,6 +31,9 @@ const redisConnection = new Redis({
   connectTimeout: 30000, // 30 seconds
   commandTimeout: 10000, // 10 seconds
 });
+
+// Email Worker - runs independently for async email sending
+export { startEmailWorker } from "./email-worker";
 
 // PCAP Processing Worker
 export const pcapProcessingWorker = new Worker<PCAPProcessingJob>(
