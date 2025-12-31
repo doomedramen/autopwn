@@ -25,6 +25,7 @@ import { securityRoutes } from "./routes/security-monitoring";
 import { virusScannerRoutes } from "./routes/virus-scanner";
 import { websocketRoutes } from "./routes/websocket";
 import { storageRoutes } from "./routes/storage";
+import { emailRoutes } from "./routes/email";
 
 // Import middleware
 import { securityMiddleware } from "./middleware/security";
@@ -117,6 +118,7 @@ app.route("/api/storage", storageRoutes);
 app.route("/api/websocket", websocketRoutes);
 app.route("/security", securityRoutes);
 app.route("/virus-scanner", virusScannerRoutes);
+app.route("/api/email", emailRoutes);
 
 // Health check (no auth required) - Public CORS
 app.get("/health", publicApiCORS(), (c) => {
@@ -147,7 +149,10 @@ app.get("/api/info", publicApiCORS(), (c) => {
       "/api/config/*",
       "/api/audit/*",
       "/api/health/*",
+      "/api/storage/*",
+      "/api/email/*",
       "/security/*",
+      "/api/websocket/*",
       "/virus-scanner/*",
       "/health",
       "/api/info",
@@ -226,6 +231,19 @@ async function startServer() {
     // Initialize config service
     await configService.loadConfig();
     console.log("✅ Config service initialized");
+
+    // Initialize email service
+    const emailEnabled = await configService.getBoolean("email-enabled", false);
+    if (emailEnabled) {
+      try {
+        await emailService.initialize();
+        console.log("✅ Email service initialized");
+      } catch (error) {
+        console.error("⚠️  Failed to initialize email service", error);
+      }
+    } else {
+      console.log("⏭  Email service disabled");
+    }
 
     // Start WebSocket server first
     const wsServer = getWebSocketServer();
