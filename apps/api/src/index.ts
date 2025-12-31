@@ -20,6 +20,7 @@ import { capturesRoutes } from "./routes/captures";
 import { uploadRoutes } from "./routes/upload";
 import { configRoutes } from "./routes/config";
 import { auditRoutes } from "./routes/audit";
+import { healthRoutes } from "./routes/health";
 import { securityRoutes } from "./routes/security-monitoring";
 import { virusScannerRoutes } from "./routes/virus-scanner";
 import { websocketRoutes } from "./routes/websocket";
@@ -111,6 +112,7 @@ app.route("/api/upload", uploadRoutes);
 app.route("/api/captures", capturesRoutes);
 app.route("/api/config", configRoutes);
 app.route("/api/audit", auditRoutes);
+app.route("/api/health", healthRoutes);
 app.route("/api/storage", storageRoutes);
 app.route("/api/websocket", websocketRoutes);
 app.route("/security", securityRoutes);
@@ -144,9 +146,11 @@ app.get("/api/info", publicApiCORS(), (c) => {
       "/api/captures/*",
       "/api/config/*",
       "/api/audit/*",
+      "/api/health/*",
       "/security/*",
       "/virus-scanner/*",
       "/health",
+      "/api/info",
     ],
   });
 });
@@ -194,7 +198,7 @@ app.notFound((c) => {
       error: "Not Found",
       message: "The requested resource was not found",
       path: c.req.path,
-      available_endpoints: [
+        available_endpoints: [
         "/api/auth/*",
         "/api/jobs/*",
         "/api/networks/*",
@@ -205,14 +209,14 @@ app.notFound((c) => {
         "/api/captures/*",
         "/api/config/*",
         "/api/audit/*",
+        "/api/health/*",
         "/security/*",
         "/virus-scanner/*",
         "/health",
         "/api/info",
       ],
     },
-    404,
-  );
+  });
 });
 
 const port = parseInt(process.env.PORT || "3001");
