@@ -7,8 +7,8 @@ on:
     branches: [main, develop]
 
 env:
-  NODE_VERSION: '20'
-  PNPM_VERSION: '10.4.1'
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10.4.1"
 
 jobs:
   lint:
@@ -55,7 +55,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [api, web]
+        app:
+          - "@autopwn/api"
+          - web
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,7 +94,7 @@ jobs:
           NODE_ENV: test
 
       - name: Upload coverage to Codecov
-        if: matrix.app == 'api'
+        if: matrix.app == '@autopwn/api'
         uses: codecov/codecov-action@v4
         with:
           directory: ./apps/api/coverage
@@ -172,7 +174,7 @@ jobs:
           NODE_ENV: test
 
       - name: Run integration tests
-        run: pnpm test:integration --filter api
+        run: pnpm test:integration --filter @autopwn/api
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/autopwn_test
           REDIS_URL: redis://localhost:6379
@@ -297,7 +299,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run security-focused tests
-        run: pnpm test:unit --filter api -- --grep "security|auth|validation"
+        run: pnpm test:unit --filter @autopwn/api -- --grep "security|auth|validation"
         env:
           NODE_ENV: test
 
@@ -340,7 +342,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run performance benchmarks
-        run: pnpm test:performance --filter api
+        run: pnpm test:performance --filter @autopwn/api
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://test:test@localhost:5432/autopwn_test
