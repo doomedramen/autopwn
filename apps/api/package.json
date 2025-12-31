@@ -30,6 +30,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed-superuser": "tsx src/db/seed-superuser.ts",
     "db:seed-superuser:test": "NODE_ENV=test tsx src/db/seed-superuser.ts",
+    "db:seed-config": "tsx src/db/seed-config.ts",
+    "db:seed-all": "npm run db:seed-superuser && npm run db:seed-config",
     "queue:stats": "tsx -e \"import('./src/lib/queue').then(m => m.checkQueueHealth()).then(console.log)\"",
     "worker:health": "tsx -e \"import('./src/workers').then(m => m.checkWorkerHealth()).then(console.log)\""
   },
