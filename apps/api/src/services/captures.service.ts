@@ -1,6 +1,9 @@
 import { db } from "../db";
 import { captures, selectCaptureSchema } from "../db/schema";
 import { eq, and, desc, like, sql } from "drizzle-orm";
+import * as fs from "fs/promises";
+import path from "path";
+import { logger } from "../lib/logger";
 
 export interface CreateCaptureOptions {
   filename: string;
@@ -117,10 +120,39 @@ export class CapturesService {
   }
 
   static async delete(id: string) {
+    const capture = await this.getById(id);
+
+    if (!capture) {
+      return null;
+    }
+
     const [deleted] = await db
       .delete(captures)
       .where(eq(captures.id, id))
       .returning();
+
+    if (capture.filePath) {
+      try {
+        const captureDir = path.dirname(capture.filePath);
+        await fs.rm(captureDir, { recursive: true, force: true });
+
+        logger.info("Capture files deleted from disk", "captures-service", {
+          captureId: id,
+          filePath: capture.filePath,
+          directory: captureDir,
+        });
+      } catch (error) {
+        logger.error(
+          "Failed to delete capture files from disk",
+          "captures-service",
+          {
+            captureId: id,
+            filePath: capture.filePath,
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        );
+      }
+    }
 
     return deleted;
   }

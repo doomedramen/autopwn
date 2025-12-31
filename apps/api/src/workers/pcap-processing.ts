@@ -1,8 +1,10 @@
-import { db } from "./db";
-import { networks } from "./schema";
-import { eq, sql } from "drizzle-orm";
-import { logger } from "./logger";
-import { analyzePCAPFile } from "./lib/pcap-analyzer";
+import { db } from "../db/index";
+import { networks, captures } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { logger } from "../lib/logger";
+import { analyzePCAPFile } from "../lib/pcap-analyzer";
+import { CapturesService } from "../services/captures.service";
+import { v4 as uuidv4 } from "uuid";
 
 interface ProcessPCAPOptions {
   captureId?: string;
@@ -17,6 +19,9 @@ export async function processPCAP({
   originalFilename,
   userId,
 }: ProcessPCAPOptions) {
+  let finalCaptureId: string = captureId || "";
+  let capture: any = null;
+
   try {
     logger.info("Starting PCAP processing", "pcap-processing", {
       captureId,
@@ -25,36 +30,19 @@ export async function processPCAP({
       userId,
     });
 
-    // Get capture to update
-    const capture = await db.query.captures.findFirst({
-      where: eq(captures.id, captureId),
-    });
-
-    if (!capture) {
-      throw new Error("Capture not found");
-    }
-
-    // Analyze PCAP file
-    const analysis = await analyzePCAPFile(filePath, 50);
-
-    logger.info("PCAP analysis completed", "pcap-processing", {
-      filePath,
-      networksFound: analysis.estimatedNetworkCount || 0,
-      totalPackets: analysis.totalPackets,
-    });
-
-    // If capture was provided, update its network
     if (captureId) {
+      capture = await db.query.captures.findFirst({
+        where: eq(captures.id, captureId),
+      });
+
+      if (!capture) {
+        throw new Error("Capture not found");
+      }
+
       await CapturesService.updateStatus(captureId, "processing");
     } else {
-      // No captureId provided, create new capture record and then create networks
-      logger.info(
-        "No captureId provided, creating new capture and networks",
-        "pcap-processing",
-      );
-
       const newCaptureId = uuidv4();
-      const [{ insert: captures }] = await db
+      const [newCapture] = await db
         .insert(captures)
         .values({
           id: newCaptureId,
@@ -65,48 +53,31 @@ export async function processPCAP({
           networkCount: 0,
           uploadedAt: new Date(),
           filePath,
-          metadata: {
-            pcapInfo: analysis.estimatedNetworkCount
-              ? {
-                  version: analysis.version,
-                  network: analysis.network,
-                  snaplen: analysis.snaplen,
-                }
-              : null,
-            pcapAnalysis: analysis.estimatedNetworkCount
-              ? {
-                  totalPackets: analysis.totalPackets,
-                  estimatedNetworkCount: analysis.estimatedNetworkCount,
-                }
-              : null,
-          },
+          metadata: {},
         })
         .returning();
 
-      logger.info("Capture record created", "pcap-processing", {
-        captureId: newCaptureId,
-      });
+      finalCaptureId = newCaptureId;
+      capture = newCapture;
 
-      return newCaptureId;
+      logger.info("Capture record created", "pcap-processing", {
+        captureId: finalCaptureId,
+      });
     }
 
-    // Extract networks from PCAP analysis
+    const analysis = await analyzePCAPFile(filePath, 50);
+
+    logger.info("PCAP analysis completed", "pcap-processing", {
+      filePath,
+      networksFound: analysis.estimatedNetworkCount || 0,
+      totalPackets: analysis.totalPackets,
+    });
+
     const extractedNetworks = analysis.extractedNetworks || [];
     const networkIds: string[] = [];
 
-    for (const networkData of analysis.extractedNetworks || []) {
-      logger.info("Creating network", "pcap-processing", {
-        ssid: networkData.ssid || networkData.bssid,
-        bssid: networkData.bssid,
-        encryption: networkData.encryption,
-        hasHandshake: networkData.hasHandshake,
-        hasPMKID: !!networkData.pmkid,
-        captureDate: new Date(),
-        userId,
-        captureId: captureId || newCaptureId,
-      });
-
-      const [{ insert: networks }] = await db
+    for (const networkData of extractedNetworks) {
+      const [newNetwork] = await db
         .insert(networks)
         .values({
           ssid: networkData.ssid || networkData.bssid,
@@ -125,6 +96,13 @@ export async function processPCAP({
         .returning();
 
       networkIds.push(newNetwork.id);
+
+      logger.info("Network created", "pcap-processing", {
+        networkId: newNetwork.id,
+        ssid: networkData.ssid || networkData.bssid,
+        bssid: networkData.bssid,
+        encryption: networkData.encryption,
+      });
     }
 
     logger.info("Networks extracted from PCAP", "pcap-processing", {
@@ -132,13 +110,12 @@ export async function processPCAP({
       networkIds,
     });
 
-    // Update capture with network count and mark as completed
     await CapturesService.updateNetworkCount(
-      captureId || newCaptureId,
+      finalCaptureId,
       extractedNetworks.length,
     );
 
-    const finalCaptureId = captureId || newCaptureId;
+    await CapturesService.updateStatus(finalCaptureId, "completed");
 
     return {
       success: true,
@@ -152,30 +129,26 @@ export async function processPCAP({
     };
   } catch (error) {
     logger.error("PCAP processing failed", "pcap-processing", {
-      captureId,
+      captureId: finalCaptureId,
       filePath,
       error: error instanceof Error ? error : new Error(String(error)),
     });
 
-    await CapturesService.updateStatus(
-      captureId || newCaptureId,
-      "failed",
-      error instanceof Error ? error.message : "PCAP processing failed",
-    );
+    if (finalCaptureId) {
+      await CapturesService.updateStatus(
+        finalCaptureId,
+        "failed",
+        error instanceof Error ? error.message : "PCAP processing failed",
+      );
+    }
 
     return {
       success: false,
       error: "PCAP processing failed",
       data: {
-        captureId: captureId || newCaptureId,
+        captureId: finalCaptureId,
         networksFound: 0,
       },
     };
   }
-}
-
-// Local import of CapturesService for updateStatus and updateNetworkCount
-async function CapturesService() {
-  const CapturesServiceClass = await import("./services/captures.service");
-  return CapturesServiceClass;
 }
