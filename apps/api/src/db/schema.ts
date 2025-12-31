@@ -170,6 +170,9 @@ export const jobs = pgTable("jobs", {
     .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  scheduledAt: timestamp("scheduled_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  dependsOn: jsonb("depends_on").$type<string[]>().default([]),
 });
 
 // Job results table for captured handshakes/cracked passwords
