@@ -4,6 +4,7 @@ import { z } from "zod";
 import { configService } from "../services/config.service";
 import { logger } from "../lib/logger";
 import { requireSuperuser } from "../middleware/auth";
+import { auditService } from "../services/audit.service";
 
 const configRoutes = new Hono();
 
@@ -135,6 +136,21 @@ configRoutes.patch(
           }
 
           results.push(updated);
+
+          await auditService.logEvent({
+            userId,
+            action: "config.update",
+            entityType: "config",
+            entityId: id,
+            oldValue: null,
+            newValue: value,
+            ipAddress:
+              c.req.header("x-forwarded-for") ||
+              c.req.header("x-real-ip") ||
+              "unknown",
+            userAgent: c.req.header("user-agent"),
+            success: true,
+          });
         } catch (error) {
           logger.error(`Failed to update config '${id}'`, "config-api", {
             error: error instanceof Error ? error : new Error(String(error)),
@@ -202,6 +218,21 @@ configRoutes.post("/reload", async (c) => {
     });
 
     await configService.reload();
+
+    await auditService.logEvent({
+      userId,
+      action: "config.reload",
+      entityType: "config",
+      entityId: null,
+      oldValue: null,
+      newValue: null,
+      ipAddress:
+        c.req.header("x-forwarded-for") ||
+        c.req.header("x-real-ip") ||
+        "unknown",
+      userAgent: c.req.header("user-agent"),
+      success: true,
+    });
 
     return c.json({
       success: true,

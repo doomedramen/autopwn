@@ -4,6 +4,7 @@ import { eq, and, desc, like, sql } from "drizzle-orm";
 import * as fs from "fs/promises";
 import path from "path";
 import { logger } from "../lib/logger";
+import { auditService } from "./audit.service";
 
 export interface CreateCaptureOptions {
   filename: string;
@@ -119,7 +120,12 @@ export class CapturesService {
     return capture;
   }
 
-  static async delete(id: string) {
+  static async delete(
+    id: string,
+    userId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const capture = await this.getById(id);
 
     if (!capture) {
@@ -130,6 +136,21 @@ export class CapturesService {
       .delete(captures)
       .where(eq(captures.id, id))
       .returning();
+
+    await auditService.logEvent({
+      userId,
+      action: "capture.delete",
+      entityType: "capture",
+      entityId: id,
+      oldValue: {
+        filename: capture.filename,
+        filePath: capture.filePath,
+      },
+      newValue: null,
+      ipAddress,
+      userAgent,
+      success: true,
+    });
 
     if (capture.filePath) {
       try {

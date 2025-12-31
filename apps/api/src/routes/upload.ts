@@ -16,6 +16,7 @@ import { captures } from "../db/schema";
 import { eq } from "drizzle-orm";
 import * as fs from "fs/promises";
 import { configService } from "../services/config.service";
+import { auditService } from "../services/audit.service";
 
 const uploadSchema = z.object({
   file: z.instanceof(File),
@@ -132,6 +133,25 @@ upload.post("/", zValidator("form", uploadSchema), async (c) => {
       userId,
       filename: file.name,
       fileSize: file.size,
+    });
+
+    await auditService.logEvent({
+      userId,
+      action: "capture.upload",
+      entityType: "capture",
+      entityId: capture.id,
+      oldValue: null,
+      newValue: {
+        filename: capture.filename,
+        fileSize: capture.fileSize,
+        status: capture.status,
+      },
+      ipAddress:
+        c.req.header("x-forwarded-for") ||
+        c.req.header("x-real-ip") ||
+        "unknown",
+      userAgent: c.req.header("user-agent"),
+      success: true,
     });
 
     const queueHealth = await (await import("../lib/queue")).checkQueueHealth();
