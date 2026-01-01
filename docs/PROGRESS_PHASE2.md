@@ -10,7 +10,7 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 - **Planned:** 14-21 days
 - **Start Date:** December 31, 2025
-- **Current Day:** Day 12 of 21 (Advanced Dictionary Management)
+- **Current Day:** Day 17 of 21 (Capture Management UI)
 
 ---
 
@@ -485,9 +485,9 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 ---
 
-## Day 12-15: Advanced Dictionary Management (IN PROGRESS)
+## Day 12-15: Advanced Dictionary Management ✅
 
-**Status:** API Endpoints Complete, UI Updates Pending
+**Status:** COMPLETE
 
 **What Was Accomplished:**
 
@@ -496,6 +496,8 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 - Added dictionary merge functionality with deduplication and validation
 - Added dictionary validation functionality for cleaning wordlists
 - Added dictionary statistics with entropy calculation
+- Created comprehensive UI components for dictionary management
+- Integrated new features into DictionariesTab
 
 **API Endpoints Created:**
 
@@ -518,6 +520,38 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
    - Size stats: bytes, KB, MB, bytes per word
    - Includes processingConfig metadata
 
+**UI Components Created:**
+
+1. **MergeDictionariesModal** (`apps/web/components/merge-dictionaries-modal.tsx`)
+   - Select 2-10 dictionaries to merge
+   - Set merged dictionary name
+   - Toggle deduplication option
+   - Real-time validation of selections
+   - Loading state during merge
+
+2. **DictionaryStatistics** (`apps/web/components/dictionary-statistics.tsx`)
+   - Basic information: total words, unique words, avg length, length range
+   - File size: bytes, KB, MB, average bytes per word
+   - Frequency analysis: Shannon entropy, duplicate rate
+   - Top 20 most common words
+   - Length distribution chart
+   - Processing metadata display
+
+3. **Updated DictionariesTab**
+   - Added "Merge Dictionaries" button to action toolbar
+   - Added Actions column with three buttons per dictionary:
+     - View Statistics (BarChart3 icon)
+     - Validate Dictionary (ShieldCheck icon)
+     - Delete Dictionary (Trash2 icon)
+   - Loading states for all actions
+   - Confirmation dialog for delete
+
+**API Hooks Added:**
+
+- `useMergeDictionaries()` - Merge dictionaries mutation
+- `useValidateDictionary()` - Validate dictionary mutation
+- `useDictionaryStatistics()` - Get dictionary statistics query
+
 **Key Features:**
 
 - Merge: 2-10 dictionaries with configurable validation
@@ -526,6 +560,14 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 - Secure file permissions (0o600) on all generated files
 - Processing metadata stored in database JSONB field
 - User ownership verification on all operations
+- Real-time validation in merge modal (2-10 dictionary requirement)
+- Loading states for all async operations
+- Delete confirmation dialog
+
+**Files Created:**
+
+- `apps/web/components/merge-dictionaries-modal.tsx` (165 lines)
+- `apps/web/components/dictionary-statistics.tsx` (141 lines)
 
 **Files Modified:**
 
@@ -534,14 +576,8 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 - `apps/api/src/index.ts` - Fixed duplicate closing brace
 - `apps/api/src/routes/jobs.ts` - Fixed duplicate closing brace
 - `apps/api/src/lib/email-queue.ts` - Fixed Queue initialization syntax
-
-**Still To Do (dict-7):**
-
-- [ ] Update DictionariesTab component with merge modal
-- [ ] Add validate button to dictionary actions
-- [ ] Add statistics view to dictionary details
-- [ ] Update API hooks in apps/web/lib/api-hooks.ts
-- [ ] Test new dictionary management endpoints
+- `apps/web/lib/api-hooks.ts` - Added dictionary management hooks (+56 lines)
+- `apps/web/components/dictionaries-tab.tsx` - Added merge button and action buttons (+61 lines)
 
 **Still To Do (dict-8):**
 
@@ -596,20 +632,21 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 ### Days 12-15: Advanced Dictionary Management (In Progress)
 
 - `b0b7b82` - Add dictionary merge, validate, and statistics endpoints
+- `c868754` - Add dictionary management UI components
 
 ---
 
 ## Progress Summary
 
-### Overall Progress: 71% (15 of 21 days)
+### Overall Progress: 81% (17 of 21 days)
 
-### Features Complete: 4 of 6 feature groups
+### Features Complete: 5 of 6 feature groups
 
 - [x] Email Notifications System (Days 1-3)
 - [x] Email Queue & Worker (Days 2-3)
 - [x] Advanced Job Management (Days 4-8)
 - [x] Admin Dashboard UI (Days 9-11)
-- [ ] Advanced Dictionary Management (Days 12-15) - API endpoints complete, UI pending
+- [x] Advanced Dictionary Management (Days 12-15) - API + UI complete
 - [ ] Capture Management UI (Days 16-17)
 
 ### Code Statistics (Day 1)
@@ -639,10 +676,10 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 ## Next Immediate Tasks
 
-1. **Priority 1:** Update DictionariesTab UI with merge modal (dict-7)
-2. **Priority 2:** Add validate button and statistics view to DictionariesTab (dict-7)
-3. **Priority 3:** Update API hooks in apps/web/lib/api-hooks.ts for new endpoints (dict-7)
-4. **Priority 4:** Write unit tests for dictionary management endpoints (dict-8)
+1. **Priority 1:** Implement Capture Management UI (Days 16-17)
+2. **Priority 2:** Write unit tests for dictionary management endpoints (dict-8)
+3. **Priority 3:** Implement Capture list with filtering
+4. **Priority 4:** Add "Create Job" button from capture view
 
 ---
 
