@@ -288,7 +288,7 @@ jobManagementRoutes.post("/:id/cancel", async (c) => {
 /**
  * POST /api/jobs/bulk-cancel - Cancel multiple jobs
  */
-jobManagementRoutes.post(
+jobs.post(
   "/bulk-cancel",
   zValidator(
     "json",
@@ -432,7 +432,7 @@ jobManagementRoutes.post(
 /**
  * POST /api/jobs/:id/schedule - Schedule a job
  */
-jobManagementRoutes.post(
+jobs.post(
   "/:id/schedule",
   zValidator(
     "json",
@@ -618,7 +618,7 @@ jobManagementRoutes.post(
 /**
  * GET /api/jobs/scheduled - List scheduled jobs
  */
-jobManagementRoutes.get("/scheduled", async (c) => {
+jobs.get("/scheduled", async (c) => {
   try {
     const userId = c.get("userId");
     const page = parseInt(c.req.query("page") || "1");
@@ -684,7 +684,7 @@ jobManagementRoutes.get("/scheduled", async (c) => {
 /**
  * GET /api/jobs/:id/dependencies - Get job dependencies
  */
-jobManagementRoutes.get("/:id/dependencies", async (c) => {
+jobs.get("/:id/dependencies", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
@@ -779,7 +779,7 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
 /**
  * POST /api/jobs/:id/retry - Retry failed job
  */
-jobManagementRoutes.post("/:id/retry", async (c) => {
+jobs.post("/:id/retry", async (c) => {
   try {
     const id = c.req.param("id");
     const userId = c.get("userId");
@@ -897,7 +897,7 @@ jobManagementRoutes.post("/:id/retry", async (c) => {
 /**
  * GET /api/jobs/stats - Get job statistics
  */
-jobManagementRoutes.get("/stats", async (c) => {
+jobs.get("/stats", async (c) => {
   try {
     const userId = c.get("userId");
 

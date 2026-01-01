@@ -26,7 +26,7 @@ import { securityRoutes } from "./routes/security-monitoring";
 import { virusScannerRoutes } from "./routes/virus-scanner";
 import { websocketRoutes } from "./routes/websocket";
 import { storageRoutes } from "./routes/storage";
-import { emailRoutes } from "./routes/email";
+import emailRoutes from "./routes/email";
 
 // Import middleware
 import { securityMiddleware } from "./middleware/security";

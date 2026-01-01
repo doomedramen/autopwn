@@ -1,16 +1,15 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { db } from "./index";
+import { db } from "@/db";
 import {
   authenticate,
   getUserId,
   isAdmin,
   requireAdmin,
-} from "./middleware/auth";
-import { logger } from "./lib/logger";
-import { CapturesService } from "./services/captures.service";
-import { createConfiguredRateLimit } from "../middleware/rate-limit";
+} from "@/middleware/auth";
+import { logger } from "@/lib/logger";
+import { createConfiguredRateLimit } from "@/middleware/rate-limit";
 import { createConfiguredRateLimit } from "../middleware/rate-limit";
 import { createConfiguredRateLimit } from "../middleware/rate-limit";
 

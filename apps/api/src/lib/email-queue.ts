@@ -1,8 +1,8 @@
 import { Queue, Worker, Job } from "bullmq";
 import { Ioredis } from "bullmq";
-import { configService } from "./config.service";
-import { logger } from "../lib/logger";
-import { emailService } from "./email.service";
+import { configService } from "@/services/config.service";
+import { logger } from "@/lib/logger";
+import { emailService } from "@/services/email.service";
 
 export interface EmailJobData {
   type:
