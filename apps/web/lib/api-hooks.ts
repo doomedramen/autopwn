@@ -179,6 +179,47 @@ export function useDeleteDictionary(id: string) {
   });
 }
 
+export function useMergeDictionaries() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      dictionaryIds: string[];
+      removeDuplicates?: boolean;
+      validationRules?: {
+        minLength?: number;
+        maxLength?: number;
+        excludePatterns?: string[];
+      };
+    }) => ApiClient.post("/api/dictionaries/merge", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dictionaries"] });
+    },
+  });
+}
+
+export function useValidateDictionary(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => ApiClient.post(`/api/dictionaries/${id}/validate`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dictionaries"] });
+    },
+  });
+}
+
+export function useDictionaryStatistics(id: string) {
+  return useQuery({
+    queryKey: ["dictionaries", id, "statistics"],
+    queryFn: () => ApiClient.get(`/api/dictionaries/${id}/statistics`),
+    enabled: !!id,
+    staleTime: 60 * 1000,
+    select: (data: any) => data.data || null,
+  });
+}
+
 // Job hooks
 export function useJobs() {
   return useQuery({
