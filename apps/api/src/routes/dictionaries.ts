@@ -256,17 +256,17 @@ dictionariesRouter.post(
         500,
       );
     }
-  },
-);
+  }
 
-// DELETE a dictionary
-dictionariesRouter.delete("/:id", async (c) => {
-  const id = c.req.param("id");
-  const userId = getUserId(c);
-  try {
-    const dictionary = await db.query.dictionaries.findFirst({
-      where: eq(dictionariesSchema.id, id),
-    });
+    // Cache disabled - calculate directly
+    const userId = c.get("userId") as string;
+    const id = c.req.param("id");
+    const [dictionary] = await db
+      .select()
+      .from(dictionaries)
+      .where(eq(dictionaries.id, id))
+      .limit(1);
+
     if (!dictionary) {
       return c.json(
         {
@@ -274,6 +274,15 @@ dictionariesRouter.delete("/:id", async (c) => {
           error: "Dictionary not found",
         },
         404,
+      );
+    }
+    if (dictionary.userId !== userId) {
+      return c.json(
+        {
+          success: false,
+          error: "Access denied",
+        },
+        403,
       );
     }
     if (dictionary.userId !== userId) {
