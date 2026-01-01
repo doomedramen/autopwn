@@ -61,7 +61,7 @@ describe('Real Security Workflow Integration Tests', () => {
         dictionaryPath: testDict,
         attackMode: 'handshake',
         userId: 'test-user-workflow'
-      }, 60000) // 60 second timeout for real attack
+      })
 
       expect(attackResult).toBeDefined()
       expect(typeof attackResult.success).toBe('boolean')
@@ -106,7 +106,7 @@ describe('Real Security Workflow Integration Tests', () => {
         dictionaryPath: testDict,
         attackMode: 'pmkid',
         userId: 'test-user-pmkid'
-      }, 60000)
+      })
 
       expect(pmkidResult).toBeDefined()
       expect(typeof pmkidResult.success).toBe('boolean')
@@ -162,7 +162,7 @@ describe('Real Security Workflow Integration Tests', () => {
         dictionaryPath: testDict,
         attackMode: 'handshake',
         userId: 'test-user-error'
-      }, 30000)
+      })
 
       expect(failResult.success).toBe(false)
       expect(failResult.error).toBeDefined()
@@ -188,7 +188,7 @@ describe('Real Security Workflow Integration Tests', () => {
         dictionaryPath: testDict,
         attackMode: 'handshake',
         userId: 'test-user-cleanup'
-      }, 30000)
+      })
 
       // Verify cleanup after successful attack
       if (cleanupResult.success) {

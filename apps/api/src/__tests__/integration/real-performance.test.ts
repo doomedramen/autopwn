@@ -50,9 +50,10 @@ describe('Real Performance Tests', () => {
         networkId: 'perf-network-1',
         dictionaryId: 'perf-dict-1',
         handshakePath: path.join(testDir, 'small.hc22000'),
+        dictionaryPath: path.join(testDir, 'performance.dict'),
         attackMode: 'handshake',
         userId: 'test-user-perf'
-      }, 30000)
+      })
 
       const processingTime = performance.now() - startTime
       const passwordsPerSecond = 25 / (processingTime / 1000)
@@ -79,9 +80,10 @@ describe('Real Performance Tests', () => {
         networkId: 'perf-network-2',
         dictionaryId: 'perf-dict-2',
         handshakePath: mediumHC22000,
+        dictionaryPath: path.join(testDir, 'performance.dict'),
         attackMode: 'handshake',
         userId: 'test-user-perf'
-      }, 45000) // 45 second timeout
+      })
 
       const processingTime = performance.now() - startTime
       const hashesPerSecond = 100 / (processingTime / 1000)
@@ -108,9 +110,10 @@ describe('Real Performance Tests', () => {
         networkId: 'perf-network-3',
         dictionaryId: 'perf-dict-3',
         handshakePath: largeHC22000,
+        dictionaryPath: path.join(testDir, 'performance.dict'),
         attackMode: 'handshake',
         userId: 'test-user-perf'
-      }, 120000) // 2 minute timeout for large dataset
+      })
 
       const processingTime = performance.now() - startTime
       const hashesPerSecond = 100 / (processingTime / 1000)
@@ -147,25 +150,28 @@ describe('Real Performance Tests', () => {
           networkId: 'concurrent-network-1',
           dictionaryId: 'perf-dict-concurrent',
           handshakePath: smallHC22000_1,
+          dictionaryPath: path.join(testDir, 'performance.dict'),
           attackMode: 'handshake',
           userId: 'test-user-concurrent'
-        }, 60000),
+        }),
         runHashcatAttack({
           jobId: 'concurrent-job-2',
           networkId: 'concurrent-network-2',
           dictionaryId: 'perf-dict-concurrent',
           handshakePath: smallHC22000_2,
+          dictionaryPath: path.join(testDir, 'performance.dict'),
           attackMode: 'handshake',
           userId: 'test-user-concurrent'
-        }, 60000),
+        }),
         runHashcatAttack({
           jobId: 'concurrent-job-3',
           networkId: 'concurrent-network-3',
           dictionaryId: 'perf-dict-concurrent',
           handshakePath: smallHC22000_1, // Reuse first file
+          dictionaryPath: path.join(testDir, 'performance.dict'),
           attackMode: 'handshake',
           userId: 'test-user-concurrent'
-        }, 60000)
+        })
       ])
 
       const totalProcessingTime = performance.now() - startTime
@@ -197,9 +203,10 @@ describe('Real Performance Tests', () => {
         networkId: 'memory-network',
         dictionaryId: 'memory-dict',
         handshakePath: veryLargeHC22000,
+        dictionaryPath: path.join(testDir, 'performance.dict'),
         attackMode: 'handshake',
         userId: 'test-user-memory'
-      }, 180000)
+      })
 
       const endMemory = process.memoryUsage()
       const processingTime = performance.now() - startTime
@@ -219,9 +226,10 @@ describe('Real Performance Tests', () => {
         networkId: 'cleanup-network',
         dictionaryId: 'cleanup-dict',
         handshakePath: path.join(testDir, 'cleanup-test.hc22000'),
+        dictionaryPath: path.join(testDir, 'performance.dict'),
         attackMode: 'handshake',
         userId: 'test-user-cleanup'
-      }, 60000)
+      })
 
       // Allow some time for cleanup
       await new Promise(resolve => setTimeout(resolve, 1000))

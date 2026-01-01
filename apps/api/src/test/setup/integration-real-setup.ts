@@ -1,18 +1,42 @@
 import { beforeAll, afterAll, vi, expect } from 'vitest'
 
-// Mock database operations globally for integration tests
+// Mock database with proper Drizzle ORM chaining pattern
+// Real integration tests test hashcat/hcx tools, not database operations
+const createChainableMock = () => {
+  const chainable: any = {
+    set: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue([]),
+    values: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
+    limit: vi.fn().mockResolvedValue([]),
+    offset: vi.fn().mockResolvedValue([]),
+    orderBy: vi.fn().mockResolvedValue([]),
+    from: vi.fn().mockReturnThis(),
+    leftJoin: vi.fn().mockReturnThis(),
+    rightJoin: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    execute: vi.fn().mockResolvedValue(undefined)
+  }
+  // Make where() also chainable
+  chainable.where = vi.fn().mockReturnValue({
+    ...chainable,
+    execute: vi.fn().mockResolvedValue(undefined)
+  })
+  return chainable
+}
+
 vi.mock('../../db/index.ts', () => ({
   db: {
-    update: vi.fn().mockResolvedValue({ affectedRows: 1 }),
-    select: vi.fn().mockReturnValue({
-      where: vi.fn().mockResolvedValue([]),
-      from: vi.fn().mockReturnValue([{ where: vi.fn() }]),
-      limit: vi.fn().mockResolvedValue([]),
-      offset: vi.fn().mockResolvedValue([]),
-      orderBy: vi.fn().mockResolvedValue([])
-    }),
-    insert: vi.fn().mockResolvedValue({ id: 1 }),
-    delete: vi.fn().mockResolvedValue({ affectedRows: 1 })
+    update: vi.fn().mockImplementation(() => createChainableMock()),
+    select: vi.fn().mockImplementation(() => createChainableMock()),
+    insert: vi.fn().mockImplementation(() => createChainableMock()),
+    delete: vi.fn().mockImplementation(() => createChainableMock()),
+    query: {
+      jobs: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([])
+      }
+    }
   }
 }))
 

@@ -7,64 +7,66 @@ vi.mock('@/lib/queue', () => ({
   checkQueueHealth: vi.fn().mockResolvedValue({ status: 'healthy' })
 }))
 
-vi.mock('@/workers/hashcat', () => ({
-  runHashcat: vi.fn().mockResolvedValue({ success: true, cracked: 0 }),
-  generateHashcatCommand: vi.fn().mockReturnValue('hashcat -m 22000 -a 0'),
-  parseHashcatOutput: vi.fn().mockImplementation((stdout, stderr, exitCode) => {
-    const results = []
-
-    if (exitCode === 0 && stdout.includes('Cracked:')) {
-      const match = stdout.match(/Cracked:\s+(\d+)\/(\d+)/)
-      if (match) {
-        return {
-          success: true,
-          cracked: parseInt(match[1]),
-          total: parseInt(match[2]),
-          passwords: []
-        }
-      }
-    }
-
-    return {
-      success: exitCode === 0,
-      cracked: 0,
-      total: 0,
-      passwords: []
-    }
-  }),
-  buildHashcatCommand: vi.fn().mockImplementation((options) => {
-    const workDir = options.jobId ? `/tmp/temp/hashcat/${options.jobId}` : '/tmp/temp/hashcat/test'
-
-    // Hashcat attack modes:
-    // -m 16800: WPA-PMKID-PBKDF2 (PMKID attack)
-    // -m 22000: WPA-PBKDF2-PMKID+EAPOL (handshake attack)
-    const hashMode = options.attackMode === 'pmkid' ? 16800 : 22000
-
-    // Output files
-    const outputFile = options.outputFile || `${workDir}/hashcat_output.txt`
-    const potfile = `${workDir}/hashcat.pot`
-
-    const command = [
-      'hashcat',
-      `-m ${hashMode}`,
-      `-a 0`, // Dictionary attack
-      options.handshakePath || '/tmp/test.hc22000',
-      options.dictionaryPath || '/tmp/wordlist.txt',
-      `-o ${outputFile}`,
-      `--potfile-path=${potfile}`,
-      '--quiet',
-      '--force',
-      '-O', // Optimized kernel
-      '-w 4', // Workload profile (high)
-      `--session=${options.jobId || ''}`,
-      options.runtime ? `--runtime=${options.runtime}` : '--runtime=3600'
-    ].join(' ')
-
-    return command
-  }),
-  runHashcatAttack: vi.fn().mockResolvedValue({ success: true, passwordsFound: 0, passwords: [] }),
-  checkHashcatAvailability: vi.fn().mockResolvedValue({ available: true, version: 'v6.2.6' })
-}))
+// Commented out global hashcat mock to avoid conflicts with integration tests
+// Unit tests that need hashcat mocking should mock it individually in their test files
+// vi.mock('@/workers/hashcat', () => ({
+//   runHashcat: vi.fn().mockResolvedValue({ success: true, cracked: 0 }),
+//   generateHashcatCommand: vi.fn().mockReturnValue('hashcat -m 22000 -a 0'),
+//   parseHashcatOutput: vi.fn().mockImplementation((stdout, stderr, exitCode) => {
+//     const results = []
+//
+//     if (exitCode === 0 && stdout.includes('Cracked:')) {
+//       const match = stdout.match(/Cracked:\s+(\d+)\/(\d+)/)
+//       if (match) {
+//         return {
+//           success: true,
+//           cracked: parseInt(match[1]),
+//           total: parseInt(match[2]),
+//           passwords: []
+//         }
+//       }
+//     }
+//
+//     return {
+//       success: exitCode === 0,
+//       cracked: 0,
+//       total: 0,
+//       passwords: []
+//     }
+//   }),
+//   buildHashcatCommand: vi.fn().mockImplementation((options) => {
+//     const workDir = options.jobId ? `/tmp/temp/hashcat/${options.jobId}` : '/tmp/temp/hashcat/test'
+//
+//     // Hashcat attack modes:
+//     // -m 16800: WPA-PMKID-PBKDF2 (PMKID attack)
+//     // -m 22000: WPA-PBKDF2-PMKID+EAPOL (handshake attack)
+//     const hashMode = options.attackMode === 'pmkid' ? 16800 : 22000
+//
+//     // Output files
+//     const outputFile = options.outputFile || `${workDir}/hashcat_output.txt`
+//     const potfile = `${workDir}/hashcat.pot`
+//
+//     const command = [
+//       'hashcat',
+//       `-m ${hashMode}`,
+//       `-a 0`, // Dictionary attack
+//       options.handshakePath || '/tmp/test.hc22000',
+//       options.dictionaryPath || '/tmp/wordlist.txt',
+//       `-o ${outputFile}`,
+//       `--potfile-path=${potfile}`,
+//       '--quiet',
+//       '--force',
+//       '-O', // Optimized kernel
+//       '-w 4', // Workload profile (high)
+//       `--session=${options.jobId || ''}`,
+//       options.runtime ? `--runtime=${options.runtime}` : '--runtime=3600'
+//     ].join(' ')
+//
+//     return command
+//   }),
+//   runHashcatAttack: vi.fn().mockResolvedValue({ success: true, passwordsFound: 0, passwords: [] }),
+//   checkHashcatAvailability: vi.fn().mockResolvedValue({ available: true, version: 'v6.2.6' })
+// }))
 
 vi.mock('@/lib/auth', () => ({
   authClient: {
@@ -211,7 +213,9 @@ const dbMock: MockDB = {
   }
 }
 
-vi.mock('@/db', () => dbMock)
+// Commenting out db mock to avoid conflicts with integration tests
+// Unit tests that need db mocking should mock it individually in their test files
+// vi.mock('@/db', () => ({ db: dbMock }))
 
 // Mock hcx-tools - COMMENTED OUT to allow hcx-tools-basic.test.ts to test real implementations
 // const mockHCXTools = {

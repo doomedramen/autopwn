@@ -1,8 +1,20 @@
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '@/db/schema'
 import { Redis } from 'ioredis'
+
+// Integration tests should use real implementations, not mocks from unit tests
+// Unmock all modules that unit-setup.ts mocks
+vi.unmock('@/db')
+vi.unmock('child_process')
+vi.unmock('fs/promises')
+vi.unmock('node:fs/promises')
+vi.unmock('@/lib/queue')
+vi.unmock('@/lib/hcx-tools')
+vi.unmock('@/workers/hashcat')
+vi.unmock('@/lib/auth')
+vi.unmock('@/config/env')
 
 let testDb: any = null
 let testRedis: Redis | null = null

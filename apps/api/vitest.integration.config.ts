@@ -13,6 +13,7 @@ export default defineConfig({
       'node_modules',
       'dist'
     ],
+    setupFiles: [resolve(__dirname, 'src/test/setup/integration-setup.ts')],
     testTimeout: 30000,
     pool: 'threads',
     poolOptions: {
