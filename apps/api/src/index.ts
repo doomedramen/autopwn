@@ -201,32 +201,29 @@ app.use("*", errorHandler);
 
 // 404 handler
 app.notFound((c) => {
-  return c.json(
-    {
-      error: "Not Found",
-      message: "The requested resource was not found",
-      path: c.req.path,
-        available_endpoints: [
-        "/api/auth/*",
-        "/api/jobs/*",
-        "/api/networks/*",
-        "/api/dictionaries/*",
-        "/api/results/*",
-        "/api/queue/*",
-        "/api/upload/*",
-        "/api/captures/*",
-        "/api/config/*",
-        "/api/audit/*",
-        "/api/health/*",
-        "/security/*",
-        "/virus-scanner/*",
-        "/health",
-        "/api/info",
-      ],
-    },
+  return c.json({
+    error: "Not Found",
+    message: "The requested resource was not found",
+    path: c.req.path,
+    available_endpoints: [
+      "/api/auth/*",
+      "/api/jobs/*",
+      "/api/networks/*",
+      "/api/dictionaries/*",
+      "/api/results/*",
+      "/api/queue/*",
+      "/api/upload/*",
+      "/api/captures/*",
+      "/api/config/*",
+      "/api/audit/*",
+      "/api/health/*",
+      "/security/*",
+      "/virus-scanner/*",
+      "/health",
+      "/api/info",
+    ],
   });
 });
-
 const port = parseInt(process.env.PORT || "3001");
 
 async function startServer() {

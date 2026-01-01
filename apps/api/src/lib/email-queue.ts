@@ -5,7 +5,15 @@ import { logger } from "../lib/logger";
 import { emailService } from "./email.service";
 
 export interface EmailJobData {
-  type: "job_completed" | "job_failed" | "health_degraded" | "health_critical" | "security_alert" | "password_reset" | "email_verification" | "test_email";
+  type:
+    | "job_completed"
+    | "job_failed"
+    | "health_degraded"
+    | "health_critical"
+    | "security_alert"
+    | "password_reset"
+    | "email_verification"
+    | "test_email";
   to: string | string[];
   data: Record<string, any>;
   priority?: number;
@@ -43,7 +51,6 @@ class EmailQueue {
             delay: 2000,
           },
         },
-      },
       });
 
       this.worker = new Worker<EmailJobData, EmailJobResult>(
@@ -71,7 +78,9 @@ class EmailQueue {
     }
   }
 
-  async sendJobEmail(jobData: EmailJobData): Promise<Job<EmailJobData, EmailJobResult>> {
+  async sendJobEmail(
+    jobData: EmailJobData,
+  ): Promise<Job<EmailJobData, EmailJobResult>> {
     if (!this.queue) {
       throw new Error("Email queue not initialized");
     }
@@ -85,38 +94,34 @@ class EmailQueue {
     switch (emailType) {
       case "security_alert":
         // Security alerts have highest priority
-        jobId = await this.queue.add(
-          "security-alert",
-          jobData,
-          { priority: 1, jobId: `security-${Date.now()}` },
-        );
+        jobId = await this.queue.add("security-alert", jobData, {
+          priority: 1,
+          jobId: `security-${Date.now()}`,
+        });
         break;
 
       case "health_critical":
         // Critical health alerts have high priority
-        jobId = await this.queue.add(
-          "health-critical",
-          jobData,
-          { priority: 2, jobId: `health-crit-${Date.now()}` },
-        );
+        jobId = await this.queue.add("health-critical", jobData, {
+          priority: 2,
+          jobId: `health-crit-${Date.now()}`,
+        });
         break;
 
       case "health_degraded":
         // Degraded health alerts have medium priority
-        jobId = await this.queue.add(
-          "health-degraded",
-          jobData,
-          { priority: 3, jobId: `health-deg-${Date.now()}` },
-        );
+        jobId = await this.queue.add("health-degraded", jobData, {
+          priority: 3,
+          jobId: `health-deg-${Date.now()}`,
+        });
         break;
 
       case "test_email":
         // Test emails have high priority
-        jobId = await this.queue.add(
-          "test-email",
-          jobData,
-          { priority: 2, jobId: `test-${Date.now()}` },
-        );
+        jobId = await this.queue.add("test-email", jobData, {
+          priority: 2,
+          jobId: `test-${Date.now()}`,
+        });
         break;
 
       default:
@@ -128,7 +133,9 @@ class EmailQueue {
     return jobId;
   }
 
-  async sendBulkEmails(emailJobs: EmailJobData[]): Promise<Job<EmailJobData, EmailJobResult>[]> {
+  async sendBulkEmails(
+    emailJobs: EmailJobData[],
+  ): Promise<Job<EmailJobData, EmailJobResult>[]> {
     if (!this.queue) {
       throw new Error("Email queue not initialized");
     }

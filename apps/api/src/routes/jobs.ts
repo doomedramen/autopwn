@@ -947,198 +947,236 @@ jobs.get("/stats", async (c) => {
 });
 
 export { jobs as jobsRoutes };
-});
 
 /**
  * PATCH /api/jobs/:id/priority - Update job priority
  */
-jobManagementRoutes.patch('/:id/priority', zValidator('json', z.object({
-  priority: z.enum(['low', 'normal', 'high', 'critical'])
-})), async (c) => {
-  try {
-    const id = c.req.param('id');
-    const userId = c.get('userId');
-    const { priority } = c.req.valid('json');
+jobManagementRoutes.patch(
+  "/:id/priority",
+  zValidator(
+    "json",
+    z.object({
+      priority: z.enum(["low", "normal", "high", "critical"]),
+    }),
+  ),
+  async (c) => {
+    try {
+      const id = c.req.param("id");
+      const userId = c.get("userId");
+      const { priority } = c.req.valid("json");
 
-    const job = await db.query.jobs.findFirst({
-      where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
-    });
+      const job = await db.query.jobs.findFirst({
+        where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
+        with: {
+          network: true,
+          dictionary: true,
+        },
+      });
 
-    if (!job) {
+      if (!job) {
+        return c.json(
+          {
+            success: false,
+            error: "Job not found",
+          },
+          404,
+        );
+      }
+
+      if (job.userId !== userId) {
+        return c.json(
+          {
+            success: false,
+            error: "Access denied",
+          },
+          403,
+        );
+      }
+
+      if (
+        ["running", "completed", "failed", "cancelled"].includes(job.status)
+      ) {
+        return c.json(
+          {
+            success: false,
+            error: "Job priority cannot be changed",
+            message: `Job is already ${job.status}`,
+          },
+          400,
+        );
+      }
+
+      await db
+        .update(jobs)
+        .set({
+          priority,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
+
+      await auditService.logEvent({
+        userId,
+        action: "update_job_priority",
+        entityType: "job",
+        entityId: id,
+        details: { oldPriority: job.priority, newPriority: priority },
+        success: true,
+      });
+
+      logger.info("job_priority_updated", "jobs", {
+        jobId: id,
+        userId,
+        oldPriority: job.priority,
+        newPriority: priority,
+      });
+
       return c.json({
+        success: true,
+        data: {
+          id: job.id,
+          priority,
+        },
+        message: "Job priority updated successfully",
+      });
+    } catch (error) {
+      logger.error("update_job_priority_error", "jobs", {
+        error: error.message,
+        jobId: c.req.param("id"),
+        userId: c.get("userId"),
+      });
+
+      await auditService.logEvent({
+        userId: c.get("userId"),
+        action: "update_job_priority",
+        entityType: "job",
+        entityId: c.req.param("id"),
         success: false,
-        error: 'Job not found',
-      }, 404);
+        details: { error: String(error) },
+      });
+
+      return c.json(
+        {
+          success: false,
+          error: "Failed to update job priority",
+          message: error.message,
+        },
+        500,
+      );
     }
-
-    if (job.userId !== userId) {
-      return c.json({
-        success: false,
-        error: 'Access denied',
-      }, 403);
-    }
-
-    if (['running', 'completed', 'failed', 'cancelled'].includes(job.status)) {
-      return c.json({
-        success: false,
-        error: 'Job priority cannot be changed',
-        message: `Job is already ${job.status}`,
-      }, 400);
-    }
-
-    await db.update(jobs)
-      .set({
-        priority,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
-
-    await auditService.logEvent({
-      userId,
-      action: 'update_job_priority',
-      entityType: 'job',
-      entityId: id,
-      details: { oldPriority: job.priority, newPriority: priority },
-      success: true,
-    });
-
-    logger.info('job_priority_updated', 'jobs', {
-      jobId: id,
-      userId,
-      oldPriority: job.priority,
-      newPriority: priority,
-    });
-
-    return c.json({
-      success: true,
-      data: {
-        id: job.id,
-        priority,
-      },
-      message: 'Job priority updated successfully',
-    });
-  } catch (error) {
-    logger.error('update_job_priority_error', 'jobs', {
-      error: error.message,
-      jobId: c.req.param('id'),
-      userId: c.get('userId'),
-    });
-
-    await auditService.logEvent({
-      userId: c.get('userId'),
-      action: 'update_job_priority',
-      entityType: 'job',
-      entityId: c.req.param('id'),
-      success: false,
-      details: { error: String(error) },
-    });
-
-    return c.json({
-      success: false,
-      error: 'Failed to update job priority',
-      message: error.message,
-    }, 500);
-  }
-});
+  },
+);
 
 /**
  * PATCH /api/jobs/:id/tags - Update job tags
  */
-jobManagementRoutes.patch('/:id/tags', zValidator('json', z.object({
-  tags: z.array(z.string().min(1).max(50)).max(10)
-})), async (c) => {
-  try {
-    const id = c.req.param('id');
-    const userId = c.get('userId');
-    const { tags } = c.req.valid('json');
+jobManagementRoutes.patch(
+  "/:id/tags",
+  zValidator(
+    "json",
+    z.object({
+      tags: z.array(z.string().min(1).max(50)).max(10),
+    }),
+  ),
+  async (c) => {
+    try {
+      const id = c.req.param("id");
+      const userId = c.get("userId");
+      const { tags } = c.req.valid("json");
 
-    const job = await db.query.jobs.findFirst({
-      where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
-      with: {
-        network: true,
-        dictionary: true,
-      },
-    });
+      const job = await db.query.jobs.findFirst({
+        where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
+        with: {
+          network: true,
+          dictionary: true,
+        },
+      });
 
-    if (!job) {
+      if (!job) {
+        return c.json(
+          {
+            success: false,
+            error: "Job not found",
+          },
+          404,
+        );
+      }
+
+      if (job.userId !== userId) {
+        return c.json(
+          {
+            success: false,
+            error: "Access denied",
+          },
+          403,
+        );
+      }
+
+      await db
+        .update(jobs)
+        .set({
+          tags,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
+
+      await auditService.logEvent({
+        userId,
+        action: "update_job_tags",
+        entityType: "job",
+        entityId: id,
+        details: { oldTags: job.tags || [], newTags: tags },
+        success: true,
+      });
+
+      logger.info("job_tags_updated", "jobs", {
+        jobId: id,
+        userId,
+        oldTags: job.tags || [],
+        newTags: tags,
+      });
+
       return c.json({
+        success: true,
+        data: {
+          id: job.id,
+          tags,
+        },
+        message: "Job tags updated successfully",
+      });
+    } catch (error) {
+      logger.error("update_job_tags_error", "jobs", {
+        error: error.message,
+        jobId: c.req.param("id"),
+        userId: c.get("userId"),
+      });
+
+      await auditService.logEvent({
+        userId: c.get("userId"),
+        action: "update_job_tags",
+        entityType: "job",
+        entityId: c.req.param("id"),
         success: false,
-        error: 'Job not found',
-      }, 404);
+        details: { error: String(error) },
+      });
+
+      return c.json(
+        {
+          success: false,
+          error: "Failed to update job tags",
+          message: error.message,
+        },
+        500,
+      );
     }
-
-    if (job.userId !== userId) {
-      return c.json({
-        success: false,
-        error: 'Access denied',
-      }, 403);
-    }
-
-    await db.update(jobs)
-      .set({
-        tags,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
-
-    await auditService.logEvent({
-      userId,
-      action: 'update_job_tags',
-      entityType: 'job',
-      entityId: id,
-      details: { oldTags: job.tags || [], newTags: tags },
-      success: true,
-    });
-
-    logger.info('job_tags_updated', 'jobs', {
-      jobId: id,
-      userId,
-      oldTags: job.tags || [],
-      newTags: tags,
-    });
-
-    return c.json({
-      success: true,
-      data: {
-        id: job.id,
-        tags,
-      },
-      message: 'Job tags updated successfully',
-    });
-  } catch (error) {
-    logger.error('update_job_tags_error', 'jobs', {
-      error: error.message,
-      jobId: c.req.param('id'),
-      userId: c.get('userId'),
-    });
-
-    await auditService.logEvent({
-      userId: c.get('userId'),
-      action: 'update_job_tags',
-      entityType: 'job',
-      entityId: c.req.param('id'),
-      success: false,
-      details: { error: String(error) },
-    });
-
-    return c.json({
-      success: false,
-      error: 'Failed to update job tags',
-      message: error.message,
-    }, 500);
-  }
-});
+  },
+);
 
 /**
  * GET /api/jobs/filter - Search and filter jobs
  */
-jobManagementRoutes.get('/filter', async (c) => {
+jobManagementRoutes.get("/filter", async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = c.get("userId");
     const {
       status,
       priority,
@@ -1146,8 +1184,8 @@ jobManagementRoutes.get('/filter', async (c) => {
       networkId,
       dictionaryId,
       search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = c.req.query();
 
     let whereConditions = [eq(jobs.userId, userId)];
@@ -1161,8 +1199,10 @@ jobManagementRoutes.get('/filter', async (c) => {
     }
 
     if (tags && tags.length > 0) {
-      const tagList = tags.split(',');
-      whereConditions.push(sql`jsonb_array_contains(${jobs.tags}, ?${tagList.map(() => '?').join(',')})`);
+      const tagList = tags.split(",");
+      whereConditions.push(
+        sql`jsonb_array_contains(${jobs.tags}, ?${tagList.map(() => "?").join(",")})`,
+      );
     }
 
     if (networkId) {
@@ -1178,13 +1218,16 @@ jobManagementRoutes.get('/filter', async (c) => {
       whereConditions.push(sql`name ILIKE ?${searchTerm}`);
     }
 
-    const page = parseInt(page || '1');
-    const limit = parseInt(limit || '20');
+    const page = parseInt(page || "1");
+    const limit = parseInt(limit || "20");
     const offset = (page - 1) * limit;
 
     const allJobs = await db.query.jobs.findMany({
-      where: whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0],
-      orderBy: sortOrder === 'asc' ? [asc(jobs[sortBy])] : [desc(jobs[sortBy])],
+      where:
+        whereConditions.length > 1
+          ? and(...whereConditions)
+          : whereConditions[0],
+      orderBy: sortOrder === "asc" ? [asc(jobs[sortBy])] : [desc(jobs[sortBy])],
       with: {
         network: true,
         dictionary: true,
@@ -1194,12 +1237,15 @@ jobManagementRoutes.get('/filter', async (c) => {
     });
 
     const totalCount = await db.query.jobs.findMany({
-      where: whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0],
+      where:
+        whereConditions.length > 1
+          ? and(...whereConditions)
+          : whereConditions[0],
     });
 
     const totalPages = Math.ceil(totalCount / limit);
 
-    logger.info('jobs_filtered', 'jobs', {
+    logger.info("jobs_filtered", "jobs", {
       userId,
       filters: { status, priority, tags, networkId, dictionaryId, search },
       page,
@@ -1216,29 +1262,32 @@ jobManagementRoutes.get('/filter', async (c) => {
         total: totalCount,
         totalPages,
         filters: { status, priority, tags, networkId, dictionaryId, search },
-      }
+      },
     });
   } catch (error) {
-    logger.error('filter_jobs_error', 'jobs', {
+    logger.error("filter_jobs_error", "jobs", {
       error: error.message,
-      userId: c.get('userId'),
+      userId: c.get("userId"),
       query: c.req.query(),
     });
 
-    return c.json({
-      success: false,
-      error: 'Failed to filter jobs',
-      message: error.message,
-    }, 500);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to filter jobs",
+        message: error.message,
+      },
+      500,
+    );
   }
 });
 
 /**
  * GET /api/jobs/tags - Get all unique tags
  */
-jobManagementRoutes.get('/tags', async (c) => {
+jobManagementRoutes.get("/tags", async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = c.get("userId");
 
     const allJobs = await db.query.jobs.findMany({
       where: eq(jobs.userId, userId),
@@ -1258,7 +1307,7 @@ jobManagementRoutes.get('/tags', async (c) => {
 
     const uniqueTags = Array.from(allTags).sort();
 
-    logger.info('job_tags_retrieved', 'jobs', {
+    logger.info("job_tags_retrieved", "jobs", {
       userId,
       totalJobs: allJobs.length,
       uniqueTags: uniqueTags.length,
@@ -1269,16 +1318,19 @@ jobManagementRoutes.get('/tags', async (c) => {
       data: uniqueTags,
     });
   } catch (error) {
-    logger.error('get_job_tags_error', 'jobs', {
+    logger.error("get_job_tags_error", "jobs", {
       error: error.message,
-      userId: c.get('userId'),
+      userId: c.get("userId"),
     });
 
-    return c.json({
-      success: false,
-      error: 'Failed to get job tags',
-      message: error.message,
-    }, 500);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get job tags",
+        message: error.message,
+      },
+      500,
+    );
   }
 });
 

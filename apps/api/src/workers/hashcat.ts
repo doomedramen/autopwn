@@ -18,6 +18,50 @@ import { emailQueue } from "../lib/email-queue";
 
 const execAsync = promisify(exec);
 
+interface BuildHashcatCommandOptions {
+  attackMode: "pmkid" | "handshake";
+  handshakePath: string;
+  dictionaryPath: string;
+  jobId: string;
+  optimized?: boolean;
+  force?: boolean;
+  runtime?: number;
+}
+
+export async function buildHashcatCommand({
+  attackMode,
+  handshakePath,
+  dictionaryPath,
+  jobId,
+  optimized = true,
+  force = true,
+  runtime = 3600,
+}: BuildHashcatCommandOptions): Promise<string> {
+  const workDir = path.join(process.cwd(), "temp", "hashcat", jobId);
+  const outputFile = path.join(workDir, "hashcat_output.txt");
+  const potfilePath = path.join(workDir, "hashcat.pot");
+
+  const mode = attackMode === "pmkid" ? 16800 : 22000;
+
+  const parts = [
+    "hashcat",
+    `-m ${mode}`,
+    "-a 0",
+    "--quiet",
+    force ? "--force" : "",
+    optimized ? "-O" : "",
+    optimized ? "-w 4" : "",
+    `--runtime=${runtime}`,
+    `--session=${jobId}`,
+    `-o ${outputFile}`,
+    `--potfile-path=${potfilePath}`,
+    handshakePath,
+    dictionaryPath,
+  ].filter(Boolean);
+
+  return parts.join(" ");
+}
+
 interface RunHashcatAttackOptions {
   jobId: string;
   networkId: string;
@@ -118,15 +162,20 @@ export async function runHashcatAttack({
         });
 
         if (!depJob || depJob.status !== "completed") {
-          logger.info("Job dependencies not met, skipping execution", "hashcat", {
-            jobId,
-            dependencies: dependencyIds,
-          });
+          logger.info(
+            "Job dependencies not met, skipping execution",
+            "hashcat",
+            {
+              jobId,
+              dependencies: dependencyIds,
+            },
+          );
 
           return {
             success: false,
             skipped: true,
-            message: "Job dependencies not met, job will be queued again when dependencies complete",
+            message:
+              "Job dependencies not met, job will be queued again when dependencies complete",
             dependencies: dependencyIds,
           };
         }
@@ -256,17 +305,41 @@ export async function runHashcatAttack({
       attackMode,
       handshakePath: validatedHandshakePath,
       dictionaryPath: validatedDictionaryPath,
-      jobId
-    })
-        .where(eq(networks.id, networkId));
+      jobId,
+    });
 
-      // Job is already marked as cancelled in the database
-      // Just exit gracefully
-      return {
-        success: false,
-        cancelled: true,
-        message: "Job was cancelled during execution",
-      };
+    logger.info("Executing hashcat command", "hashcat", {
+      jobId,
+      command: hashcatCommand.replace(/\s+/g, " "),
+    });
+
+    // Execute hashcat command
+    let result;
+    try {
+      const { stdout, stderr } = await execAsync(hashcatCommand);
+      result = { stdout, stderr };
+    } catch (execError) {
+      logger.error("Hashcat execution failed", "hashcat", {
+        jobId,
+        error:
+          execError instanceof Error ? execError : new Error(String(execError)),
+      });
+
+      // Check if job was cancelled during execution
+      const currentJob = await db.query.jobs.findFirst({
+        where: eq(jobs.id, jobId),
+      });
+
+      if (currentJob?.status === "cancelled") {
+        logger.info("Job was cancelled during execution", "hashcat", { jobId });
+        return {
+          success: false,
+          cancelled: true,
+          message: "Job was cancelled during execution",
+        };
+      }
+
+      throw execError;
     }
 
     // Process results
@@ -335,8 +408,14 @@ export async function runHashcatAttack({
 
       // Send email notification if enabled
       try {
-        const emailEnabled = await configService.getBoolean("email-enabled", false);
-        const emailNotifyJobComplete = await configService.getBoolean("email-notify-job-complete", true);
+        const emailEnabled = await configService.getBoolean(
+          "email-enabled",
+          false,
+        );
+        const emailNotifyJobComplete = await configService.getBoolean(
+          "email-notify-job-complete",
+          true,
+        );
 
         if (emailEnabled && emailNotifyJobComplete) {
           const user = await db.query.users.findFirst({
@@ -346,7 +425,8 @@ export async function runHashcatAttack({
 
           if (user) {
             await emailQueue.sendJobEmail({
-              type: crackedPasswords.length > 0 ? "job_completed" : "job_failed",
+              type:
+                crackedPasswords.length > 0 ? "job_completed" : "job_failed",
               to: user.email,
               data: {
                 name: job.name,
@@ -362,7 +442,10 @@ export async function runHashcatAttack({
       } catch (emailError) {
         logger.error("Failed to send job completion email", "hashcat", {
           jobId,
-          error: emailError instanceof Error ? emailError : new Error(String(emailError)),
+          error:
+            emailError instanceof Error
+              ? emailError
+              : new Error(String(emailError)),
         });
       }
 
@@ -442,8 +525,14 @@ export async function runHashcatAttack({
 
     // Send email notification if enabled
     try {
-      const emailEnabled = await configService.getBoolean("email-enabled", false);
-      const emailNotifyJobFailed = await configService.getBoolean("email-notify-job-failed", true);
+      const emailEnabled = await configService.getBoolean(
+        "email-enabled",
+        false,
+      );
+      const emailNotifyJobFailed = await configService.getBoolean(
+        "email-notify-job-failed",
+        true,
+      );
 
       if (emailEnabled && emailNotifyJobFailed) {
         const user = await db.query.users.findFirst({
@@ -467,7 +556,10 @@ export async function runHashcatAttack({
     } catch (emailError) {
       logger.error("Failed to send job failure email", "hashcat", {
         jobId,
-        error: emailError instanceof Error ? emailError : new Error(String(emailError)),
+        error:
+          emailError instanceof Error
+            ? emailError
+            : new Error(String(emailError)),
       });
     }
 
