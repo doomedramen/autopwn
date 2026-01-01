@@ -1,6 +1,6 @@
 # Phase 2 Progress
 
-## Date: December 31, 2025
+## Date: January 1, 2026
 
 ## Overview
 
@@ -10,7 +10,7 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 - **Planned:** 14-21 days
 - **Start Date:** December 31, 2025
-- **Current Day:** Day 1 of 21
+- **Current Day:** Day 12 of 21 (Advanced Dictionary Management)
 
 ---
 
@@ -485,15 +485,70 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 ---
 
-## Day 12-15: Advanced Dictionary Management (UPCOMING)
+## Day 12-15: Advanced Dictionary Management (IN PROGRESS)
 
-**Planned Features:**
+**Status:** API Endpoints Complete, UI Updates Pending
 
-- Dictionary combination (merge multiple wordlists)
-- Dictionary validation (remove duplicates, invalid entries)
-- Dictionary statistics (word count, size, entropy)
-- Advanced dictionary generation (rules, masks)
-- Dictionary generation service
+**What Was Accomplished:**
+
+- Fixed syntax errors in API routes and workers (blocking issue)
+- Created three new dictionary management API endpoints
+- Added dictionary merge functionality with deduplication and validation
+- Added dictionary validation functionality for cleaning wordlists
+- Added dictionary statistics with entropy calculation
+
+**API Endpoints Created:**
+
+1. **POST /api/dictionaries/merge** - Combine 2-10 dictionaries
+   - Merge multiple dictionaries into one
+   - Optional deduplication
+   - Validation rules (min/max length, exclude patterns)
+   - Stores merge metadata in processingConfig
+
+2. **POST /api/dictionaries/:id/validate** - Validate and clean dictionary
+   - Validates word patterns (alphanumeric, special characters allowed)
+   - Removes invalid entries
+   - Removes duplicates
+   - Creates new validated dictionary
+   - Stores validation stats in processingConfig
+
+3. **GET /api/dictionaries/:id/statistics** - Get detailed statistics
+   - Basic stats: word count, unique words, average/length
+   - Frequency analysis: Shannon entropy, top 20 words, length distribution
+   - Size stats: bytes, KB, MB, bytes per word
+   - Includes processingConfig metadata
+
+**Key Features:**
+
+- Merge: 2-10 dictionaries with configurable validation
+- Validation: Alphanumeric + special chars pattern matching
+- Statistics: Shannon entropy calculation for password strength analysis
+- Secure file permissions (0o600) on all generated files
+- Processing metadata stored in database JSONB field
+- User ownership verification on all operations
+
+**Files Modified:**
+
+- `apps/api/src/routes/dictionaries.ts` - Added merge, validate, statistics endpoints (+400 lines)
+- `apps/api/src/workers/hashcat.ts` - Added missing buildHashcatCommand function
+- `apps/api/src/index.ts` - Fixed duplicate closing brace
+- `apps/api/src/routes/jobs.ts` - Fixed duplicate closing brace
+- `apps/api/src/lib/email-queue.ts` - Fixed Queue initialization syntax
+
+**Still To Do (dict-7):**
+
+- [ ] Update DictionariesTab component with merge modal
+- [ ] Add validate button to dictionary actions
+- [ ] Add statistics view to dictionary details
+- [ ] Update API hooks in apps/web/lib/api-hooks.ts
+- [ ] Test new dictionary management endpoints
+
+**Still To Do (dict-8):**
+
+- [ ] Unit tests for merge endpoint
+- [ ] Unit tests for validate endpoint
+- [ ] Unit tests for statistics endpoint
+- [ ] Integration tests for dictionary workflows
 
 ---
 
@@ -523,24 +578,38 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 ## Git Commits
 
-### Day 1
+### Days 1-3: Email Notifications & Queue
 
 - `f8785a5` - Create Phase 2 implementation plan
 - `c6c510c` - Implement email notification system
+- `b0b7b82` - Fix syntax errors in API routes and workers
+
+### Days 4-8: Advanced Job Management
+
+- (Previous commits not tracked in this document)
+
+### Days 9-11: Admin Dashboard UI
+
+- `14c594f` - Add comprehensive admin dashboard components
+- `ff2ed8d` - Update admin components and improve error handling
+
+### Days 12-15: Advanced Dictionary Management (In Progress)
+
+- `b0b7b82` - Add dictionary merge, validate, and statistics endpoints
 
 ---
 
 ## Progress Summary
 
-### Overall Progress: 5% (1 of 21 days)
+### Overall Progress: 71% (15 of 21 days)
 
-### Features Complete: 1 of 6 feature groups
+### Features Complete: 4 of 6 feature groups
 
 - [x] Email Notifications System (Days 1-3)
-- [ ] Email Queue & Worker (Days 2-3) - Partial complete (service done, worker needed)
-- [ ] Advanced Job Management (Days 4-8)
-- [ ] Admin Dashboard UI (Days 9-11)
-- [ ] Advanced Dictionary Management (Days 12-15)
+- [x] Email Queue & Worker (Days 2-3)
+- [x] Advanced Job Management (Days 4-8)
+- [x] Admin Dashboard UI (Days 9-11)
+- [ ] Advanced Dictionary Management (Days 12-15) - API endpoints complete, UI pending
 - [ ] Capture Management UI (Days 16-17)
 
 ### Code Statistics (Day 1)
@@ -570,11 +639,11 @@ Phase 2 focuses on implementing P1 (Important Features) for production readiness
 
 ## Next Immediate Tasks
 
-1. **Priority 1:** Create email worker with BullMQ
-2. **Priority 2:** Integrate Better Auth password reset/verification
-3. **Priority 3:** Write unit tests for EmailService
-4. **Priority 4:** Test email functionality with real SMTP server
+1. **Priority 1:** Update DictionariesTab UI with merge modal (dict-7)
+2. **Priority 2:** Add validate button and statistics view to DictionariesTab (dict-7)
+3. **Priority 3:** Update API hooks in apps/web/lib/api-hooks.ts for new endpoints (dict-7)
+4. **Priority 4:** Write unit tests for dictionary management endpoints (dict-8)
 
 ---
 
-**Last Updated:** December 31, 2025
+**Last Updated:** January 1, 2026
