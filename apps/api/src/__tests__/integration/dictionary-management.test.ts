@@ -7,11 +7,68 @@ import {
 } from "../helpers/test-helpers";
 import crypto from "crypto";
 
-// Import app after config is seeded
-let app: any;
-import("@/index").then((module) => {
-  app = (module as any).default;
+// Simple test to verify test app works
+describe("Dictionary Management API - Infrastructure Test", () => {
+  test('should create test user', async () => {
+    console.log("Creating test user...");
+    const user = await createTestUser({ role: "user" });
+    console.log("Test user created:", user);
+    expect(user).toBeDefined();
+    expect(user.email).toBeDefined();
+  });
+
+  test('should get auth headers', async () => {
+    console.log("Getting auth headers...");
+    const auth = await getAuthHeaders("test@example.com", "test-password-123");
+    console.log("Auth headers:", auth);
+    expect(auth).toBeDefined();
+    expect(auth.Authorization).toBeDefined();
+  });
+
+  test('test app should respond to request', async () => {
+    console.log("Testing test app response...");
+    const response = await testApp.request("/health", {
+      method: "GET",
+    headers: {
+        "X-Test-Auth": "true",
+      "X-Test-Email": "test@example.com",
+        "X-Test-UserId": "test-user-id",
+      }
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response body:", await response.text());
+
+    expect(response.status).toBe(200);
+  });
 });
+
+// Main test file
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
+import {
+  setupTestDB,
+  cleanupTestDB,
+  createTestUser,
+  getAuthHeaders,
+} from "../helpers/test-helpers";
+import crypto from "crypto";
+
+// Import test-only app instance to avoid full app initialization
+let testApp: any;
+import("../../test-app").then((module) => {
+  testApp = (module as any).default;
+});
+
+describe("Dictionary Management API", () => {
+  let userAuth: Record<string, string>;
+  let testUser: any;
+  let dictionaryIds: string[] = [];
+
+  beforeAll(async () => {
+    await setupTestDB();
+    testUser = await createTestUser({ role: "user" });
+    userAuth = await getAuthHeaders(testUser.email, "password123");
+  });
 
 describe("Dictionary Management API", () => {
   let userAuth: Record<string, string>;
