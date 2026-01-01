@@ -45,7 +45,7 @@ Authorization: Bearer <session-token>
   "error": {
     "code": "ERROR_CODE",
     "message": "Human-readable error message",
-    "details": {}  // Optional additional details
+    "details": {} // Optional additional details
   }
 }
 ```
@@ -72,6 +72,7 @@ Authorization: Bearer <session-token>
 Authenticate user and create session.
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -80,6 +81,7 @@ Authenticate user and create session.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -102,6 +104,7 @@ End current session.
 **Request:** Empty body
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -116,6 +119,7 @@ End current session.
 Get current session information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -135,6 +139,7 @@ Get current session information.
 Change current user's password.
 
 **Request:**
+
 ```json
 {
   "currentPassword": "oldpassword",
@@ -143,6 +148,7 @@ Change current user's password.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -157,6 +163,7 @@ Change current user's password.
 ### Users
 
 **Permissions:**
+
 - GET /users - Admin, Superuser
 - POST /users - Admin (can create User only), Superuser (can create any role)
 - PATCH /users/:id - Admin (User only), Superuser (any)
@@ -167,12 +174,14 @@ Change current user's password.
 List all users (with pagination).
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 20, max: 100)
 - `role` (filter by role: user, admin, superuser)
 - `search` (search email)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -201,6 +210,7 @@ List all users (with pagination).
 Create a new user.
 
 **Request:**
+
 ```json
 {
   "email": "newuser@example.com",
@@ -210,6 +220,7 @@ Create a new user.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -227,15 +238,17 @@ Create a new user.
 Update user information.
 
 **Request:**
+
 ```json
 {
   "email": "updated@example.com",
   "role": "admin",
-  "password": "newpassword"  // Optional
+  "password": "newpassword" // Optional
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -253,6 +266,7 @@ Update user information.
 Delete a user (soft delete).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -273,6 +287,7 @@ Delete a user (soft delete).
 List user's PCAP captures.
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 20)
 - `status` (filter: pending, processing, completed, failed)
@@ -280,6 +295,7 @@ List user's PCAP captures.
 - `order` (asc, desc)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -311,11 +327,13 @@ List user's PCAP captures.
 Upload a PCAP file.
 
 **Request:** multipart/form-data
+
 ```
 file: <binary PCAP file>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -330,6 +348,7 @@ file: <binary PCAP file>
 ```
 
 **Notes:**
+
 - Maximum file size defined by `MAX_PCAP_SIZE` environment variable
 - File is queued for conversion to hc22000 format
 - Poll GET /captures/:id for status updates
@@ -339,6 +358,7 @@ file: <binary PCAP file>
 Get capture details including extracted networks.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -368,6 +388,7 @@ Get capture details including extracted networks.
 Delete a capture and all associated networks.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -388,6 +409,7 @@ Delete a capture and all associated networks.
 List all networks extracted from user's captures.
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 20)
 - `ssid` (filter by SSID)
@@ -395,6 +417,7 @@ List all networks extracted from user's captures.
 - `cracked` (filter: true, false)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -425,6 +448,7 @@ List all networks extracted from user's captures.
 Get network details including cracking attempts.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -466,12 +490,14 @@ Get all networks from a specific capture.
 List user's dictionaries.
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 20)
 - `type` (filter: uploaded, generated)
 - `status` (filter: ready, generating, failed)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -503,12 +529,14 @@ List user's dictionaries.
 Upload a dictionary file.
 
 **Request:** multipart/form-data
+
 ```
 file: <text file>
 name: "My Custom Wordlist" (optional)
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -529,6 +557,7 @@ name: "My Custom Wordlist" (optional)
 Generate a dictionary from keywords.
 
 **Request:**
+
 ```json
 {
   "name": "Generated Wordlist",
@@ -549,6 +578,7 @@ Generate a dictionary from keywords.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -564,6 +594,7 @@ Generate a dictionary from keywords.
 ```
 
 **Notes:**
+
 - Generation happens in background queue
 - Poll GET /dictionaries/:id for status
 - Status will change to "ready" when complete
@@ -573,6 +604,7 @@ Generate a dictionary from keywords.
 Get dictionary details.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -585,7 +617,7 @@ Get dictionary details.
     "lineCount": 14344392,
     "createdAt": "2025-01-19T12:00:00Z",
     "userId": "uuid",
-    "generationOptions": null  // Only for generated dictionaries
+    "generationOptions": null // Only for generated dictionaries
   }
 }
 ```
@@ -595,6 +627,7 @@ Get dictionary details.
 Delete a dictionary.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -615,6 +648,7 @@ Delete a dictionary.
 List user's hashcat jobs.
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 20)
 - `status` (filter: waiting, active, completed, failed, cancelled)
@@ -622,6 +656,7 @@ List user's hashcat jobs.
 - `order` (asc, desc)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -656,21 +691,23 @@ List user's hashcat jobs.
 Create a new hashcat job.
 
 **Request:**
+
 ```json
 {
   "name": "Crack HomeWiFi",
   "networkIds": ["uuid1", "uuid2"],
   "dictionaryIds": ["uuid1", "uuid2"],
-  "attackMode": "straight",  // straight, combinator, mask
+  "attackMode": "straight", // straight, combinator, mask
   "hashcatOptions": {
     "workloadProfile": 3,
     "optimized": true,
-    "rules": []  // Optional hashcat rules
+    "rules": [] // Optional hashcat rules
   }
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -689,6 +726,7 @@ Create a new hashcat job.
 Get job details and results.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -700,7 +738,7 @@ Get job details and results.
     "createdAt": "2025-01-19T13:00:00Z",
     "startedAt": "2025-01-19T13:00:30Z",
     "completedAt": "2025-01-19T15:30:00Z",
-    "duration": 8970,  // seconds
+    "duration": 8970, // seconds
     "networks": [
       {
         "id": "uuid",
@@ -727,11 +765,175 @@ Get job details and results.
 }
 ```
 
-#### GET /jobs/:id/progress
+#### POST /dictionaries/merge
+
+Merge multiple dictionaries into one.
+
+**Request:** application/json
+
+```json
+{
+  "name": "Merged Dictionary",
+  "dictionaryIds": ["uuid1", "uuid2", ...],
+  "removeDuplicates": true,  // default: true
+  "validationRules": {
+    "minLength": 8,
+    "maxLength": 64,
+    "excludePatterns": ["^admin", "^test"]
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "Merged Dictionary",
+    "type": "generated",
+    "status": "ready",
+    "wordCount": 15,
+    "fileSize": 2048,
+    "checksum": "sha256hash",
+    "processingConfig": {
+      "merge": {
+        "sourceDictionaries": ["uuid1", "uuid2", ...],
+        "originalWordCount": 20,
+        "finalWordCount": 15,
+        "removedDuplicates": 5,
+        "validationRules": {
+          "minLength": 8,
+          "maxLength": 64
+        },
+        "mergedAt": "2025-01-19T12:00:00Z"
+      }
+    }
+  }
+}
+```
+
+**Validation Rules:**
+
+- `dictionaryIds`: Must be array of 2-10 dictionary IDs
+- `removeDuplicates`: Optional (boolean), default true
+- `validationRules`: Optional object with:
+  - `minLength`: Minimum word length (integer >= 1)
+  - `maxLength`: Maximum word length (integer >= 1)
+  - `excludePatterns`: Array of regex patterns to exclude
+
+**Notes:**
+
+- Only user's own dictionaries can be merged
+- All dictionaries must have status "ready"
+- Deduplication is case-insensitive
+- Validation rules are applied before deduplication
+
+#### POST /dictionaries/:id/validate
+
+Validate and clean a dictionary.
+
+**Request:** No body required
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "rockyou.txt (validated)",
+    "type": "generated",
+    "status": "ready",
+    "wordCount": 8,
+    "processingConfig": {
+      "validation": {
+        "sourceDictionaryId": "original-uuid",
+        "originalWordCount": 10,
+        "validWordCount": 8,
+        "invalidWordCount": 2,
+        "duplicateWordCount": 2,
+        "validatedAt": "2025-01-19T12:00:00Z",
+        "invalidWords": ["word1$", "word@#$"],
+        "duplicateWords": ["password", "test123"]
+      }
+    }
+  },
+  "stats": {
+    "originalWords": 10,
+    "validWords": 8,
+    "invalidWords": 2,
+    "duplicateWords": 2,
+    "removedWords": 4
+  }
+}
+```
+
+**Validation Criteria:**
+
+- Valid words: Only alphanumeric characters and standard symbols (!@#$%^&\*()-\_=+[])
+- Invalid words: Contains spaces, tabs, or unsupported special characters
+- Duplicates: Case-insensitive duplicate detection
+
+**Notes:**
+
+- Creates a new dictionary with validated words
+- Original dictionary is not modified
+- Invalid and duplicate samples (up to 100 each) included in response
+
+#### GET /dictionaries/:id/statistics
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "rockyou.txt (validated)",
+    "type": "generated",
+    "status": "ready",
+    "wordCount": 8,
+    "processingConfig": {
+      "validation": {
+        "sourceDictionaryId": "original-uuid",
+        "originalWordCount": 10,
+        "validWordCount": 8,
+        "invalidWordCount": 2,
+        "duplicateWordCount": 2,
+        "validatedAt": "2025-01-19T12:00:00Z",
+        "invalidWords": ["word1$", "word@#$"],
+        "duplicateWords": ["password", "test123"]
+      }
+    }
+  },
+  "stats": {
+    "originalWords": 10,
+    "validWords": 8,
+    "invalidWords": 2,
+    "duplicateWords": 2,
+    "removedWords": 4
+  }
+}
+```
+
+**Validation Criteria:**
+
+- Valid words: Only alphanumeric characters and standard symbols (!@#$%^&\*()-\_=+[])
+- Invalid words: Contains spaces, tabs, or unsupported special characters
+- Duplicates: Case-insensitive duplicate detection
+
+**Notes:**
+
+- Creates a new dictionary with validated words
+- Original dictionary is not modified
+- Invalid and duplicate samples (up to 100 each) included in response
+
+#### GET /dictionaries/:id/statistics
 
 Get real-time job progress (lightweight endpoint for polling).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -740,7 +942,7 @@ Get real-time job progress (lightweight endpoint for polling).
     "status": "active",
     "progress": 67.3,
     "currentSpeed": "155.2 kH/s",
-    "timeRemaining": 3600,  // seconds
+    "timeRemaining": 3600, // seconds
     "crackedCount": 1
   }
 }
@@ -751,6 +953,7 @@ Get real-time job progress (lightweight endpoint for polling).
 Cancel a running or queued job.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -767,6 +970,7 @@ Cancel a running or queued job.
 Delete a job (only if completed, failed, or cancelled).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -787,6 +991,7 @@ Delete a job (only if completed, failed, or cancelled).
 List all cracked passwords.
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 20)
 - `networkId` (filter by network)
@@ -795,6 +1000,7 @@ List all cracked passwords.
 - `order` (asc, desc)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -844,6 +1050,7 @@ Get all results from a specific job.
 Get system configuration.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -865,6 +1072,7 @@ Get system configuration.
 Update system configuration.
 
 **Request:**
+
 ```json
 {
   "maxConcurrentJobs": 3,
@@ -873,6 +1081,7 @@ Update system configuration.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -911,10 +1120,12 @@ API requests are rate-limited per user:
 All list endpoints support pagination:
 
 **Query Parameters:**
+
 - `page`: Page number (default: 1)
 - `limit`: Items per page (default: 20, max: 100)
 
 **Response includes:**
+
 ```json
 {
   "pagination": {
@@ -930,20 +1141,20 @@ All list endpoints support pagination:
 
 ## Error Codes
 
-| Code | Description |
-|------|-------------|
-| `AUTH_REQUIRED` | Authentication required |
-| `INVALID_CREDENTIALS` | Invalid email or password |
+| Code                       | Description                     |
+| -------------------------- | ------------------------------- |
+| `AUTH_REQUIRED`            | Authentication required         |
+| `INVALID_CREDENTIALS`      | Invalid email or password       |
 | `INSUFFICIENT_PERMISSIONS` | User lacks required permissions |
-| `NOT_FOUND` | Resource not found |
-| `VALIDATION_ERROR` | Request validation failed |
-| `DUPLICATE_RESOURCE` | Resource already exists |
-| `FILE_TOO_LARGE` | Uploaded file exceeds limit |
-| `INVALID_FILE_TYPE` | File type not allowed |
-| `QUOTA_EXCEEDED` | User quota exceeded |
-| `JOB_RUNNING` | Cannot delete running job |
-| `RATE_LIMIT_EXCEEDED` | Too many requests |
-| `INTERNAL_ERROR` | Server error |
+| `NOT_FOUND`                | Resource not found              |
+| `VALIDATION_ERROR`         | Request validation failed       |
+| `DUPLICATE_RESOURCE`       | Resource already exists         |
+| `FILE_TOO_LARGE`           | Uploaded file exceeds limit     |
+| `INVALID_FILE_TYPE`        | File type not allowed           |
+| `QUOTA_EXCEEDED`           | User quota exceeded             |
+| `JOB_RUNNING`              | Cannot delete running job       |
+| `RATE_LIMIT_EXCEEDED`      | Too many requests               |
+| `INTERNAL_ERROR`           | Server error                    |
 
 ## Examples
 
@@ -994,49 +1205,49 @@ curl http://localhost:4000/api/v1/results/by-job/{jobId} \
 
 ```typescript
 // Using fetch API
-const API_BASE = 'http://localhost:4000/api/v1';
+const API_BASE = "http://localhost:4000/api/v1";
 
 // Login
 const loginResponse = await fetch(`${API_BASE}/auth/login`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include',
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include",
   body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'password'
-  })
+    email: "user@example.com",
+    password: "password",
+  }),
 });
 
 const { data } = await loginResponse.json();
-console.log('Logged in as:', data.user.email);
+console.log("Logged in as:", data.user.email);
 
 // Upload PCAP
 const formData = new FormData();
-formData.append('file', fileInput.files[0]);
+formData.append("file", fileInput.files[0]);
 
 const uploadResponse = await fetch(`${API_BASE}/captures/upload`, {
-  method: 'POST',
-  credentials: 'include',
-  body: formData
+  method: "POST",
+  credentials: "include",
+  body: formData,
 });
 
 const capture = await uploadResponse.json();
-console.log('Capture ID:', capture.data.id);
+console.log("Capture ID:", capture.data.id);
 
 // Poll for completion
 const pollCapture = async (id: string) => {
   while (true) {
     const response = await fetch(`${API_BASE}/captures/${id}`, {
-      credentials: 'include'
+      credentials: "include",
     });
     const { data } = await response.json();
 
-    if (data.status === 'completed') {
-      console.log('Networks found:', data.networks.length);
+    if (data.status === "completed") {
+      console.log("Networks found:", data.networks.length);
       return data;
     }
 
-    await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+    await new Promise((r) => setTimeout(r, 2000)); // Wait 2s
   }
 };
 
