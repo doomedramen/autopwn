@@ -149,7 +149,18 @@ vi.mock('@/config/env', () => ({
 }))
 
 // Mock child_process with proper exec function
-const mockExec = vi.fn().mockImplementation(() => ({ kill: vi.fn() }))
+const mockExec = vi.fn((command, callback) => {
+  // Default implementation - can be overridden in tests
+  setTimeout(() => {
+    if (callback) {
+      callback(null, {
+        stdout: "hcxpcapngtool v1.2.3",
+        stderr: "",
+      });
+    }
+  }, 0);
+  return { kill: vi.fn() } as any;
+})
 const mockSpawn = vi.fn()
 
 vi.mock('child_process', () => ({
@@ -202,21 +213,23 @@ const dbMock: MockDB = {
 
 vi.mock('@/db', () => dbMock)
 
-// Mock hcx-tools
-const mockHCXTools = {
-  convertToHC22000: vi.fn(),
-  convertToPMKID: vi.fn(),
-  extractPMKID: vi.fn(),
-  convertToHashcat: vi.fn(),
-  validateConversion: vi.fn(),
-  checkAvailability: vi.fn(),
-  checkHCXToolsAvailability: vi.fn().mockResolvedValue({ available: true, version: 'v1.2.3' }),
-  processHandshakeCapture: vi.fn().mockResolvedValue({ networks: [], handshakes: [] }),
-  extractHandshakes: vi.fn().mockResolvedValue({ handshakes: [] }),
-  getNetworkInfo: vi.fn().mockResolvedValue({ networks: [] })
-}
+// Mock hcx-tools - COMMENTED OUT to allow hcx-tools-basic.test.ts to test real implementations
+// const mockHCXTools = {
+//   convertToHC22000: vi.fn(),
+//   convertToPMKID: vi.fn(),
+//   extractPMKID: vi.fn(),
+//   convertToHashcat: vi.fn(),
+//   validateConversion: vi.fn(),
+//   checkAvailability: vi.fn(),
+//   checkHCXToolsAvailability: vi.fn().mockResolvedValue({ available: true, version: 'v1.2.3' }),
+//   processHandshakeCapture: vi.fn().mockResolvedValue({ networks: [], handshakes: [] }),
+//   extractHandshakes: vi.fn().mockResolvedValue({ handshakes: [] }),
+//   getNetworkInfo: vi.fn().mockResolvedValue({ networks: [] })
+// }
+//
+// vi.mock('@/lib/hcx-tools', () => mockHCXTools)
 
-vi.mock('@/lib/hcx-tools', () => mockHCXTools)
+const mockHCXTools = {} // Keep for backwards compatibility with other tests
 
 // Mock file system operations with mutable functions
 const fsMock = {

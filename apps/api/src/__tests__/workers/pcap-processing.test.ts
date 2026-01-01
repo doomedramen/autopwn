@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { processPCAP } from '../../workers/pcap-processing'
 import { TestDataFactory } from '../../test/utils/test-data-factory'
+import { fsMock, dbMock } from '../../test/setup/unit-setup'
 
 describe('PCAP Processing', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset mock implementations
+    fsMock.readFile.mockResolvedValue(Buffer.from('valid pcap data'))
+    fsMock.access.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -13,17 +17,14 @@ describe('PCAP Processing', () => {
 
   describe('PCAP File Analysis', () => {
     it('should process PCAP with valid WPA networks', async () => {
-      
+
       // Mock successful PCAP processing
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('valid pcap data'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('valid pcap data'))
+      fsMock.access.mockResolvedValueOnce(undefined)
 
       // Mock database operations
-      const mockUpdate = vi.fn().mockResolvedValue(undefined)
-      const mockInsert = vi.fn().mockResolvedValue([{ id: 'test-network-1' }])
-
-      dbMock.update = mockUpdate
-      dbMock.insert = mockInsert
+      dbMock.update.mockResolvedValueOnce(undefined)
+      dbMock.insert.mockResolvedValueOnce([{ id: 'test-network-1' }])
 
       const result = await processPCAP({
         networkId: 'test-network-1',
@@ -33,10 +34,10 @@ describe('PCAP Processing', () => {
       })
 
       expect(fsMock.readFile).toHaveBeenCalledWith('/tmp/valid.pcap')
-      expect(mockUpdate).toHaveBeenCalledWith(
+      expect(dbMock.update).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'processing' })
       )
-      expect(mockInsert).toHaveBeenCalledWith(
+      expect(dbMock.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           ssid: 'HomeNetwork_5G',
           bssid: '00:11:22:33:44:55',
@@ -50,13 +51,11 @@ describe('PCAP Processing', () => {
     })
 
     it('should handle PCAP with no WiFi networks', async () => {
-      
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('no wifi networks'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
 
-      const mockUpdate = vi.fn().mockResolvedValue(undefined)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('no wifi networks'))
+      fsMock.access.mockResolvedValueOnce(undefined)
 
-      dbMock.update = mockUpdate
+      dbMock.update.mockResolvedValueOnce(undefined)
 
       const result = await processPCAP({
         networkId: 'test-network-2',
@@ -66,7 +65,7 @@ describe('PCAP Processing', () => {
       })
 
       expect(fsMock.readFile).toHaveBeenCalledWith('/tmp/empty.pcap')
-      expect(mockUpdate).toHaveBeenCalledWith(
+      expect(dbMock.update).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'ready' })
       )
       expect(result.success).toBe(false)
@@ -75,9 +74,8 @@ describe('PCAP Processing', () => {
     })
 
     it('should handle PCAP file access errors', async () => {
-      
-      fsMock.readFile = vi.fn()
-      fsMock.access = vi.fn().mockRejectedValue(new Error('Permission denied'))
+
+      fsMock.access.mockRejectedValueOnce(new Error('Permission denied'))
 
       const result = await processPCAP({
         networkId: 'test-network-3',
@@ -93,18 +91,15 @@ describe('PCAP Processing', () => {
     })
 
     it('should process multiple networks from single PCAP', async () => {
-      
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('multi-network pcap data'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
 
-      const mockUpdate = vi.fn().mockResolvedValue(undefined)
-      const mockInsert = vi.fn()
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('multi-network pcap data'))
+      fsMock.access.mockResolvedValueOnce(undefined)
+
+      dbMock.update.mockResolvedValueOnce(undefined)
+      dbMock.insert
         .mockResolvedValueOnce([{ id: 'test-network-4-1' }])
         .mockResolvedValueOnce([{ id: 'test-network-4-2' }])
         .mockResolvedValueOnce([{ id: 'test-network-4-3' }])
-
-      dbMock.update = mockUpdate
-      dbMock.insert = mockInsert
 
       const result = await processPCAP({
         networkId: 'test-network-4',
@@ -114,10 +109,10 @@ describe('PCAP Processing', () => {
       })
 
       expect(fsMock.readFile).toHaveBeenCalledWith('/tmp/multi.pcap')
-      expect(mockUpdate).toHaveBeenCalledWith(
+      expect(dbMock.update).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'processing' })
       )
-      expect(mockInsert).toHaveBeenCalledTimes(3) // Main network + 2 additional networks
+      expect(dbMock.insert).toHaveBeenCalledTimes(3) // Main network + 2 additional networks
       expect(result.success).toBe(true)
       expect(result.networksFound).toBe(3)
     })
@@ -127,8 +122,8 @@ describe('PCAP Processing', () => {
     it('should extract WPA2 handshake information', async () => {
       
       // Mock PCAP with WPA2 handshake
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('wpa2 handshake pcap'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('wpa2 handshake pcap'))
+      fsMock.access.mockResolvedValueOnce(true)
 
       const result = await processPCAP({
         networkId: 'test-wpa2',
@@ -153,8 +148,8 @@ describe('PCAP Processing', () => {
     it('should extract WPA3 PMKID information', async () => {
       
       // Mock PCAP with WPA3 PMKID
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('wpa3 pmkid pcap'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('wpa3 pmkid pcap'))
+      fsMock.access.mockResolvedValueOnce(true)
 
       const result = await processPCAP({
         networkId: 'test-wpa3',
@@ -177,8 +172,8 @@ describe('PCAP Processing', () => {
     it('should extract mixed encryption types', async () => {
       
       // Mock PCAP with mixed networks
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('mixed encryption pcap'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('mixed encryption pcap'))
+      fsMock.access.mockResolvedValueOnce(true)
 
       const result = await processPCAP({
         networkId: 'test-mixed',
@@ -201,8 +196,8 @@ describe('PCAP Processing', () => {
     it('should handle signal strength calculations', async () => {
       
       // Mock PCAP with strong signal
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('strong signal pcap'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('strong signal pcap'))
+      fsMock.access.mockResolvedValueOnce(true)
 
       const result = await processPCAP({
         networkId: 'test-signal',
@@ -225,7 +220,7 @@ describe('PCAP Processing', () => {
   describe('File Type Validation', () => {
     it('should accept .pcap files', async () => {
       
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.access.mockResolvedValueOnce(true)
 
       const result = await processPCAP({
         networkId: 'test-extension',
@@ -240,7 +235,7 @@ describe('PCAP Processing', () => {
 
     it('should accept .cap files', async () => {
       
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.access.mockResolvedValueOnce(true)
 
       const result = await processPCAP({
         networkId: 'test-cap',
@@ -255,7 +250,7 @@ describe('PCAP Processing', () => {
 
     it('should reject unsupported file types', async () => {
       
-      fsMock.access = vi.fn().mockResolvedValue(false)
+      fsMock.access.mockResolvedValueOnce(false)
 
       const result = await processPCAP({
         networkId: 'test-unsupported',
@@ -273,12 +268,12 @@ describe('PCAP Processing', () => {
   describe('Error Handling', () => {
     it('should handle corrupted PCAP files', async () => {
       
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('corrupted pcap data'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('corrupted pcap data'))
+      fsMock.access.mockResolvedValueOnce(true)
 
-            const mockUpdate = vi.fn().mockResolvedValue(undefined)
+            dbMock.update.mockResolvedValueOnce(undefined)
 
-      dbMock.update = mockUpdate
+      
 
       const result = await processPCAP({
         networkId: 'test-corrupt',
@@ -288,7 +283,7 @@ describe('PCAP Processing', () => {
       })
 
       expect(fsMock.readFile).toHaveBeenCalledWith('/tmp/corrupt.pcap')
-      expect(mockUpdate).toHaveBeenCalledWith(
+      expect(dbMock.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'failed',
           notes: expect.stringContaining('Processing failed')
@@ -300,14 +295,14 @@ describe('PCAP Processing', () => {
 
     it('should handle database errors gracefully', async () => {
       
-      fsMock.readFile = vi.fn().mockResolvedValue(Buffer.from('valid pcap'))
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(Buffer.from('valid pcap'))
+      fsMock.access.mockResolvedValueOnce(true)
 
-      const mockUpdate = vi.fn().mockRejectedValue(new Error('Database connection failed'))
-      const mockInsert = vi.fn()
+      dbMock.update.mockRejectedValueOnce(new Error('Database connection failed'))
+      dbMock.insert
 
-      dbMock.update = mockUpdate
-      dbMock.insert = mockInsert
+      
+      
 
       const result = await processPCAP({
         networkId: 'test-db-error',
@@ -317,7 +312,7 @@ describe('PCAP Processing', () => {
       })
 
       expect(fsMock.readFile).toHaveBeenCalledWith('/tmp/db-error.pcap')
-      expect(mockUpdate).toHaveBeenCalled()
+      expect(dbMock.update).toHaveBeenCalled()
       expect(result.success).toBe(false)
       expect(result.error).toContain('Database connection failed')
     })
@@ -328,17 +323,17 @@ describe('PCAP Processing', () => {
       
       // Mock large PCAP (50MB)
       const largePCAP = Buffer.alloc(50 * 1024 * 1024)
-      fsMock.readFile = vi.fn().mockResolvedValue(largePCAP)
-      fsMock.access = vi.fn().mockResolvedValue(true)
+      fsMock.readFile.mockResolvedValueOnce(largePCAP)
+      fsMock.access.mockResolvedValueOnce(true)
 
       const startTime = Date.now()
 
       // Mock database operations
-      const mockUpdate = vi.fn().mockResolvedValue(undefined)
-      const mockInsert = vi.fn().mockResolvedValue([{ id: 'test-perf' }])
+      dbMock.update.mockResolvedValueOnce(undefined)
+      dbMock.insert.mockResolvedValue([{ id: 'test-perf' }])
 
-            dbMock.update = mockUpdate
-      dbMock.insert = mockInsert
+            
+      
 
       const result = await processPCAP({
         networkId: 'test-perf-large',

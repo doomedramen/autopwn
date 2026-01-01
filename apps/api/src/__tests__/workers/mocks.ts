@@ -1,8 +1,7 @@
 import { vi } from "vitest";
-import { execAsync } from "../lib/exec";
 
-// Mock child_process
-const mockExecInstance = vi.fn().mockImplementation((command, callback) => {
+// Mock child_process exec
+export const mockExecInstance = vi.fn((command, callback) => {
   setTimeout(() => {
     callback(null, {
       stdout: "execution output",
@@ -13,28 +12,28 @@ const mockExecInstance = vi.fn().mockImplementation((command, callback) => {
 });
 
 vi.mock("child_process", () => ({
-  exec: vi.fn(),
+  exec: mockExecInstance,
   spawn: vi.fn(),
 }));
 
 // Mock fs/promises
-const fsMock = {
+export const fsMock = {
   mkdir: vi.fn().mockResolvedValue(undefined),
-  access: vi.fn().mockImplementation((path) => {
+  access: vi.fn((path) => {
     if (path.includes("nonexistent")) {
-      return Promise.resolve(false);
+      return Promise.reject(new Error("File not found"));
     }
-    return Promise.resolve(true);
+    return Promise.resolve(undefined);
   }),
+  readFile: vi.fn().mockResolvedValue(Buffer.from("mock file content")),
   writeFile: vi.fn().mockResolvedValue(undefined),
   unlink: vi.fn().mockResolvedValue(undefined),
   chmod: vi.fn().mockResolvedValue(undefined),
-  readDir: vi.fn().mockResolvedValue([]),
+  readdir: vi.fn().mockResolvedValue([]),
+  stat: vi.fn().mockResolvedValue({ size: 1024 }),
 };
 
-vi.mock("fs/promises", () => ({
-  promises: fsMock,
-}));
+vi.mock("fs/promises", () => fsMock);
 
 // Mock hashcat execution
 const mockHashcatExecution = vi.fn().mockImplementation((command, callback) => {
@@ -70,51 +69,14 @@ const mockOtherExecution = vi.fn().mockImplementation((command, callback) => {
 });
 
 // Mock database operations
-const dbMock = {
+export const dbMock = {
   update: vi.fn().mockResolvedValue(undefined),
   insert: vi.fn().mockResolvedValue([{ id: "test-job-id" }]),
 };
 
 // Export mocks for use in tests
 export {
-  fsMock,
-  dbMock,
-  mockExecInstance,
   mockHashcatExecution,
   mockHcxToolExecution,
-  mockOtherExecution
-}
-
-  await fsMock.unlink(commandFile);
-
-  return {
-    success: true,
-    exitCode: execResult.code || 0,
-    stdout: execResult.stdout,
-    stderr: execResult.stderr,
-    results: parseResult,
-    jobId,
-  };
-}
-
-// Helper function to simulate hcx tool execution
-export async function mockHcxToolCommand(command: string) {
-  const execResult = await execAsync({
-    command: command.split(" "),
-    env: {},
-  });
-
-  return {
-    success: true,
-    exitCode: execResult.code || 0,
-    stdout: execResult.stdout,
-    stderr: execResult.stderr,
-    networks: [
-      {
-        bssid: "00:11:22:33:44:55",
-        ssid: "TestNetwork",
-        encryption: "WPA2",
-      },
-    ],
-  };
-}
+  mockOtherExecution,
+};
