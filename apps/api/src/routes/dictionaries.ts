@@ -676,12 +676,64 @@ dictionariesRouter.post("/:id/validate", async (c) => {
 
 // GET /api/dictionaries/:id/statistics - Get detailed statistics for a dictionary
 dictionariesRouter.get("/:id/statistics", async (c) => {
-  const id = c.req.param("id");
-  const userId = getUserId(c);
   try {
-    const dictionary = await db.query.dictionaries.findFirst({
-      where: eq(dictionariesSchema.id, id),
+    // Check if cache-dictionaries config is enabled
+    const cacheEnabled = await configService.getBoolean("cache-dictionaries", false);
+
+    if (cacheEnabled) {
+      const dictionaryId = c.req.param("id");
+      const cachedStats = await getCachedStats(dictionaryId);
+
+      if (cachedStats) {
+        logger.info(`Cache hit for dictionary ${dictionaryId}`);
+        return c.json({
+          success: true,
+          data: {
+            basic: cachedStats.basic,
+            frequency: cachedStats.frequency,
+            size: cachedStats.size,
+            fromCache: true,
+            timestamp: cachedStats.timestamp
+          }
+        });
+      }
+
+      // Cache miss - calculate and cache
+      logger.info(`Cache miss for dictionary ${dictionaryId} - calculating statistics`);
+      const stats = await calculateStatistics(dictionaryId);
+
+      await setCachedStats(dictionaryId, stats);
+
+      return c.json({
+        success: true,
+        data: {
+          basic: stats.basic,
+          frequency: stats.frequency,
+          size: stats.size,
+          timestamp: Date.now()
+        }
+      });
+    }
+
+    // Cache disabled - calculate directly
+    const dictionaryId = c.req.param("id");
+    logger.info(`Cache disabled - calculating statistics for dictionary ${dictionaryId}`);
+    const stats = await calculateStatistics(dictionaryId);
+
+    return c.json({
+      success: true,
+      data: {
+        basic: stats.basic,
+        frequency: stats.frequency,
+        size: stats.size,
+        timestamp: Date.now()
+      }
     });
+  } catch (error) {
+    logger.error(`Failed to get dictionary statistics for ${c.req.param("id")}`, error);
+    throw error;
+  }
+});
     if (!dictionary) {
       return c.json(
         {
