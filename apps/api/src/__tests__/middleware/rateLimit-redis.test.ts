@@ -64,9 +64,9 @@ describe("Redis-backed Rate Limiting", () => {
       expect(mockNext).toHaveBeenCalledTimes(5);
 
       // 6th request should fail
-      await expect(
-        rateLimitMiddleware(mockContext, mockNext),
-      ).rejects.toThrow();
+      expect(() => {
+        rateLimitMiddleware(mockContext, mockNext);
+      }).toThrow();
       expect(mockNext).toHaveBeenCalledTimes(5); // Still 5, not 6
     });
 
@@ -143,15 +143,15 @@ describe("Redis-backed Rate Limiting", () => {
       expect(mockNext).toHaveBeenCalledTimes(4);
 
       // 3rd request from IP1 should fail
-      await expect(
-        rateLimitMiddleware(mockContext1, mockNext),
-      ).rejects.toThrow();
+      expect(() => {
+        rateLimitMiddleware(mockContext1, mockNext);
+      }).toThrow();
       expect(mockNext).toHaveBeenCalledTimes(4);
 
       // 3rd request from IP2 should fail
-      await expect(
-        rateLimitMiddleware(mockContext2, mockNext),
-      ).rejects.toThrow();
+      expect(() => {
+        rateLimitMiddleware(mockContext2, mockNext);
+      }).toThrow();
       expect(mockNext).toHaveBeenCalledTimes(4);
     });
 
@@ -200,9 +200,9 @@ describe("Redis-backed Rate Limiting", () => {
       expect(mockNext).toHaveBeenCalledTimes(1);
 
       // Second request should fail with rate limit error
-      await expect(rateLimitMiddleware(mockContext, mockNext)).rejects.toThrow(
-        /Too many requests/,
-      );
+      expect(() => {
+        rateLimitMiddleware(mockContext, mockNext);
+      }).toThrow(/Too many requests/);
 
       expect(mockNext).toHaveBeenCalledTimes(1); // Should not call next after rate limit
     });
@@ -233,9 +233,9 @@ describe("Redis-backed Rate Limiting", () => {
       await rateLimitMiddleware(mockContext, mockNext);
 
       // Second request should set Retry-After header
-      await expect(
-        rateLimitMiddleware(mockContext, mockNext),
-      ).rejects.toThrow();
+      expect(() => {
+        rateLimitMiddleware(mockContext, mockNext);
+      }).toThrow();
 
       expect(mockContext.res.headers.set).toHaveBeenCalledWith(
         "Retry-After",
@@ -264,9 +264,9 @@ describe("Redis-backed Rate Limiting", () => {
       expect(mockNext).toHaveBeenCalledTimes(2);
 
       // Third request should fail
-      await expect(
-        rateLimitMiddleware(mockContext, mockNext),
-      ).rejects.toThrow();
+      expect(() => {
+        rateLimitMiddleware(mockContext, mockNext);
+      }).toThrow();
       expect(mockNext).toHaveBeenCalledTimes(2);
 
       // Advance time past window
