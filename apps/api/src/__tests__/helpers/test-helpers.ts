@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users, accounts } from "@/db/schema";
+import { users, accounts, config } from "@/db/schema";
 import { eq, sql, like } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
@@ -8,12 +8,44 @@ import bcrypt from "bcryptjs";
 export async function setupTestDB() {
   // Clean up any existing test data
   await cleanupTestDB();
+
+  // Ensure required config values exist
+  await seedTestConfig();
+}
+
+// Seed test configuration values
+async function seedTestConfig() {
+  const requiredConfigs = [
+    { id: "rateLimitUpload", value: 5 },
+    { id: "email-enabled", value: true },
+  ];
+
+  for (const cfg of requiredConfigs) {
+    const exists = await db.query.config.findFirst({
+      where: eq(config.id, cfg.id),
+    });
+
+    if (!exists) {
+      await db.insert(config).values({
+        id: cfg.id,
+        value: cfg.value,
+        category: "general",
+        type: typeof cfg.value as any,
+        defaultValue: cfg.value,
+        minValue: typeof cfg.value === "number" ? 1 : undefined,
+        maxValue: typeof cfg.value === "number" ? 100 : undefined,
+        isReadOnly: false,
+        requiresRestart: false,
+        updatedAt: new Date(),
+      });
+    }
+  }
 }
 
 export async function cleanupTestDB() {
-  // Clean up test data
-  await db.delete(accounts).where(like(accounts.userId, "test-%"));
-  await db.delete(users).where(like(users.id, "test-%"));
+  // Clean up test data using raw SQL with LIKE
+  await db.execute(sql`DELETE FROM accounts WHERE user_id LIKE 'test-%'`);
+  await db.execute(sql`DELETE FROM users WHERE id LIKE 'test-%'`);
 }
 
 // Create test user with proper account record
@@ -22,7 +54,9 @@ export async function createTestUser(overrides: Partial<any> = {}) {
   const email =
     overrides.email || `test-${crypto.randomUUID().slice(0, 8)}@test.com`;
   const password = "password123"; // Standard test password
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Skip bcrypt hashing for tests - use plain text password
+  // The test DB uses auth but we're using mock auth headers anyway
+  const hashedPassword = password;
 
   const [user] = await db
     .insert(users)

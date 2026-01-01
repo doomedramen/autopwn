@@ -146,6 +146,17 @@ const initialConfig = [
     requiresRestart: false,
     updatedAt: new Date(),
   },
+  {
+    id: "email-enabled",
+    value: true,
+    description: "Enable email notifications system",
+    category: "general" as const,
+    type: "boolean" as const,
+    defaultValue: true,
+    isReadOnly: false,
+    requiresRestart: false,
+    updatedAt: new Date(),
+  },
 ];
 
 export async function seedConfig() {

@@ -441,7 +441,7 @@ class ConfigService {
   }
 
   async getRateLimitUpload(): Promise<number> {
-    return this.getNumber("rate-limit-upload");
+    return this.getNumber("rateLimitUpload");
   }
 
   async getRateLimitAuth(): Promise<number> {
