@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
+import { app } from "../test-app-minimal";
 import {
   setupTestDB,
   cleanupTestDB,
@@ -6,58 +7,6 @@ import {
   getAuthHeaders,
 } from "../helpers/test-helpers";
 import crypto from "crypto";
-
-// Simple test to verify test app works
-describe("Dictionary Management API - Infrastructure Test", () => {
-  test('should create test user', async () => {
-    console.log("Creating test user...");
-    const user = await createTestUser({ role: "user" });
-    console.log("Test user created:", user);
-    expect(user).toBeDefined();
-    expect(user.email).toBeDefined();
-  });
-
-  test('should get auth headers', async () => {
-    console.log("Getting auth headers...");
-    const auth = await getAuthHeaders("test@example.com", "test-password-123");
-    console.log("Auth headers:", auth);
-    expect(auth).toBeDefined();
-    expect(auth.Authorization).toBeDefined();
-  });
-
-  test('test app should respond to request', async () => {
-    console.log("Testing test app response...");
-    const response = await testApp.request("/health", {
-      method: "GET",
-    headers: {
-        "X-Test-Auth": "true",
-      "X-Test-Email": "test@example.com",
-        "X-Test-UserId": "test-user-id",
-      }
-    });
-
-    console.log("Response status:", response.status);
-    console.log("Response body:", await response.text());
-
-    expect(response.status).toBe(200);
-  });
-});
-
-// Main test file
-import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import {
-  setupTestDB,
-  cleanupTestDB,
-  createTestUser,
-  getAuthHeaders,
-} from "../helpers/test-helpers";
-import crypto from "crypto";
-
-// Import test-only app instance to avoid full app initialization
-let testApp: any;
-import("../../test-app").then((module) => {
-  testApp = (module as any).default;
-});
 
 describe("Dictionary Management API", () => {
   let userAuth: Record<string, string>;
@@ -67,23 +16,7 @@ describe("Dictionary Management API", () => {
   beforeAll(async () => {
     await setupTestDB();
     testUser = await createTestUser({ role: "user" });
-    userAuth = await getAuthHeaders(testUser.email, "password123");
-  });
-
-describe("Dictionary Management API", () => {
-  let userAuth: Record<string, string>;
-  let testUser: any;
-  let dictionaryIds: string[] = [];
-
-  beforeAll(async () => {
-    // Create test user with mock auth - skip password issues for now
-    testUser = await createTestUser({ role: "user" });
-    userAuth = {
-      Authorization: `Bearer test-mock-token-${testUser.id}`,
-      "X-Test-Auth": "true",
-      "X-Test-Email": testUser.email,
-      "X-Test-UserId": testUser.id,
-    };
+    userAuth = await getAuthHeaders(testUser.email, "test-password-123");
 
     // Create test dictionaries for merging
     for (let i = 1; i <= 3; i++) {
@@ -97,7 +30,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData,
       });
@@ -120,7 +53,7 @@ describe("Dictionary Management API", () => {
         {
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -150,7 +83,7 @@ describe("Dictionary Management API", () => {
         {
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -165,14 +98,17 @@ describe("Dictionary Management API", () => {
     test("should return 403 for dictionary owned by another user", async () => {
       // Create another user
       const otherUser = await createTestUser({ role: "user" });
-      const otherAuth = await getAuthHeaders(otherUser.email, "password123");
+      const otherAuth = await getAuthHeaders(
+        otherUser.email,
+        "test-password-123",
+      );
 
       const response = await app.request(
         `/api/dictionaries/${dictionaryIds[0]}/statistics`,
         {
           headers: {
             ...otherAuth,
-            Authorization: otherAuth.authorization,
+            Authorization: otherAuth.Authorization,
           },
         },
       );
@@ -196,7 +132,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData,
       });
@@ -209,7 +145,7 @@ describe("Dictionary Management API", () => {
         {
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -230,7 +166,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -264,7 +200,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -287,7 +223,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -307,7 +243,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -343,7 +279,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -362,14 +298,17 @@ describe("Dictionary Management API", () => {
     test("should prevent merging dictionaries owned by other users", async () => {
       // Create another user
       const otherUser = await createTestUser({ role: "user" });
-      const otherAuth = await getAuthHeaders(otherUser.email, "password123");
+      const otherAuth = await getAuthHeaders(
+        otherUser.email,
+        "test-password-123",
+      );
 
       // Try to merge this user's dictionaries using another user's auth
       const response = await app.request("/api/dictionaries/merge", {
         method: "POST",
         headers: {
           ...otherAuth,
-          Authorization: otherAuth.authorization,
+          Authorization: otherAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -396,7 +335,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData1,
       });
@@ -413,7 +352,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData2,
       });
@@ -426,7 +365,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -459,7 +398,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData,
       });
@@ -473,7 +412,7 @@ describe("Dictionary Management API", () => {
           method: "POST",
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -514,7 +453,7 @@ describe("Dictionary Management API", () => {
           method: "POST",
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -529,7 +468,10 @@ describe("Dictionary Management API", () => {
     test("should return 403 for dictionary owned by another user", async () => {
       // Create another user
       const otherUser = await createTestUser({ role: "user" });
-      const otherAuth = await getAuthHeaders(otherUser.email, "password123");
+      const otherAuth = await getAuthHeaders(
+        otherUser.email,
+        "test-password-123",
+      );
 
       const response = await app.request(
         `/api/dictionaries/${dictionaryIds[0]}/validate`,
@@ -537,7 +479,7 @@ describe("Dictionary Management API", () => {
           method: "POST",
           headers: {
             ...otherAuth,
-            Authorization: otherAuth.authorization,
+            Authorization: otherAuth.Authorization,
           },
         },
       );
@@ -562,7 +504,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData,
       });
@@ -576,7 +518,7 @@ describe("Dictionary Management API", () => {
           method: "POST",
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -609,7 +551,7 @@ describe("Dictionary Management API", () => {
         method: "POST",
         headers: {
           ...userAuth,
-          Authorization: userAuth.authorization,
+          Authorization: userAuth.Authorization,
         },
         body: formData,
       });
@@ -623,7 +565,7 @@ describe("Dictionary Management API", () => {
           method: "POST",
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );
@@ -637,7 +579,7 @@ describe("Dictionary Management API", () => {
         {
           headers: {
             ...userAuth,
-            Authorization: userAuth.authorization,
+            Authorization: userAuth.Authorization,
           },
         },
       );

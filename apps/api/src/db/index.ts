@@ -1,26 +1,56 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from './schema'
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
+import "../config/env";
+
+// Lazy database connections to allow environment to be configured before connecting
+let migrationClientInstance: any = null;
+let queryClientInstance: any = null;
+let dbInstance: any = null;
+let migrationDbInstance: any = null;
+
+function getMigrationClient() {
+  if (!migrationClientInstance) {
+    migrationClientInstance = postgres(process.env.DATABASE_URL!, {
+      max: 1,
+      connect_timeout: 10, // 10 seconds timeout
+      connection: {
+        application_name: "autopwn-migration",
+      },
+    });
+  }
+  return migrationClientInstance;
+}
+
+function getQueryClient() {
+  if (!queryClientInstance) {
+    queryClientInstance = postgres(process.env.DATABASE_URL!, {
+      connect_timeout: 10, // 10 seconds timeout
+      connection: {
+        application_name: "autopwn-app",
+      },
+    });
+  }
+  return queryClientInstance;
+}
 
 // Connection for migrations
-const migrationClient = postgres(process.env.DATABASE_URL!, {
-  max: 1,
-  connect_timeout: 10, // 10 seconds timeout
-  connection: {
-    application_name: 'autopwn-migration'
+function getMigrationDb() {
+  if (!migrationDbInstance) {
+    migrationDbInstance = drizzle(getMigrationClient(), { schema });
   }
-})
+  return migrationDbInstance;
+}
 
 // Connection for queries
-const queryClient = postgres(process.env.DATABASE_URL!, {
-  connect_timeout: 10, // 10 seconds timeout
-  connection: {
-    application_name: 'autopwn-app'
+function getDb() {
+  if (!dbInstance) {
+    dbInstance = drizzle(getQueryClient(), { schema });
   }
-})
+  return dbInstance;
+}
 
-export const db = drizzle(queryClient, { schema })
+export const db = getDb();
+export const migrationDb = getMigrationDb();
 
-export const migrationDb = drizzle(migrationClient, { schema })
-
-export { schema }
+export { schema };

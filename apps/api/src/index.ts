@@ -134,97 +134,10 @@ app.get("/health", publicApiCORS(), (c) => {
   });
 });
 
-// Basic API info route - Public CORS
-app.get("/api/info", publicApiCORS(), (c) => {
-  return c.json({
-    message: "AutoPWN API is working",
-    version: "1.0.0",
-    environment: process.env.NODE_ENV || "development",
-    endpoints: [
-      "/api/auth/*",
-      "/api/jobs/*",
-      "/api/networks/*",
-      "/api/dictionaries/*",
-      "/api/results/*",
-      "/api/queue/*",
-      "/api/upload/*",
-      "/api/captures/*",
-      "/api/config/*",
-      "/api/audit/*",
-      "/api/health/*",
-      "/api/storage/*",
-      "/api/email/*",
-      "/security/*",
-      "/api/websocket/*",
-      "/virus-scanner/*",
-      "/health",
-      "/api/info",
-    ],
-  });
-});
-
-// Debug session route - Public CORS for testing
-app.get("/api/debug/session", publicApiCORS(), async (c) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  const user = c.get("user");
-  const userRecord = session?.user || user;
-
-  return c.json({
-    session: session
-      ? {
-          session: !!session.session,
-          user: session.user
-            ? {
-                id: session.user.id,
-                email: session.user.email,
-                role: session.user.role,
-                name: session.user.name,
-              }
-            : null,
-        }
-      : null,
-    context: {
-      user: userRecord
-        ? {
-            id: userRecord.id,
-            email: userRecord.email,
-            role: userRecord.role,
-            name: userRecord.name,
-          }
-        : null,
-    },
-  });
-});
-
-// Error handling
-app.use("*", errorHandler);
-
-// 404 handler
-app.notFound((c) => {
-  return c.json({
-    error: "Not Found",
-    message: "The requested resource was not found",
-    path: c.req.path,
-    available_endpoints: [
-      "/api/auth/*",
-      "/api/jobs/*",
-      "/api/networks/*",
-      "/api/dictionaries/*",
-      "/api/results/*",
-      "/api/queue/*",
-      "/api/upload/*",
-      "/api/captures/*",
-      "/api/config/*",
-      "/api/audit/*",
-      "/api/health/*",
-      "/security/*",
-      "/virus-scanner/*",
-      "/health",
-      "/api/info",
-    ],
-  });
-});
 const port = parseInt(process.env.PORT || "3001");
+
+// Export app for testing (must be before startServer)
+export { app };
 
 async function startServer() {
   try {
@@ -296,4 +209,7 @@ async function startServer() {
   }
 }
 
-startServer();
+// Only start server if this file is run directly (not imported)
+if (require.main === module) {
+  startServer();
+}

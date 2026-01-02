@@ -257,10 +257,14 @@ dictionariesRouter.post(
       );
     }
   }
+);
 
-    // Cache disabled - calculate directly
-    const userId = c.get("userId") as string;
-    const id = c.req.param("id");
+// DELETE /api/dictionaries/:id - Delete a dictionary
+dictionariesRouter.delete("/:id", async (c) => {
+  const userId = getUserId(c);
+  const id = c.req.param("id");
+
+  try {
     const [dictionary] = await db
       .select()
       .from(dictionaries)
@@ -276,6 +280,7 @@ dictionariesRouter.post(
         404,
       );
     }
+
     if (dictionary.userId !== userId) {
       return c.json(
         {
@@ -285,15 +290,7 @@ dictionariesRouter.post(
         403,
       );
     }
-    if (dictionary.userId !== userId) {
-      return c.json(
-        {
-          success: false,
-          error: "Access denied",
-        },
-        403,
-      );
-    }
+
     if (dictionary.filePath) {
       try {
         await fs.unlink(dictionary.filePath);
@@ -310,12 +307,14 @@ dictionariesRouter.post(
         });
       }
     }
+
     await db.delete(dictionariesSchema).where(eq(dictionariesSchema.id, id));
     logger.info("Dictionary deleted", "dictionaries", {
       dictionaryId: id,
       userId,
       name: dictionary.name,
     });
+
     return c.json({
       success: true,
       message: "Dictionary deleted successfully",
