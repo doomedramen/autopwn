@@ -67,7 +67,8 @@ export async function cleanupTestDB() {
   );
   await database.execute(sql`DELETE FROM users WHERE id LIKE ${testPrefix}`);
 
-  // Also delete users created via API with specific test emails
+  // Delete ALL users with @test.com emails (not just ones created via API)
+  // This includes both test- UUID users and UUID-only users
   await database.execute(
     sql`DELETE FROM accounts WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')`,
   );
@@ -77,6 +78,27 @@ export async function cleanupTestDB() {
   await database.execute(
     sql`DELETE FROM accounts WHERE user_id NOT IN (SELECT id FROM users)`,
   );
+
+  // Double-check by listing remaining test users
+  const remainingTestUsers = await database
+    .select()
+    .from(users)
+    .where(
+      sql`${users.id} LIKE ${testPrefix} OR ${users.email} LIKE '%@test.com'`,
+    );
+
+  if (remainingTestUsers.length > 0) {
+    console.warn(
+      `⚠️  Warning: ${remainingTestUsers.length} test users remain after cleanup, deleting them manually:`,
+      remainingTestUsers.map((u) => `${u.id}: ${u.email}`),
+    );
+    // Force delete any remaining test users
+    await database
+      .delete(users)
+      .where(
+        sql`${users.id} LIKE ${testPrefix} OR ${users.email} LIKE '%@test.com'`,
+      );
+  }
 }
 
 export async function createTestUser(overrides: Partial<any> = {}) {
@@ -87,6 +109,18 @@ export async function createTestUser(overrides: Partial<any> = {}) {
     overrides.email || `test-${crypto.randomUUID().slice(0, 8)}@test.com`;
   const password = "test-password-123";
 
+  // Check if user already exists and delete if found
+  const existingUser = await database
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (existingUser.length > 0) {
+    console.warn(`User with email ${email} already exists, deleting...`);
+    await database.delete(users).where(eq(users.email, email));
+  }
+
   const [user] = await database
     .insert(users)
     .values({
@@ -95,7 +129,6 @@ export async function createTestUser(overrides: Partial<any> = {}) {
       name: overrides.name || email.split("@")[0],
       role: overrides.role || "user",
       emailVerified: true,
-      password: password,
       createdAt: new Date(),
       updatedAt: new Date(),
       ...overrides,

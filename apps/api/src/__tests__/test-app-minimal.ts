@@ -35,7 +35,7 @@ app.use("*", async (c, next) => {
 
   if (testAuth !== "true" || !testEmail) {
     // Not authenticated - proceed anyway for some routes
-    c.set("userId", testEmail || "anonymous");
+    c.set("userId", null);
     c.set("userRole", "user");
     return next();
   }
@@ -56,6 +56,7 @@ app.use("*", async (c, next) => {
   c.set("user", user);
   c.set("userId", user.id);
   c.set("userRole", user.role);
+
   await next();
 });
 
@@ -215,9 +216,9 @@ app.post(
   zValidator(
     "json",
     z.object({
-      email: z.string().email(),
+      email: z.string(),
       name: z.string().optional(),
-      password: z.string().min(8),
+      password: z.string(),
       role: z.enum(["user", "admin", "superuser"]).optional(),
     }),
   ),
@@ -234,7 +235,30 @@ app.post(
 
       // Prevent admin from creating superuser
       if (userRole === "admin" && userData.role === "superuser") {
-        return c.json({ success: false, error: "Access denied" }, 403);
+        return c.json(
+          {
+            success: false,
+            error: "Only superusers can create superuser accounts",
+          },
+          403,
+        );
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userData.email)) {
+        return c.json({ success: false, error: "Invalid email format" }, 400);
+      }
+
+      // Validate password length
+      if (userData.password.length < 8) {
+        return c.json(
+          {
+            success: false,
+            error: "Password must be at least 8 characters",
+          },
+          400,
+        );
       }
 
       // Check for duplicate email
@@ -246,19 +270,26 @@ app.post(
         .limit(1);
 
       if (existingUser.length > 0) {
-        return c.json({ success: false, error: "Email already exists" }, 409);
+        return c.json(
+          { success: false, error: "User with this email already exists" },
+          409,
+        );
       }
 
       // Create user
-      const newUserId = `test-${crypto.randomUUID()}`;
+      const newUserId = crypto.randomUUID();
       const name = userData.name || userData.email.split("@")[0];
       const role = userData.role || "user";
+      const password = userData.password;
+
+      // Remove password from userData before inserting (it's not a column)
+      const { password: _, ...userDataToInsert } = userData;
 
       const [newUser] = await database
         .insert(users)
         .values({
           id: newUserId,
-          email: userData.email,
+          ...userDataToInsert,
           name,
           role,
           emailVerified: true,
@@ -311,7 +342,7 @@ app.patch(
     "json",
     z
       .object({
-        email: z.string().email().optional(),
+        email: z.string().optional(),
         name: z.string().optional(),
         role: z.enum(["user", "admin", "superuser"]).optional(),
       })
@@ -324,6 +355,13 @@ app.patch(
     const updateData = c.req.valid("json");
 
     try {
+      // Validate email format if provided
+      if (updateData.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(updateData.email)) {
+          return c.json({ success: false, error: "Invalid email format" }, 400);
+        }
+      }
       const database = getTestDb();
       const [targetUser] = await database
         .select()
@@ -354,7 +392,13 @@ app.patch(
 
       // Regular users can't change role
       if (isOwnProfile && !canUpdateAny && updateData.role !== undefined) {
-        return c.json({ success: false, error: "Access denied" }, 403);
+        return c.json(
+          {
+            success: false,
+            error: "Only administrators can change user roles",
+          },
+          403,
+        );
       }
 
       // Update user
