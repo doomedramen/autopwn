@@ -58,12 +58,25 @@ async function seedTestConfig(database: any, config: any) {
 
 export async function cleanupTestDB() {
   const database = getTestDb();
+  const { users, accounts } = schema;
   const testPrefix = "test-%";
 
+  // Delete all test users (both test- UUID prefix and test.com emails)
   await database.execute(
     sql`DELETE FROM accounts WHERE user_id LIKE ${testPrefix}`,
   );
   await database.execute(sql`DELETE FROM users WHERE id LIKE ${testPrefix}`);
+
+  // Also delete users created via API with specific test emails
+  await database.execute(
+    sql`DELETE FROM accounts WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')`,
+  );
+  await database.execute(sql`DELETE FROM users WHERE email LIKE '%@test.com'`);
+
+  // Delete orphaned accounts
+  await database.execute(
+    sql`DELETE FROM accounts WHERE user_id NOT IN (SELECT id FROM users)`,
+  );
 }
 
 export async function createTestUser(overrides: Partial<any> = {}) {
