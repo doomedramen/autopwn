@@ -48,6 +48,7 @@ app.use("*", async (c, next) => {
     .limit(1);
 
   if (!user) {
+    console.warn(`[Auth] User not found for email: ${testEmail}`);
     c.set("userId", null);
     c.set("userRole", "user");
     return next();
@@ -349,12 +350,17 @@ app.patch(
       .partial(),
   ),
   async (c) => {
-    const userId = c.get("userId") as string;
+    const userId = c.get("userId") as string | null;
     const userRole = c.get("userRole") as string;
     const targetUserId = c.req.param("id");
     const updateData = c.req.valid("json");
 
     try {
+      // Check if user is authenticated (userId is required for updates)
+      if (!userId) {
+        return c.json({ success: false, error: "Access denied" }, 403);
+      }
+
       // Validate email format if provided
       if (updateData.email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -437,7 +443,7 @@ app.patch(
 
 // DELETE /api/users/:id - Delete user
 app.delete("/api/users/:id", async (c) => {
-  const userId = c.get("userId") as string;
+  const userId = c.get("userId") as string | null;
   const userRole = c.get("userRole") as string;
   const targetUserId = c.req.param("id");
 
@@ -491,6 +497,35 @@ app.delete("/api/users/:id", async (c) => {
       {
         success: false,
         error: "User deletion failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
+// GET /api/users - List all users
+app.get("/api/users", async (c) => {
+  const userId = c.get("userId") as string | null;
+  const userRole = c.get("userRole") as string;
+
+  try {
+    const canViewAll = userRole === "admin" || userRole === "superuser";
+
+    if (!canViewAll) {
+      return c.json({ success: false, error: "Access denied" }, 403);
+    }
+
+    const database = getTestDb();
+    const allUsers = await database.select().from(users);
+
+    return c.json({ success: true, data: allUsers });
+  } catch (error) {
+    logger.error("User list error", "users", error as Error);
+    return c.json(
+      {
+        success: false,
+        error: "User list failed",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       500,

@@ -675,17 +675,22 @@ describe("User CRUD API", () => {
   });
 
   describe("Role-based Access Control", () => {
+    afterAll(async () => {
+      // Cleanup users created in this block
+      await cleanupTestDB();
+    });
+
     test("should properly enforce superuser role hierarchy", async () => {
       // Create user with each role
-      const [testRegular] = await createTestUser({
+      const testRegular = await createTestUser({
         email: "regular@test.com",
         role: "user",
       });
-      const [testAdmin] = await createTestUser({
+      const testAdmin = await createTestUser({
         email: "admin2@test.com",
         role: "admin",
       });
-      const [testSuper] = await createTestUser({
+      const testSuper = await createTestUser({
         email: "super2@test.com",
         role: "superuser",
       });
