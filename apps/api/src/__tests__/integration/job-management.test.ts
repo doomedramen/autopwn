@@ -25,6 +25,15 @@ describe("Job Management Integration Tests", () => {
     // Setup test database and user
     testUserId = "test-user-integration";
 
+    // Delete existing test user if it exists
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, testUserId));
+    if (existingUser.length > 0) {
+      await db.delete(users).where(eq(users.id, testUserId));
+    }
+
     // Create test user
     await db.insert(users).values({
       id: testUserId,
