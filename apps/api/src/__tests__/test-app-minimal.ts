@@ -48,11 +48,15 @@ app.use("*", async (c, next) => {
     .limit(1);
 
   if (!user) {
+    console.log(`[Auth Middleware] User not found for email: ${testEmail}`);
     c.set("userId", null);
     c.set("userRole", "user");
     return next();
   }
 
+  console.log(
+    `[Auth Middleware] Found user: ${user.id}, email: ${user.email}, role: ${user.role}`,
+  );
   c.set("user", user);
   c.set("userId", user.id);
   c.set("userRole", user.role);
@@ -451,8 +455,15 @@ app.delete("/api/users/:id", async (c) => {
     const [targetUser] = await database
       .select()
       .from(users)
-      .where(eq(users.id, targetUserId))
+      .where(eq(users.id, targetUserId as string))
       .limit(1);
+
+    console.log(
+      `[DELETE Route] userId=${userId}, userRole=${userRole}, targetUserId=${targetUserId}`,
+    );
+    if (targetUser) {
+      console.log(`[DELETE Route] targetUser.role=${targetUser.role}`);
+    }
 
     if (!targetUser) {
       return c.json({ success: false, error: "User not found" }, 404);

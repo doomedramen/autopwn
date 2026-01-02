@@ -117,8 +117,10 @@ export async function createTestUser(overrides: Partial<any> = {}) {
     .limit(1);
 
   if (existingUser.length > 0) {
-    console.warn(`User with email ${email} already exists, deleting...`);
+    // Delete user
     await database.delete(users).where(eq(users.email, email));
+    // Wait a bit to ensure deletion completes
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
   const [user] = await database
