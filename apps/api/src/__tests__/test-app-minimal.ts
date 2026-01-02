@@ -558,19 +558,11 @@ app.get("/api/users/:id", async (c) => {
     const [targetUser] = await database
       .select()
       .from(users)
-      .where(eq(users.id, targetUserId as string))
+      .where(eq(users.id, targetUserId))
       .limit(1);
 
     if (!targetUser) {
       return c.json({ success: false, error: "User not found" }, 404);
-    }
-
-    // Prevent user from deleting themselves
-    if (userId === targetUserId) {
-      return c.json(
-        { success: false, error: "You cannot delete your own account" },
-        400,
-      );
     }
 
     // Check permissions
