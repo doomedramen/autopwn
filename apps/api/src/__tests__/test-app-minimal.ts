@@ -48,7 +48,6 @@ app.use("*", async (c, next) => {
     .limit(1);
 
   if (!user) {
-    console.warn(`[Auth] User not found for email: ${testEmail}`);
     c.set("userId", null);
     c.set("userRole", "user");
     return next();
@@ -457,6 +456,14 @@ app.delete("/api/users/:id", async (c) => {
 
     if (!targetUser) {
       return c.json({ success: false, error: "User not found" }, 404);
+    }
+
+    // Prevent user from deleting themselves
+    if (userId === targetUserId) {
+      return c.json(
+        { success: false, error: "You cannot delete your own account" },
+        400,
+      );
     }
 
     // Check permissions
