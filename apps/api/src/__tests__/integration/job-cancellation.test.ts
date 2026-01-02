@@ -30,10 +30,10 @@ describe('Job Cancellation Integration Tests', () => {
     const [network] = await db.insert(networks).values({
       ssid: 'TestNetwork_Cancellation',
       bssid: 'AA:BB:CC:DD:EE:FF',
+      encryption: 'WPA2',
       frequency: 2412,
       channel: 6,
-      rssi: -50,
-      security: 'WPA2',
+      signalStrength: -50,
       status: 'ready',
       userId: testUserId,
       createdAt: new Date(),
@@ -44,7 +44,9 @@ describe('Job Cancellation Integration Tests', () => {
     // Create test dictionary
     const [dictionary] = await db.insert(dictionaries).values({
       name: 'TestDictionary_Cancellation',
-      path: '/tmp/test-dict.txt',
+      filename: 'test-dict.txt',
+      type: 'wordlist',
+      filePath: '/tmp/test-dict.txt',
       size: 100,
       wordCount: 10,
       checksum: 'abc123',

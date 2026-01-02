@@ -60,7 +60,8 @@ export async function convertToHC22000(
     }
 
     // Run hcxpcapngtool conversion
-    const command = `hcxpcapngtool -i "${inputPcap}" -o "${outputHc22000}" -O hc22000`
+    // Fixed: hcxpcapngtool 7.0+ uses positional input, no -i or -O flags
+    const command = `hcxpcapngtool -o "${outputHc22000}" "${inputPcap}"`
     const result = await execAsync(command)
 
     if (result.stderr) {
@@ -96,7 +97,8 @@ export async function extractPMKID(
 
   try {
     // Run hcxpcapngtool PMKID extraction
-    const command = `hcxpcapngtool -i "${inputPcap}" -o "${outputPmkid}" -O pmkid`
+    // Fixed: hcxpcapngtool 7.0+ uses positional input, no -i or -O flags
+    const command = `hcxpcapngtool -o "${outputPmkid}" "${inputPcap}"`
     const result = await execAsync(command)
 
     if (result.stderr) {

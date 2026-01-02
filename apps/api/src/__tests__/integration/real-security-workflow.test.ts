@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import * as fs from 'fs/promises'
+import path from 'path'
 import { runHashcatAttack } from '../../workers/hashcat'
 import { processPCAP } from '../../workers/pcap-processing'
 import { testRealTools } from '../../test/setup/integration-real-setup'

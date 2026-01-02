@@ -68,7 +68,8 @@ describe('Real HCX Tools Integration Tests', () => {
 
   describe('Real PCAP to HC22000 Conversion', () => {
     it('should convert WPA handshake using real hcxpcapngtool', async () => {
-      const command = `hcxpcapngtool -i "${testPCAP}" -o "${outputHC22000}" -O hc22000`
+      // Fixed: hcxpcapngtool 7.0+ uses positional input, no -i or -O flags
+      const command = `hcxpcapngtool -o "${outputHC22000}" "${testPCAP}"`
 
       // Execute real hcxpcapngtool command
       const { stdout, stderr } = await execAsync(command)
@@ -84,7 +85,8 @@ describe('Real HCX Tools Integration Tests', () => {
     }, 30000)
 
     it('should extract PMKID using real hcxpcapngtool', async () => {
-      const command = `hcxpcapngtool -i "${testPCAP}" -o "${outputPMKID}" -O pmkid`
+      // Fixed: hcxpcapngtool 7.0+ uses positional input, no -i or -O flags
+      const command = `hcxpcapngtool -o "${outputPMKID}" "${testPCAP}"`
 
       const { stdout, stderr } = await execAsync(command)
 
@@ -99,7 +101,8 @@ describe('Real HCX Tools Integration Tests', () => {
       const invalidPCAP = path.join(testDir, 'invalid.pcap')
       await fs.writeFile(invalidPCAP, 'invalid pcap data')
 
-      const command = `hcxpcapngtool -i "${invalidPCAP}" -o "${outputHC22000}" -O hc22000`
+      // Fixed: hcxpcapngtool 7.0+ uses positional input
+      const command = `hcxpcapngtool -o "${outputHC22000}" "${invalidPCAP}"`
 
       await expect(execAsync(command)).rejects.toThrow()
     }, 15000)
@@ -108,7 +111,8 @@ describe('Real HCX Tools Integration Tests', () => {
       const corruptedPCAP = path.join(testDir, 'corrupted.pcap')
       await fs.writeFile(corruptedPCAP, Buffer.from([0x00, 0x01])) // Invalid PCAP header
 
-      const command = `hcxpcapngtool -i "${corruptedPCAP}" -o "${outputHC22000}" -O hc22000`
+      // Fixed: hcxpcapngtool 7.0+ uses positional input
+      const command = `hcxpcapngtool -o "${outputHC22000}" "${corruptedPCAP}"`
 
       const result = await convertToHC22000(corruptedPCAP, outputHC22000)
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
-import { db } from '../../../db'
-import { dictionaries, users } from '../../../db/schema'
+import { db } from '../../db'
+import { dictionaries, users } from '../../db/schema'
 import { eq } from 'drizzle-orm'
-import { addDictionaryGenerationJob } from '../../../lib/queue'
+import { addDictionaryGenerationJob } from '../../lib/queue'
 
 describe('Dictionary Generation Integration Tests', () => {
   let app: Hono
@@ -34,7 +34,7 @@ describe('Dictionary Generation Integration Tests', () => {
     })
 
     // Import and use queue routes
-    const { queueRoutes } = await import('../../../routes/queue-management')
+    const { queueRoutes } = await import('../../routes/queue-management')
     app.route('/api/queue', queueRoutes)
   })
 

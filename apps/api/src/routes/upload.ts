@@ -17,7 +17,6 @@ import { eq } from "drizzle-orm";
 import * as fs from "fs/promises";
 import { configService } from "../services/config.service";
 import { auditService } from "../services/audit.service";
-import { createConfiguredRateLimit } from "../middleware/rate-limit";
 
 const uploadSchema = z.object({
   file: z.instanceof(File),

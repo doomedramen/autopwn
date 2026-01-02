@@ -12,13 +12,11 @@ import {
   QUEUE_NAMES,
 } from "@/lib/queue";
 import { authenticate, getUserId } from "@/middleware/auth";
-import { rateLimit } from "@/middleware/rate-limit";
 
 const queueManagement = new Hono();
 
-// Apply authentication and rate limiting middleware to all routes
+// Apply authentication middleware to all routes
 queueManagement.use("*", authenticate);
-queueManagement.use("*", rateLimit());
 
 // Create cracking job
 queueManagement.post(

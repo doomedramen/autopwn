@@ -3,6 +3,7 @@
 Complete implementation plan for autopwn from monorepo to production-ready application.
 
 ## Table of Contents
+
 - [Project Overview](#project-overview)
 - [Success Criteria](#success-criteria)
 - [Phases Overview](#phases-overview)
@@ -29,6 +30,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### MVP Success Criteria (v0.1.0)
 
 **Functional Requirements:**
+
 - ✅ Users can register/login with email + password
 - ✅ Superuser can create admin and user accounts
 - ✅ Users can upload PCAP files (<500MB)
@@ -43,6 +45,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Application deployable via `docker compose up -d`
 
 **Technical Requirements:**
+
 - ✅ All configuration via runtime environment variables
 - ✅ TypeScript with strict mode
 - ✅ Next.js best practices (Server/Client Components)
@@ -53,20 +56,22 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Audit logging for security actions
 
 **Performance Requirements:**
+
 - ✅ Page load time <2 seconds
 - ✅ File upload works for 500MB files
 - ✅ Job queue handles multiple concurrent jobs
 - ✅ Database queries optimized with indexes
 
 **Security Requirements:**
+
 - ✅ Passwords hashed with bcrypt
 - ✅ Session-based authentication
 - ✅ RBAC (User, Admin, Superuser)
 - ✅ SQL injection prevention (parameterized queries)
 - ✅ File upload validation
-- ✅ Rate limiting on API endpoints
 
 **Deployment Requirements:**
+
 - ✅ Docker images build successfully
 - ✅ docker-compose.yml works without modification
 - ✅ Environment variables configurable at runtime
@@ -75,15 +80,15 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 
 ## Phases Overview
 
-| Phase | Duration | Dependencies | Status |
-|-------|----------|--------------|--------|
-| Phase 1: Foundation | 1-2 days | None | ✅ Complete |
-| Phase 2: Backend Core | 5-7 days | Phase 1 | 🔲 Not Started |
-| Phase 3: Frontend Core | 5-7 days | Phase 1 | 🔲 Not Started |
-| Phase 4: Integration | 3-5 days | Phase 2, 3 | 🔲 Not Started |
-| Phase 5: Docker & Deployment | 2-3 days | Phase 4 | 🔲 Not Started |
-| Phase 6: Testing & Documentation | 2-3 days | Phase 5 | 🔲 Not Started |
-| Phase 7: Polish & Launch | 1-2 days | Phase 6 | 🔲 Not Started |
+| Phase                            | Duration | Dependencies | Status         |
+| -------------------------------- | -------- | ------------ | -------------- |
+| Phase 1: Foundation              | 1-2 days | None         | ✅ Complete    |
+| Phase 2: Backend Core            | 5-7 days | Phase 1      | 🔲 Not Started |
+| Phase 3: Frontend Core           | 5-7 days | Phase 1      | 🔲 Not Started |
+| Phase 4: Integration             | 3-5 days | Phase 2, 3   | 🔲 Not Started |
+| Phase 5: Docker & Deployment     | 2-3 days | Phase 4      | 🔲 Not Started |
+| Phase 6: Testing & Documentation | 2-3 days | Phase 5      | 🔲 Not Started |
+| Phase 7: Polish & Launch         | 1-2 days | Phase 6      | 🔲 Not Started |
 
 **Total Estimated Time:** 19-29 days
 
@@ -116,12 +121,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [x] Create .env.example files
 
 ### Success Criteria
+
 - ✅ Monorepo builds without errors
 - ✅ Shared types importable in both apps
 - ✅ Documentation is clear and comprehensive
 - ✅ Dev environment starts with docker-compose
 
 ### Deliverables
+
 - ✅ Working monorepo structure
 - ✅ Complete documentation
 - ✅ Development environment setup
@@ -141,6 +148,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 2.1: Database Setup
 
 **Tasks:**
+
 - [ ] Create Drizzle schema for all tables
   - [ ] users table
   - [ ] sessions table
@@ -159,12 +167,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add indexes for performance
 
 **Success Criteria:**
+
 - ✅ All tables created correctly
 - ✅ Migrations run successfully
 - ✅ Seed creates superuser account
 - ✅ Database connection works from backend
 
 **Deliverables:**
+
 - Schema files in `apps/backend/src/db/schema/`
 - Migration files in `apps/backend/src/db/migrations/`
 - Seed script at `apps/backend/src/db/seed.ts`
@@ -172,6 +182,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 2.2: Configuration & Validation
 
 **Tasks:**
+
 - [ ] Create config module reading from environment variables
 - [ ] Add validation for required environment variables
 - [ ] Add sensible defaults for optional config
@@ -179,17 +190,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test config with different environment variables
 
 **Success Criteria:**
+
 - ✅ Config reads from process.env at runtime
 - ✅ Missing required vars fail with clear error
 - ✅ Defaults work correctly
 - ✅ Config is typed with TypeScript
 
 **Deliverables:**
+
 - `apps/backend/src/config/index.ts`
 
 ### 2.3: Authentication (Better Auth)
 
 **Tasks:**
+
 - [ ] Set up Better Auth with Fastify
 - [ ] Implement email/password authentication
 - [ ] Create session management
@@ -203,6 +217,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Create initial superuser on first start
 
 **Success Criteria:**
+
 - ✅ Users can login with email/password
 - ✅ Sessions persist across requests
 - ✅ RBAC prevents unauthorized access
@@ -210,6 +225,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Superuser auto-created if none exists
 
 **Deliverables:**
+
 - `apps/backend/src/routes/auth.ts`
 - `apps/backend/src/middleware/auth.ts`
 - `apps/backend/src/middleware/rbac.ts`
@@ -217,6 +233,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 2.4: User Management
 
 **Tasks:**
+
 - [ ] Create user service
 - [ ] Create user routes:
   - [ ] GET /api/v1/users (admin, superuser)
@@ -228,18 +245,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Prevent deletion of last superuser
 
 **Success Criteria:**
+
 - ✅ Admins can create users
 - ✅ Superusers can create admins
 - ✅ Users can be updated and soft-deleted
 - ✅ Last superuser cannot be deleted
 
 **Deliverables:**
+
 - `apps/backend/src/services/user.service.ts`
 - `apps/backend/src/routes/users.ts`
 
 ### 2.5: Capture Management
 
 **Tasks:**
+
 - [ ] Create capture service
 - [ ] Create capture routes:
   - [ ] GET /api/v1/captures
@@ -253,6 +273,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Create capture database record
 
 **Success Criteria:**
+
 - ✅ Users can upload PCAP files
 - ✅ Files saved to correct directory
 - ✅ File size validated
@@ -260,12 +281,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Files isolated by user
 
 **Deliverables:**
+
 - `apps/backend/src/services/capture.service.ts`
 - `apps/backend/src/routes/captures.ts`
 
 ### 2.6: Job Queue Setup (BullMQ)
 
 **Tasks:**
+
 - [ ] Set up Redis connection
 - [ ] Create BullMQ queues:
   - [ ] conversion-queue
@@ -277,6 +300,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test queue with mock jobs
 
 **Success Criteria:**
+
 - ✅ Redis connection works
 - ✅ Queues created successfully
 - ✅ Jobs can be added and processed
@@ -284,12 +308,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Failed jobs retry correctly
 
 **Deliverables:**
+
 - `apps/backend/src/lib/queue.ts`
 - `apps/backend/src/worker.ts`
 
 ### 2.7: PCAP Conversion Worker
 
 **Tasks:**
+
 - [ ] Create conversion worker
 - [ ] Install hcxpcapngtool in Docker image
 - [ ] Execute hcxpcapngtool on PCAP files
@@ -300,18 +326,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Handle conversion errors
 
 **Success Criteria:**
+
 - ✅ PCAP files converted to hc22000
 - ✅ Networks extracted and saved
 - ✅ Errors logged and reported
 - ✅ Conversion jobs complete successfully
 
 **Deliverables:**
+
 - `apps/backend/src/workers/conversion.worker.ts`
 - `apps/backend/src/lib/hcxtools.ts`
 
 ### 2.8: Dictionary Management
 
 **Tasks:**
+
 - [ ] Create dictionary service
 - [ ] Create dictionary routes:
   - [ ] GET /api/v1/dictionaries
@@ -324,18 +353,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Check file size limits
 
 **Success Criteria:**
+
 - ✅ Users can upload dictionaries
 - ✅ File validation works
 - ✅ Line count calculated
 - ✅ Files stored correctly
 
 **Deliverables:**
+
 - `apps/backend/src/services/dictionary.service.ts`
 - `apps/backend/src/routes/dictionaries.ts`
 
 ### 2.9: Dictionary Generation Worker
 
 **Tasks:**
+
 - [ ] Create generation worker
 - [ ] Install crunch in Docker image
 - [ ] Implement keyword combinations
@@ -347,18 +379,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Update dictionary status
 
 **Success Criteria:**
+
 - ✅ Dictionaries generated with keywords
 - ✅ All transformation options work
 - ✅ Generated files are valid
 - ✅ Status updated correctly
 
 **Deliverables:**
+
 - `apps/backend/src/workers/generation.worker.ts`
 - `apps/backend/src/lib/crunch.ts`
 
 ### 2.10: Job Management
 
 **Tasks:**
+
 - [ ] Create job service
 - [ ] Create job routes:
   - [ ] GET /api/v1/jobs
@@ -372,18 +407,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Enqueue job to hashcat-queue
 
 **Success Criteria:**
+
 - ✅ Jobs created with networks and dictionaries
 - ✅ Validation prevents invalid jobs
 - ✅ Jobs added to queue
 - ✅ Job status tracked
 
 **Deliverables:**
+
 - `apps/backend/src/services/job.service.ts`
 - `apps/backend/src/routes/jobs.ts`
 
 ### 2.11: Hashcat Worker
 
 **Tasks:**
+
 - [ ] Create hashcat worker
 - [ ] Install hashcat in Docker image
 - [ ] Respect concurrency limits
@@ -396,6 +434,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Handle job timeout
 
 **Success Criteria:**
+
 - ✅ Hashcat executes correctly
 - ✅ Progress updates in real-time
 - ✅ Cracked passwords saved
@@ -403,12 +442,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Cancellation works immediately
 
 **Deliverables:**
+
 - `apps/backend/src/workers/hashcat.worker.ts`
 - `apps/backend/src/lib/hashcat.ts`
 
 ### 2.12: Network & Results Routes
 
 **Tasks:**
+
 - [ ] Create network routes:
   - [ ] GET /api/v1/networks
   - [ ] GET /api/v1/networks/:id
@@ -419,18 +460,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
   - [ ] GET /api/v1/results/by-job/:jobId
 
 **Success Criteria:**
+
 - ✅ Users can view their networks
 - ✅ Users can view their results
 - ✅ Results show cracked passwords
 - ✅ Pagination works
 
 **Deliverables:**
+
 - `apps/backend/src/routes/networks.ts`
 - `apps/backend/src/routes/results.ts`
 
 ### 2.13: Configuration Management
 
 **Tasks:**
+
 - [ ] Create config routes (superuser only):
   - [ ] GET /api/v1/config
   - [ ] PATCH /api/v1/config
@@ -439,17 +483,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Log config changes to audit log
 
 **Success Criteria:**
+
 - ✅ Superuser can view config
 - ✅ Superuser can update config
 - ✅ Changes logged
 - ✅ Invalid values rejected
 
 **Deliverables:**
+
 - `apps/backend/src/routes/config.ts`
 
 ### 2.14: Audit Logging
 
 **Tasks:**
+
 - [ ] Create audit service
 - [ ] Log authentication events
 - [ ] Log user management events
@@ -458,16 +505,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Include IP address and user agent
 
 **Success Criteria:**
+
 - ✅ All security events logged
 - ✅ Logs include context
 - ✅ Logs queryable
 
 **Deliverables:**
+
 - `apps/backend/src/services/audit.service.ts`
 
 ### 2.15: Error Handling & Validation
 
 **Tasks:**
+
 - [ ] Create custom error classes
 - [ ] Add global error handler
 - [ ] Validate all request bodies with Zod
@@ -475,49 +525,38 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Log errors with stack traces
 
 **Success Criteria:**
+
 - ✅ Errors handled gracefully
 - ✅ Error responses consistent
 - ✅ Validation errors clear
 - ✅ Stack traces logged
 
 **Deliverables:**
+
 - `apps/backend/src/lib/errors.ts`
 - `apps/backend/src/middleware/error.ts`
-
-### 2.16: Rate Limiting
-
-**Tasks:**
-- [ ] Add rate limiting middleware
-- [ ] Configure limits per endpoint
-- [ ] Add configurable limits
-- [ ] Return 429 on limit exceeded
-
-**Success Criteria:**
-- ✅ Rate limiting works
-- ✅ Limits configurable
-- ✅ Clear error message
-
-**Deliverables:**
-- `apps/backend/src/middleware/rate-limit.ts`
 
 ### 2.17: Health Check Endpoint
 
 **Tasks:**
+
 - [ ] Create health check endpoint
 - [ ] Check database connection
-- [ ] Check Redis connection
 - [ ] Check file system access
 - [ ] Return health status
 
 **Success Criteria:**
+
 - ✅ Endpoint returns 200 when healthy
 - ✅ Returns 503 when unhealthy
 - ✅ Shows service status
 
 **Deliverables:**
+
 - `apps/backend/src/routes/health.ts`
 
 ### Phase 2 Deliverables
+
 - Fully functional backend API
 - Working authentication and RBAC
 - All database tables and migrations
@@ -527,6 +566,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - Complete API documentation
 
 ### Phase 2 Success Criteria
+
 - ✅ All API endpoints work
 - ✅ Authentication secure
 - ✅ Jobs process correctly
@@ -549,6 +589,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.1: App Structure & Layout
 
 **Tasks:**
+
 - [ ] Create app directory structure
 - [ ] Set up route groups:
   - [ ] (auth) - Login/register pages
@@ -567,12 +608,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Create error.tsx boundaries
 
 **Success Criteria:**
+
 - ✅ Layouts render correctly
 - ✅ Navigation works
 - ✅ Responsive on mobile
 - ✅ Loading states show
 
 **Deliverables:**
+
 - `apps/frontend/src/app/layout.tsx`
 - `apps/frontend/src/app/(dashboard)/layout.tsx`
 - Navigation components
@@ -580,6 +623,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.2: UI Component Library Setup
 
 **Tasks:**
+
 - [ ] Install shadcn/ui components:
   - [ ] Button
   - [ ] Input
@@ -600,16 +644,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add component documentation
 
 **Success Criteria:**
+
 - ✅ All components installed
 - ✅ Styling consistent
 - ✅ Components accessible
 
 **Deliverables:**
+
 - `apps/frontend/src/components/ui/`
 
 ### 3.3: API Client
 
 **Tasks:**
+
 - [ ] Create API client wrapper
 - [ ] Add authentication header handling
 - [ ] Add error handling
@@ -618,17 +665,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add loading states
 
 **Success Criteria:**
+
 - ✅ API calls work
 - ✅ Authentication handled
 - ✅ Errors caught
 - ✅ TypeScript types
 
 **Deliverables:**
+
 - `apps/frontend/src/lib/api.ts`
 
 ### 3.4: Authentication Pages
 
 **Tasks:**
+
 - [ ] Create login page (page.tsx + content.tsx)
 - [ ] Implement login form with validation
 - [ ] Set up Better Auth client
@@ -639,6 +689,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add logout functionality
 
 **Success Criteria:**
+
 - ✅ Users can login
 - ✅ Sessions persist
 - ✅ Errors shown clearly
@@ -646,6 +697,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Protected routes redirect
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(auth)/login/page.tsx`
 - `apps/frontend/src/app/(auth)/login/content.tsx`
 - `apps/frontend/src/lib/auth.ts`
@@ -653,6 +705,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.5: Dashboard Page
 
 **Tasks:**
+
 - [ ] Create dashboard page (page.tsx + content.tsx)
 - [ ] Fetch statistics (capture count, job count, results count)
 - [ ] Display recent activity
@@ -661,18 +714,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Create statistics cards
 
 **Success Criteria:**
+
 - ✅ Dashboard loads quickly
 - ✅ Statistics accurate
 - ✅ Recent activity shown
 - ✅ Quick actions work
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/page.tsx`
 - `apps/frontend/src/app/(dashboard)/content.tsx`
 
 ### 3.6: Captures Page
 
 **Tasks:**
+
 - [ ] Create captures page (page.tsx + content.tsx)
 - [ ] Fetch and display captures list
 - [ ] Add upload dialog
@@ -684,6 +740,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add pagination
 
 **Success Criteria:**
+
 - ✅ Users can upload PCAP files
 - ✅ Upload progress shown
 - ✅ Processing status visible
@@ -691,6 +748,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - ✅ Pagination works
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/captures/page.tsx`
 - `apps/frontend/src/app/(dashboard)/captures/content.tsx`
 - `apps/frontend/src/components/captures/upload-dialog.tsx`
@@ -699,6 +757,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.7: Capture Detail Page
 
 **Tasks:**
+
 - [ ] Create capture detail page
 - [ ] Display capture metadata
 - [ ] List extracted networks
@@ -707,17 +766,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add delete capture functionality
 
 **Success Criteria:**
+
 - ✅ Capture details shown
 - ✅ Networks listed
 - ✅ Navigation works
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/captures/[id]/page.tsx`
 - `apps/frontend/src/app/(dashboard)/captures/[id]/content.tsx`
 
 ### 3.8: Networks Page
 
 **Tasks:**
+
 - [ ] Create networks page (page.tsx + content.tsx)
 - [ ] Fetch and display all networks
 - [ ] Add filtering (cracked/uncracked, SSID search)
@@ -727,18 +789,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Link to source capture
 
 **Success Criteria:**
+
 - ✅ Networks listed
 - ✅ Filtering works
 - ✅ Passwords shown securely
 - ✅ Navigation to captures works
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/networks/page.tsx`
 - `apps/frontend/src/app/(dashboard)/networks/content.tsx`
 
 ### 3.9: Dictionaries Page
 
 **Tasks:**
+
 - [ ] Create dictionaries page (page.tsx + content.tsx)
 - [ ] Display uploaded and generated dictionaries
 - [ ] Add upload dialog
@@ -749,12 +814,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add pagination
 
 **Success Criteria:**
+
 - ✅ Users can upload dictionaries
 - ✅ Users can generate dictionaries
 - ✅ Progress shown
 - ✅ Statistics displayed
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/dictionaries/page.tsx`
 - `apps/frontend/src/app/(dashboard)/dictionaries/content.tsx`
 - `apps/frontend/src/components/dictionaries/upload-dialog.tsx`
@@ -763,6 +830,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.10: Jobs Page
 
 **Tasks:**
+
 - [ ] Create jobs page (page.tsx + content.tsx)
 - [ ] Fetch jobs with networks and dictionaries
 - [ ] Display job list with status
@@ -774,12 +842,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add pagination
 
 **Success Criteria:**
+
 - ✅ Jobs listed with status
 - ✅ Users can create jobs
 - ✅ Multi-select works
 - ✅ Queue position shown
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/jobs/page.tsx`
 - `apps/frontend/src/app/(dashboard)/jobs/content.tsx`
 - `apps/frontend/src/components/jobs/create-job-dialog.tsx`
@@ -787,6 +857,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.11: Job Detail Page
 
 **Tasks:**
+
 - [ ] Create job detail page
 - [ ] Display job metadata
 - [ ] Show real-time progress
@@ -800,12 +871,14 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Show job logs
 
 **Success Criteria:**
+
 - ✅ Progress updates in real-time
 - ✅ Results shown as found
 - ✅ Cancellation works
 - ✅ Logs visible
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/jobs/[id]/page.tsx`
 - `apps/frontend/src/app/(dashboard)/jobs/[id]/content.tsx`
 - `apps/frontend/src/components/jobs/job-progress.tsx`
@@ -813,6 +886,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 3.12: Results Page
 
 **Tasks:**
+
 - [ ] Create results page (page.tsx + content.tsx)
 - [ ] Display all cracked passwords
 - [ ] Show network information
@@ -822,18 +896,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Show crack date/time
 
 **Success Criteria:**
+
 - ✅ Results listed
 - ✅ Filtering works
 - ✅ Export works
 - ✅ Pagination works
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/results/page.tsx`
 - `apps/frontend/src/app/(dashboard)/results/content.tsx`
 
 ### 3.13: Admin - User Management
 
 **Tasks:**
+
 - [ ] Create users page (admin only)
 - [ ] List all users
 - [ ] Add create user dialog
@@ -844,17 +921,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add pagination
 
 **Success Criteria:**
+
 - ✅ Admins can manage users
 - ✅ Role restrictions enforced
 - ✅ Last superuser protected
 
 **Deliverables:**
+
 - `apps/frontend/src/app/admin/users/page.tsx`
 - `apps/frontend/src/app/admin/users/content.tsx`
 
 ### 3.14: Admin - Configuration
 
 **Tasks:**
+
 - [ ] Create config page (superuser only)
 - [ ] Display current configuration
 - [ ] Allow editing settings
@@ -863,17 +943,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Log changes
 
 **Success Criteria:**
+
 - ✅ Superuser can view config
 - ✅ Superuser can update config
 - ✅ Validation works
 
 **Deliverables:**
+
 - `apps/frontend/src/app/admin/config/page.tsx`
 - `apps/frontend/src/app/admin/config/content.tsx`
 
 ### 3.15: Profile & Settings
 
 **Tasks:**
+
 - [ ] Create profile page
 - [ ] Display user information
 - [ ] Add change password form
@@ -881,17 +964,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add theme toggle (if implementing)
 
 **Success Criteria:**
+
 - ✅ Users can view profile
 - ✅ Users can change password
 - ✅ Session info shown
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/settings/page.tsx`
 - `apps/frontend/src/app/(dashboard)/settings/content.tsx`
 
 ### 3.16: Loading States & Skeletons
 
 **Tasks:**
+
 - [ ] Create skeleton components for:
   - [ ] Capture list
   - [ ] Network list
@@ -902,16 +988,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add Suspense boundaries
 
 **Success Criteria:**
+
 - ✅ Loading states smooth
 - ✅ No layout shift
 - ✅ User feedback clear
 
 **Deliverables:**
+
 - `apps/frontend/src/components/skeletons/`
 
 ### 3.17: Error Handling
 
 **Tasks:**
+
 - [ ] Create error.tsx for routes
 - [ ] Add error boundary components
 - [ ] Display user-friendly errors
@@ -919,16 +1008,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Log errors to console
 
 **Success Criteria:**
+
 - ✅ Errors caught gracefully
 - ✅ User can retry
 - ✅ Clear error messages
 
 **Deliverables:**
+
 - Error boundaries for all routes
 
 ### 3.18: Toast Notifications
 
 **Tasks:**
+
 - [ ] Set up toast provider
 - [ ] Add success notifications
 - [ ] Add error notifications
@@ -936,14 +1028,17 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Show on important actions
 
 **Success Criteria:**
+
 - ✅ Toasts appear correctly
 - ✅ Auto-dismiss works
 - ✅ Accessible
 
 **Deliverables:**
+
 - Toast implementation
 
 ### Phase 3 Deliverables
+
 - Complete Next.js frontend
 - All user-facing pages
 - Authentication flow
@@ -952,6 +1047,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - Admin interface
 
 ### Phase 3 Success Criteria
+
 - ✅ All pages render correctly
 - ✅ Page.tsx + content.tsx pattern used
 - ✅ Server Components for data fetching
@@ -976,6 +1072,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 4.1: Frontend-Backend Integration
 
 **Tasks:**
+
 - [ ] Connect frontend API client to backend
 - [ ] Test all API endpoints from frontend
 - [ ] Fix CORS issues
@@ -985,17 +1082,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Fix any integration bugs
 
 **Success Criteria:**
+
 - ✅ All features work end-to-end
 - ✅ No CORS errors
 - ✅ Authentication seamless
 - ✅ File uploads reliable
 
 **Deliverables:**
+
 - Working full-stack application
 
 ### 4.2: End-to-End Workflows
 
 **Tasks:**
+
 - [ ] Test complete PCAP upload → crack workflow
 - [ ] Test dictionary generation workflow
 - [ ] Test user management workflow
@@ -1005,17 +1105,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Verify results display correctly
 
 **Success Criteria:**
+
 - ✅ PCAP → results works completely
 - ✅ Multiple jobs process correctly
 - ✅ Cancellation immediate
 - ✅ Results accurate
 
 **Deliverables:**
+
 - Verified workflows
 
 ### 4.3: Performance Optimization
 
 **Tasks:**
+
 - [ ] Optimize database queries
 - [ ] Add database indexes
 - [ ] Optimize frontend bundle size
@@ -1025,17 +1128,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Profile and optimize hot paths
 
 **Success Criteria:**
+
 - ✅ Pages load <2 seconds
 - ✅ Large files upload successfully
 - ✅ Queries fast (<100ms)
 - ✅ Bundle size optimized
 
 **Deliverables:**
+
 - Optimized application
 
 ### 4.4: Bug Fixes
 
 **Tasks:**
+
 - [ ] Create bug tracking list
 - [ ] Prioritize bugs
 - [ ] Fix critical bugs
@@ -1043,20 +1149,24 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test fixes
 
 **Success Criteria:**
+
 - ✅ No critical bugs
 - ✅ High-priority bugs fixed
 - ✅ Application stable
 
 **Deliverables:**
+
 - Bug-free application
 
 ### Phase 4 Deliverables
+
 - Fully integrated application
 - Tested workflows
 - Performance optimized
 - Bug fixes
 
 ### Phase 4 Success Criteria
+
 - ✅ All features work end-to-end
 - ✅ Performance meets requirements
 - ✅ No critical bugs
@@ -1077,6 +1187,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 5.1: Dockerfiles
 
 **Tasks:**
+
 - [ ] Create frontend Dockerfile
   - [ ] Multi-stage build
   - [ ] Install dependencies
@@ -1092,18 +1203,21 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Optimize image size
 
 **Success Criteria:**
+
 - ✅ Images build successfully
 - ✅ Images run correctly
 - ✅ Size optimized
 - ✅ All tools available
 
 **Deliverables:**
+
 - `docker/frontend.Dockerfile`
 - `docker/backend.Dockerfile`
 
 ### 5.2: Docker Compose Production
 
 **Tasks:**
+
 - [ ] Create docker-compose.yml for production
 - [ ] Configure all services:
   - [ ] frontend
@@ -1119,17 +1233,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add resource limits
 
 **Success Criteria:**
+
 - ✅ All services start correctly
 - ✅ Services communicate
 - ✅ Data persists
 - ✅ Health checks work
 
 **Deliverables:**
+
 - `docker-compose.yml`
 
 ### 5.3: Environment Configuration
 
 **Tasks:**
+
 - [ ] Verify all config from environment variables
 - [ ] Test with different configurations
 - [ ] Update .env.example with all variables
@@ -1137,17 +1254,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test missing required variables fail gracefully
 
 **Success Criteria:**
+
 - ✅ Configuration fully runtime
 - ✅ No rebuild needed for config changes
 - ✅ Clear error on missing vars
 
 **Deliverables:**
+
 - Updated `.env.example`
 - Configuration documentation
 
 ### 5.4: Deployment Testing
 
 **Tasks:**
+
 - [ ] Test fresh deployment
 - [ ] Test upgrade (pull new images)
 - [ ] Test backup and restore
@@ -1156,17 +1276,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Document any platform-specific issues
 
 **Success Criteria:**
+
 - ✅ Fresh deploy works
 - ✅ Upgrades work
 - ✅ Backups work
 - ✅ Cross-platform compatible
 
 **Deliverables:**
+
 - Deployment validation
 
 ### 5.5: CI/CD Pipeline
 
 **Tasks:**
+
 - [ ] Create GitHub Actions workflow
 - [ ] Add build job
 - [ ] Add test job
@@ -1176,21 +1299,25 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test CI/CD pipeline
 
 **Success Criteria:**
+
 - ✅ Pipeline runs on push
 - ✅ Tests run
 - ✅ Images build
 - ✅ Images pushed to registry
 
 **Deliverables:**
+
 - `.github/workflows/ci.yml`
 
 ### Phase 5 Deliverables
+
 - Production Docker images
 - docker-compose.yml
 - CI/CD pipeline
 - Deployment documentation
 
 ### Phase 5 Success Criteria
+
 - ✅ One-command deployment works
 - ✅ Configuration runtime-only
 - ✅ Images published to GHCR
@@ -1211,6 +1338,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 6.1: Backend Testing
 
 **Tasks:**
+
 - [ ] Write unit tests for services
 - [ ] Write integration tests for routes
 - [ ] Write tests for workers
@@ -1219,16 +1347,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Achieve >70% code coverage
 
 **Success Criteria:**
+
 - ✅ All tests pass
 - ✅ Coverage >70%
 - ✅ Edge cases covered
 
 **Deliverables:**
+
 - Test files in `apps/backend/test/`
 
 ### 6.2: Frontend Testing
 
 **Tasks:**
+
 - [ ] Write component tests
 - [ ] Write page tests
 - [ ] Test user interactions
@@ -1236,16 +1367,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test loading states
 
 **Success Criteria:**
+
 - ✅ All tests pass
 - ✅ Components tested
 - ✅ User flows tested
 
 **Deliverables:**
+
 - Test files in `apps/frontend/src/`
 
 ### 6.3: User Documentation
 
 **Tasks:**
+
 - [ ] Update README with latest info
 - [ ] Create user guide
 - [ ] Document installation steps
@@ -1254,16 +1388,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Create video walkthrough (optional)
 
 **Success Criteria:**
+
 - ✅ Documentation clear
 - ✅ Installation documented
 - ✅ Screenshots helpful
 
 **Deliverables:**
+
 - Updated documentation
 
 ### 6.4: API Documentation
 
 **Tasks:**
+
 - [ ] Verify API.md is accurate
 - [ ] Add OpenAPI/Swagger spec (optional)
 - [ ] Document all endpoints
@@ -1271,19 +1408,23 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Document error codes
 
 **Success Criteria:**
+
 - ✅ API fully documented
 - ✅ Examples clear
 - ✅ Errors documented
 
 **Deliverables:**
+
 - Complete API documentation
 
 ### Phase 6 Deliverables
+
 - Comprehensive test suite
 - User documentation
 - API documentation
 
 ### Phase 6 Success Criteria
+
 - ✅ Tests pass
 - ✅ Coverage acceptable
 - ✅ Documentation complete
@@ -1304,6 +1445,7 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 ### 7.1: UI/UX Polish
 
 **Tasks:**
+
 - [ ] Review all pages for consistency
 - [ ] Fix any visual bugs
 - [ ] Improve error messages
@@ -1312,35 +1454,40 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Add onboarding hints
 
 **Success Criteria:**
+
 - ✅ UI consistent
 - ✅ UX smooth
 - ✅ Helpful for new users
 
 **Deliverables:**
+
 - Polished UI
 
 ### 7.2: Security Review
 
 **Tasks:**
+
 - [ ] Review authentication flow
 - [ ] Check RBAC implementation
 - [ ] Review file upload security
 - [ ] Check for SQL injection vulnerabilities
 - [ ] Review session management
 - [ ] Check CORS configuration
-- [ ] Review rate limiting
 
 **Success Criteria:**
+
 - ✅ No security vulnerabilities
 - ✅ Authentication secure
 - ✅ File uploads safe
 
 **Deliverables:**
+
 - Security review report
 
 ### 7.3: Performance Testing
 
 **Tasks:**
+
 - [ ] Load test API endpoints
 - [ ] Test with large files
 - [ ] Test with many jobs
@@ -1349,16 +1496,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Test on production-like environment
 
 **Success Criteria:**
+
 - ✅ Handles load
 - ✅ No memory leaks
 - ✅ Performance acceptable
 
 **Deliverables:**
+
 - Performance report
 
 ### 7.4: Final Testing
 
 **Tasks:**
+
 - [ ] Fresh deployment test
 - [ ] Complete workflow test
 - [ ] Cross-browser testing
@@ -1367,17 +1517,20 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Final bug sweep
 
 **Success Criteria:**
+
 - ✅ Works in all browsers
 - ✅ Mobile-friendly
 - ✅ Accessible
 - ✅ No critical bugs
 
 **Deliverables:**
+
 - Final test report
 
 ### 7.5: Release Preparation
 
 **Tasks:**
+
 - [ ] Create CHANGELOG.md
 - [ ] Tag v0.1.0
 - [ ] Create GitHub release
@@ -1386,16 +1539,19 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Create demo video/screenshots
 
 **Success Criteria:**
+
 - ✅ Release tagged
 - ✅ Release notes clear
 - ✅ Repository polished
 
 **Deliverables:**
+
 - v0.1.0 release
 
 ### 7.6: Launch
 
 **Tasks:**
+
 - [ ] Publish Docker images
 - [ ] Create announcement
 - [ ] Share on relevant communities
@@ -1403,20 +1559,24 @@ Complete implementation plan for autopwn from monorepo to production-ready appli
 - [ ] Respond to feedback
 
 **Success Criteria:**
+
 - ✅ Images published
 - ✅ Announcement posted
 - ✅ Feedback addressed
 
 **Deliverables:**
+
 - Public v0.1.0 release
 
 ### Phase 7 Deliverables
+
 - Polished application
 - Security reviewed
 - Performance tested
 - v0.1.0 released
 
 ### Phase 7 Success Criteria
+
 - ✅ Ready for production use
 - ✅ No critical issues
 - ✅ Documentation complete
@@ -1455,29 +1615,29 @@ graph TD
 
 ### High-Risk Items
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Hashcat integration complexity | High | Start early, test thoroughly, use mock data |
-| File upload size limits | Medium | Test with real 500MB files, optimize streaming |
-| Job queue reliability | High | Use battle-tested BullMQ, add extensive error handling |
-| Docker image size | Medium | Multi-stage builds, optimize dependencies |
-| Security vulnerabilities | High | Security review, input validation, RBAC testing |
+| Risk                           | Impact | Mitigation                                             |
+| ------------------------------ | ------ | ------------------------------------------------------ |
+| Hashcat integration complexity | High   | Start early, test thoroughly, use mock data            |
+| File upload size limits        | Medium | Test with real 500MB files, optimize streaming         |
+| Job queue reliability          | High   | Use battle-tested BullMQ, add extensive error handling |
+| Docker image size              | Medium | Multi-stage builds, optimize dependencies              |
+| Security vulnerabilities       | High   | Security review, input validation, RBAC testing        |
 
 ### Medium-Risk Items
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Performance issues | Medium | Profile early, add indexes, optimize queries |
-| Browser compatibility | Low | Test on major browsers, use standard APIs |
-| Mobile responsiveness | Low | Use responsive design, test on devices |
-| Documentation quality | Medium | Write as you build, get feedback |
+| Risk                  | Impact | Mitigation                                   |
+| --------------------- | ------ | -------------------------------------------- |
+| Performance issues    | Medium | Profile early, add indexes, optimize queries |
+| Browser compatibility | Low    | Test on major browsers, use standard APIs    |
+| Mobile responsiveness | Low    | Use responsive design, test on devices       |
+| Documentation quality | Medium | Write as you build, get feedback             |
 
 ### Low-Risk Items
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| UI inconsistency | Low | Use component library, design system |
-| Deployment complexity | Low | Docker Compose simplifies, good documentation |
+| Risk                  | Impact | Mitigation                                    |
+| --------------------- | ------ | --------------------------------------------- |
+| UI inconsistency      | Low    | Use component library, design system          |
+| Deployment complexity | Low    | Docker Compose simplifies, good documentation |
 
 ---
 
@@ -1533,6 +1693,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 #### Backend: API Key Authentication
 
 **Tasks:**
+
 - [ ] Create api_keys table in database
   - [ ] id, user_id, key_hash, name, scopes, created_at, last_used_at, expires_at
 - [ ] Create API key service
@@ -1553,6 +1714,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
   - [ ] Process upload same as web upload
 
 **Success Criteria:**
+
 - ✅ Users can generate API keys in web interface
 - ✅ Keys displayed once (then hashed)
 - ✅ API upload endpoint works with API key
@@ -1560,6 +1722,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 - ✅ Revoked keys immediately invalid
 
 **Deliverables:**
+
 - `apps/backend/src/db/schema/api-keys.ts`
 - `apps/backend/src/services/api-key.service.ts`
 - `apps/backend/src/routes/api-keys.ts`
@@ -1569,6 +1732,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 #### Frontend: API Key Management
 
 **Tasks:**
+
 - [ ] Create API keys page (page.tsx + content.tsx)
   - [ ] List user's API keys
   - [ ] Show created date, last used date
@@ -1585,12 +1749,14 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 - [ ] Add to settings/profile navigation
 
 **Success Criteria:**
+
 - ✅ Users can create API keys
 - ✅ Keys displayed once with copy functionality
 - ✅ Users can revoke keys
 - ✅ UI clear and intuitive
 
 **Deliverables:**
+
 - `apps/frontend/src/app/(dashboard)/api-keys/page.tsx`
 - `apps/frontend/src/app/(dashboard)/api-keys/content.tsx`
 - `apps/frontend/src/components/api-keys/generate-dialog.tsx`
@@ -1598,6 +1764,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 #### Pwnagotchi Plugin
 
 **Tasks:**
+
 - [ ] Create pwnagotchi-plugin directory in apps/
 - [ ] Create single-file Python script: `autopwn_uploader.py`
 - [ ] Implement plugin features:
@@ -1617,6 +1784,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 - [ ] Test on actual Pwnagotchi device
 
 **Success Criteria:**
+
 - ✅ Plugin installs as single file
 - ✅ Configuration simple (URL + API key)
 - ✅ Auto-uploads new handshakes
@@ -1626,6 +1794,7 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 - ✅ Minimal dependencies (requests only)
 
 **Deliverables:**
+
 - `apps/pwnagotchi-plugin/autopwn_uploader.py`
 - `apps/pwnagotchi-plugin/README.md`
 - `apps/pwnagotchi-plugin/config.example.yml`
@@ -1633,22 +1802,26 @@ Currently, users must manually extract PCAP files from their Pwnagotchi and uplo
 #### Documentation
 
 **Tasks:**
+
 - [ ] Add API key documentation to API.md
 - [ ] Add Pwnagotchi integration guide
 - [ ] Update README with integration info
 - [ ] Create video tutorial (optional)
 
 **Success Criteria:**
+
 - ✅ API documented
 - ✅ Plugin installation clear
 - ✅ Troubleshooting guide helpful
 
 **Deliverables:**
+
 - Updated documentation
 
 ### Implementation Notes
 
 **API Key Format:**
+
 ```
 autopwn_live_4f7a9d2c8b1e6a3f5d0c2b9e8a7f6d4c
          ^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1656,20 +1829,22 @@ autopwn_live_4f7a9d2c8b1e6a3f5d0c2b9e8a7f6d4c
 ```
 
 **Scopes (Future Expansion):**
+
 - `upload:captures` - Upload PCAP files (v0.8.0)
 - `read:captures` - Read capture data (future)
 - `create:jobs` - Create jobs via API (future)
 - `read:results` - Read results via API (future)
 
 **Security Considerations:**
+
 - API keys hashed before storage (bcrypt)
 - Keys shown only once on creation
 - Keys can be revoked immediately
-- Rate limiting on API upload endpoint
 - File validation same as web upload
 - API keys logged in audit log
 
 **Pwnagotchi Plugin Architecture:**
+
 ```python
 # Simplified structure
 class AutopwnUploader:
@@ -1694,6 +1869,7 @@ class AutopwnUploader:
 ```
 
 ### Post-MVP Feature Deliverables
+
 - API key authentication system
 - API upload endpoint
 - Frontend API key management
@@ -1701,6 +1877,7 @@ class AutopwnUploader:
 - Complete documentation
 
 ### Post-MVP Success Criteria
+
 - ✅ API keys work for authentication
 - ✅ Pwnagotchi plugin auto-uploads handshakes
 - ✅ No manual file transfer needed
@@ -1714,6 +1891,7 @@ class AutopwnUploader:
 This plan provides a comprehensive roadmap from the current monorepo structure to a production-ready v0.1.0 release, with a clear path for post-MVP Pwnagotchi integration in v0.8.0. The plan is broken down into manageable phases with clear dependencies, success criteria, and deliverables.
 
 **Key Success Factors:**
+
 1. Follow the page.tsx + content.tsx pattern consistently
 2. Ensure all backend configuration is runtime-only
 3. Test thoroughly at each phase
@@ -1722,6 +1900,7 @@ This plan provides a comprehensive roadmap from the current monorepo structure t
 6. Deploy with Docker Compose without building
 
 **Estimated Timeline:**
+
 - **v0.1.0 MVP:** 19-29 days of focused development work
 - **v0.8.0 Pwnagotchi Integration:** Additional 3-4 days
 

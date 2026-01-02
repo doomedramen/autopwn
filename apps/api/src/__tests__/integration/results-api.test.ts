@@ -70,6 +70,7 @@ describe('Results API', () => {
     await db.delete(accounts).where(eq(accounts.userId, testUserId))
     await db.delete(users).where(eq(users.id, testUserId))
   })
+})
 
 describe('Results API', () => {
   let adminAuth: Record<string, string>

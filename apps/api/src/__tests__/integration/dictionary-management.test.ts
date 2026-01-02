@@ -21,7 +21,10 @@ describe("Dictionary Management API", () => {
     // Create test dictionaries for merging
     for (let i = 1; i <= 3; i++) {
       const formData = new FormData();
-      const content = `password${i}\ntest${i}\nadmin${i}\nroot${i}\nuser${i}`;
+      // First two dictionaries share "password" and "admin" for merge testing
+      const content = i === 1 || i === 2
+        ? `password\nadmin\ntest${i}\nroot${i}\nuser${i}`
+        : `password${i}\ntest${i}\nadmin${i}\nroot${i}\nuser${i}`;
       const blob = new Blob([content], { type: "text/plain" });
       formData.append("file", blob, `dict${i}.txt`);
       formData.append("name", `Test Dictionary ${i}`);

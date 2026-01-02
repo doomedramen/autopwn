@@ -80,14 +80,12 @@
   - Add performance monitoring
   - Establish baseline metrics
   - Identify slow queries and endpoints
-- **Day 24**: Caching layer implementation (part 1)
-  - Implement Redis caching for dictionary statistics
-  - Cache frequently accessed configuration values
-  - Add cache invalidation logic
+  - **Day 24**: Database optimization
+  - Add database indexes for frequently queried tables
 
 ### Week 2: Performance & Code Quality (Days 25-28)
 
-- **Day 25**: Database optimization
+- **Day 25**: Code quality improvements
   - Add indexes to frequently queried tables
   - Optimize N+1 queries
   - Analyze query plans with EXPLAIN
@@ -195,8 +193,7 @@
 ### Technical Risks:
 
 - **Medium**: Performance optimization may reveal deeper issues
-- **Medium**: Caching layer may introduce cache invalidation bugs
-- **Low**: Database optimization may require schema changes
+- **Medium**: Database optimization may require schema changes
 
 ### Mitigation Strategies:
 
@@ -216,15 +213,10 @@
 
 2. Database Performance
    - Query execution times
-   - Connection pool utilization
    - Slow query identification
+   - Index usage
 
-3. Cache Performance
-   - Cache hit rate
-   - Cache miss rate
-   - Average cache response time
-
-4. System Health
+3. System Health
    - Memory usage
    - CPU utilization
    - Error rates
@@ -237,7 +229,6 @@
 ### Code Deliverables:
 
 - Performance optimization layer
-- Caching middleware
 - Structured logging system
 - Performance metrics collection
 - Database optimizations
