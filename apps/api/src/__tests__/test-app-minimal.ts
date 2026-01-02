@@ -48,7 +48,7 @@ app.use("*", async (c, next) => {
     .limit(1);
 
   if (!user) {
-    c.set("userId", testEmail);
+    c.set("userId", null);
     c.set("userRole", "user");
     return next();
   }
@@ -487,6 +487,378 @@ app.get("/api/users/:id", async (c) => {
       {
         success: false,
         error: "User fetch failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
+// GET /api/dictionaries/:id/statistics - Get dictionary statistics
+app.get("/api/dictionaries/:id/statistics", async (c) => {
+  const userId = c.get("userId") as string;
+  const dictionaryId = c.req.param("id");
+
+  try {
+    const database = getTestDb();
+    const [dictionary] = await database
+      .select()
+      .from(dictionaries)
+      .where(eq(dictionaries.id, dictionaryId))
+      .limit(1);
+
+    if (!dictionary) {
+      return c.json({ success: false, error: "Dictionary not found" }, 404);
+    }
+
+    if (dictionary.userId !== userId) {
+      return c.json({ success: false, error: "Access denied" }, 403);
+    }
+
+    // Calculate statistics
+    let content = "";
+    if (dictionary.filePath) {
+      try {
+        content = await fs.readFile(dictionary.filePath, "utf-8");
+      } catch (e) {
+        // File might not exist, continue with empty content
+      }
+    }
+
+    const lines = content.split("\n").filter((line) => line.trim());
+    const wordCount = lines.length;
+    const uniqueWords = new Set(lines).size;
+    const averageLength =
+      lines.length > 0
+        ? lines.reduce((sum, word) => sum + word.length, 0) / lines.length
+        : 0;
+
+    const frequency = lines.reduce((acc: any, word) => {
+      acc[word] = (acc[word] || 0) + 1;
+      return acc;
+    }, {});
+
+    const sorted = Object.entries(frequency).sort((a, b) => b[1] - a[1]);
+    const entropy =
+      sorted.reduce((sum: number, [, count]: any) => {
+        const p = count / lines.length;
+        return sum - p * Math.log2(p);
+      }, 0) / Math.log2(uniqueWords) || 0;
+
+    const topWords = sorted.slice(0, 10).map(([word, count]: any) => ({
+      word,
+      count,
+    }));
+
+    const lengthDistribution = lines.reduce(
+      (acc: any, word) => {
+        const len = word.length;
+        const bucket = len <= 4 ? 4 : len <= 8 ? 8 : len <= 12 ? 12 : 16;
+        acc[bucket] = (acc[bucket] || 0) + 1;
+        return acc;
+      },
+      { 4: 0, 8: 0, 12: 0, 16: 0 },
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        basic: {
+          wordCount,
+          uniqueWords,
+          averageLength,
+        },
+        frequency: {
+          entropy,
+          topWords,
+          lengthDistribution: Object.entries(lengthDistribution).map(
+            ([length, count]: any) => ({ length: Number(length), count }),
+          ),
+        },
+        size: {
+          bytes: dictionary.size,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("Dictionary statistics error", "dictionaries", error as Error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get statistics",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      500,
+    );
+  }
+});
+
+// POST /api/dictionaries/merge - Merge multiple dictionaries
+app.post(
+  "/api/dictionaries/merge",
+  zValidator(
+    "json",
+    z.object({
+      name: z.string(),
+      dictionaryIds: z.array(z.string()),
+      removeDuplicates: z.boolean().optional(),
+      validationRules: z
+        .object({
+          minLength: z.number().optional(),
+          maxLength: z.number().optional(),
+          excludePatterns: z.array(z.string()).optional(),
+        })
+        .optional(),
+    }),
+  ),
+  async (c) => {
+    const userId = c.get("userId") as string;
+    const { name, dictionaryIds, removeDuplicates, validationRules } =
+      c.req.valid("json");
+
+    try {
+      // Custom validation to return better error messages
+      if (dictionaryIds.length < 2) {
+        return c.json(
+          {
+            success: false,
+            error: "At least 2 dictionaries are required for merging",
+          },
+          400,
+        );
+      }
+
+      if (dictionaryIds.length > 10) {
+        return c.json(
+          {
+            success: false,
+            error: "Cannot merge more than 10 dictionaries",
+          },
+          400,
+        );
+      }
+
+      const database = getTestDb();
+
+      // Get source dictionaries
+      const sourceDicts = await database
+        .select()
+        .from(dictionaries)
+        .where(eq(dictionaries.userId, userId));
+
+      const matchedDicts = sourceDicts.filter((d) =>
+        dictionaryIds.includes(d.id),
+      );
+
+      if (matchedDicts.length !== dictionaryIds.length) {
+        return c.json({ success: false, error: "Dictionary not found" }, 404);
+      }
+
+      // Read and merge content
+      let words: string[] = [];
+      for (const dict of matchedDicts) {
+        if (dict.filePath) {
+          try {
+            const content = await fs.readFile(dict.filePath, "utf-8");
+            words.push(...content.split("\n").filter((line) => line.trim()));
+          } catch (e) {
+            logger.warn(
+              `Failed to read dictionary file: ${dict.filePath}`,
+              "dictionaries",
+            );
+          }
+        }
+      }
+
+      // Apply validation rules
+      if (validationRules) {
+        const { minLength, maxLength, excludePatterns } = validationRules;
+        words = words.filter((word) => {
+          if (minLength && word.length < minLength) return false;
+          if (maxLength && word.length > maxLength) return false;
+          if (excludePatterns) {
+            for (const pattern of excludePatterns) {
+              if (new RegExp(pattern).test(word)) return false;
+            }
+          }
+          return true;
+        });
+      }
+
+      const originalCount = words.length;
+
+      // Remove duplicates if requested
+      let removedDuplicates = 0;
+      if (removeDuplicates) {
+        const unique = new Set(words);
+        removedDuplicates = words.length - unique.size;
+        words = Array.from(unique);
+      }
+
+      const wordCount = words.length;
+      const content = words.join("\n");
+      const buffer = Buffer.from(content);
+
+      // Create merged dictionary
+      const mergedId = crypto.randomUUID();
+      const uploadDir = `/tmp/test-dictionaries/${userId}`;
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const fileName = `${name.replace(/\s+/g, "-").toLowerCase()}.txt`;
+      const filePath = `${uploadDir}/${fileName}`;
+      await fs.writeFile(filePath, buffer);
+
+      const [mergedDict] = await database
+        .insert(dictionaries)
+        .values({
+          id: mergedId,
+          name,
+          filename: fileName,
+          type: "generated",
+          status: "ready",
+          size: buffer.length,
+          wordCount,
+          encoding: "utf-8",
+          checksum: createHash("sha256").update(buffer).digest("hex"),
+          filePath,
+          userId,
+          processingConfig: {
+            merge: {
+              sourceDictionaries: dictionaryIds,
+              removeDuplicates,
+              removedDuplicates,
+              mergedAt: new Date().toISOString(),
+              validationRules,
+            },
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      return c.json({
+        success: true,
+        data: { ...mergedDict, wordCount },
+      });
+    } catch (error) {
+      logger.error("Dictionary merge error", "dictionaries", error as Error);
+      return c.json(
+        {
+          success: false,
+          error: "Failed to merge dictionaries",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        500,
+      );
+    }
+  },
+);
+
+// POST /api/dictionaries/:id/validate - Validate dictionary
+app.post("/api/dictionaries/:id/validate", async (c) => {
+  const userId = c.get("userId") as string;
+  const dictionaryId = c.req.param("id");
+
+  try {
+    const database = getTestDb();
+    const [sourceDict] = await database
+      .select()
+      .from(dictionaries)
+      .where(eq(dictionaries.id, dictionaryId))
+      .limit(1);
+
+    if (!sourceDict) {
+      return c.json({ success: false, error: "Dictionary not found" }, 404);
+    }
+
+    if (sourceDict.userId !== userId) {
+      return c.json({ success: false, error: "Access denied" }, 403);
+    }
+
+    // Read and validate content
+    let content = "";
+    if (sourceDict.filePath) {
+      content = await fs.readFile(sourceDict.filePath, "utf-8");
+    }
+
+    const lines = content.split("\n").filter((line) => line.trim());
+    const words = lines;
+
+    const validChars = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]+$/;
+    const validWords: string[] = [];
+    const invalidWords: string[] = [];
+    const duplicates: Set<string> = new Set();
+
+    for (const word of words) {
+      if (duplicates.has(word)) {
+        continue;
+      }
+      if (validChars.test(word) && word.length >= 1 && word.length <= 64) {
+        validWords.push(word);
+      } else {
+        invalidWords.push(word);
+      }
+      duplicates.add(word);
+    }
+
+    const duplicateWordCount = words.length - duplicates.size;
+    const validWordCount = validWords.length;
+    const invalidWordCount = invalidWords.length;
+    const originalWords = words.length;
+
+    const validContent = validWords.join("\n");
+    const validBuffer = Buffer.from(validContent);
+
+    // Create validated dictionary
+    const validatedId = crypto.randomUUID();
+    const validatedName = `${sourceDict.name}-validated`;
+    const uploadDir = `/tmp/test-dictionaries/${userId}`;
+    const fileName = `${validatedName.replace(/\s+/g, "-").toLowerCase()}.txt`;
+    const filePath = `${uploadDir}/${fileName}`;
+    await fs.writeFile(filePath, validBuffer);
+
+    const [validatedDict] = await database
+      .insert(dictionaries)
+      .values({
+        id: validatedId,
+        name: validatedName,
+        filename: fileName,
+        type: "generated",
+        status: "ready",
+        size: validBuffer.length,
+        wordCount: validWordCount,
+        encoding: "utf-8",
+        checksum: createHash("sha256").update(validBuffer).digest("hex"),
+        filePath,
+        userId,
+        processingConfig: {
+          validation: {
+            sourceDictionaryId: dictionaryId,
+            validWordCount,
+            invalidWordCount,
+            duplicateWordCount,
+            validatedAt: new Date().toISOString(),
+          },
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return c.json({
+      success: true,
+      data: validatedDict,
+      stats: {
+        originalWords,
+        validWords: validWordCount,
+      },
+    });
+  } catch (error) {
+    logger.error("Dictionary validation error", "dictionaries", error as Error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to validate dictionary",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       500,
