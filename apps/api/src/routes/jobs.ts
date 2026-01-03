@@ -430,6 +430,152 @@ jobManagementRoutes.post(
 );
 
 /**
+ * DELETE /api/jobs/:id - Delete a job
+ */
+jobManagementRoutes.delete("/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const userId = c.get("userId");
+
+    const job = await db.query.jobs.findFirst({
+      where: and(eq(jobs.id, id), eq(jobs.userId, userId)),
+      with: {
+        network: true,
+        dictionary: true,
+      },
+    });
+
+    if (!job) {
+      return c.json(
+        {
+          success: false,
+          error: "Job not found",
+        },
+        404,
+      );
+    }
+
+    if (job.userId !== userId) {
+      return c.json(
+        {
+          success: false,
+          error: "Access denied",
+        },
+        403,
+      );
+    }
+
+    const queueJobRemoved = job.status === "running";
+
+    await auditService.logEvent({
+      userId,
+      action: "delete_job",
+      entityType: "job",
+      entityId: id,
+      success: true,
+    });
+
+    if (job.status === "running") {
+      try {
+        await removeHashcatJob(id);
+        logger.info("job_deletion_requested_for_running_job", "jobs", {
+          jobId: id,
+          userId,
+        });
+      } catch (workerError) {
+        logger.error("failed_to_delete_running_job", "jobs", {
+          jobId: id,
+          userId,
+          error:
+            workerError instanceof Error
+              ? workerError
+              : new Error(String(workerError)),
+        });
+
+        return c.json(
+          {
+            success: false,
+            error: "Failed to delete running job",
+            message:
+              "Job is running, deletion request sent but may take time to stop",
+          },
+          500,
+        );
+      }
+    }
+
+    await db.delete(jobs).where(and(eq(jobs.id, id), eq(jobs.userId, userId)));
+
+    if (job.networkId && job.status === "pending") {
+      try {
+        const { networks } = await import("@/db/schema");
+        await db
+          .update(networks)
+          .set({
+            status: "ready",
+            updatedAt: new Date(),
+          })
+          .where(eq(networks.id, job.networkId));
+
+        logger.info("network_status_reset_after_job_deletion", "jobs", {
+          jobId: id,
+          networkId: job.networkId,
+        });
+      } catch (networkError) {
+        logger.error("failed_to_reset_network_status", "jobs", {
+          jobId: id,
+          networkId: job.networkId,
+          error:
+            networkError instanceof Error
+              ? networkError
+              : new Error(String(networkError)),
+        });
+      }
+    }
+
+    logger.info("job_deleted", "jobs", {
+      jobId: id,
+      userId,
+      previousStatus: job.status,
+      queueJobRemoved,
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        id: job.id,
+        status: "deleted",
+      },
+      message: "Job deleted successfully",
+    });
+  } catch (error) {
+    logger.error("delete_job_error", "jobs", {
+      error: error.message,
+      jobId: c.req.param("id"),
+      userId: c.get("userId"),
+    });
+
+    await auditService.logEvent({
+      userId: c.get("userId"),
+      action: "delete_job",
+      entityType: "job",
+      entityId: c.req.param("id"),
+      success: false,
+      details: { error: String(error) },
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to delete job",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+/**
  * POST /api/jobs/:id/schedule - Schedule a job
  */
 jobManagementRoutes.post(
