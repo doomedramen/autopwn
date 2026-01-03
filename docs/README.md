@@ -6,7 +6,7 @@ Complete documentation for the AutoPWN security testing platform.
 
 ### Getting Started
 
-- **[README](../README.md)** - Project overview and quick start
+- **[QUICKSTART](QUICKSTART.md)** - Get running in 5 minutes
 - **[SETUP](SETUP.md)** - Initial setup and installation guide
 - **[DEVELOPMENT](DEVELOPMENT.md)** - Development environment and workflow
 
@@ -45,10 +45,11 @@ Complete documentation for the AutoPWN security testing platform.
 
 Start here if you're new to the project:
 
-1. [SETUP.md](SETUP.md) - Get your development environment running
-2. [DEVELOPMENT.md](DEVELOPMENT.md) - Learn the development workflow
-3. [TESTING.md](TESTING.md) - Run and write tests
-4. [DOCKER_FILES_OVERVIEW.md](DOCKER_FILES_OVERVIEW.md) - Understand Docker setup
+1. [QUICKSTART.md](QUICKSTART.md) - Get running in 5 minutes
+2. [SETUP.md](SETUP.md) - Get your development environment running
+3. [DEVELOPMENT.md](DEVELOPMENT.md) - Learn the development workflow
+4. [TESTING.md](TESTING.md) - Run and write tests
+5. [DOCKER_FILES_OVERVIEW.md](DOCKER_FILES_OVERVIEW.md) - Understand Docker setup
 
 ### For DevOps/Deployment
 
@@ -113,7 +114,7 @@ Contributing to the project:
 
 | Topic | Documentation |
 |-------|---------------|
-| **Getting Started** | [SETUP.md](SETUP.md), [DEVELOPMENT.md](DEVELOPMENT.md) |
+| **Getting Started** | [QUICKSTART.md](QUICKSTART.md), [SETUP.md](SETUP.md), [DEVELOPMENT.md](DEVELOPMENT.md) |
 | **Docker** | [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md), [DOCKER_FILES_OVERVIEW.md](DOCKER_FILES_OVERVIEW.md) |
 | **Testing** | [TESTING.md](TESTING.md), [TEST_COVERAGE.md](TEST_COVERAGE.md), [NEW_TESTING_GUIDE.md](NEW_TESTING_GUIDE.md) |
 | **Database** | [DATABASE.md](DATABASE.md), [BETTER_AUTH_SCHEMA.md](BETTER_AUTH_SCHEMA.md) |
@@ -125,6 +126,7 @@ Contributing to the project:
 
 | I want to... | Read this |
 |--------------|-----------|
+| Get running quickly | [QUICKSTART.md](QUICKSTART.md) |
 | Set up my development environment | [SETUP.md](SETUP.md) |
 | Run the application locally | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | Run tests | [TESTING.md](TESTING.md) |
@@ -169,5 +171,5 @@ If you can't find what you're looking for:
 
 ---
 
-**Last Updated:** 2025-10-24
-**Total Documentation Files:** 17
+**Last Updated:** 2026-01-03
+**Total Documentation Files:** 18
