@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
-import { WebSocketServer, getWebSocketServer } from '../../../lib/websocket'
-import { db } from '../../../db'
-import { jobs, users } from '../../../db/schema'
+import { WebSocketServer, getWebSocketServer } from '../../lib/websocket'
+import { db } from '../../db'
+import { jobs, users } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 
 describe('WebSocket Integration Tests', () => {

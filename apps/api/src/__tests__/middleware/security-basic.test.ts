@@ -103,6 +103,7 @@ describe("Security Middleware Basic Tests", () => {
       stricterLimits: true,
     });
 
+    const mockJson = vi.fn().mockReturnValue({ response: true }); // Return truthy value
     const mockHeader = vi.fn().mockReturnValue("1500"); // All calls return content-length (exceeds limit)
 
     const mockContext = createMockContext({
@@ -110,6 +111,7 @@ describe("Security Middleware Basic Tests", () => {
         header: mockHeader,
         path: "/api/test",
       },
+      json: mockJson, // Use the mock that returns a truthy value
     });
 
     const mockNext = vi.fn();
@@ -117,7 +119,7 @@ describe("Security Middleware Basic Tests", () => {
 
     // Since size limit is exceeded, it should return early and not call next()
     expect(mockNext).not.toHaveBeenCalled();
-    expect(mockContext.json).toHaveBeenCalledWith(
+    expect(mockJson).toHaveBeenCalledWith(
       {
         success: false,
         error: "Request entity too large",

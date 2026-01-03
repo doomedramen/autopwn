@@ -3,6 +3,7 @@ import { networks, captures } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { analyzePCAPFile } from "../lib/pcap-analyzer";
+import { extractNetworksFromPCAP } from "../lib/hcx-tools";
 import { CapturesService } from "../services/captures.service";
 import { v4 as uuidv4 } from "uuid";
 
@@ -65,15 +66,25 @@ export async function processPCAP({
       });
     }
 
+    // First run basic PCAP analysis for packet info
     const analysis = await analyzePCAPFile(filePath, 50);
 
     logger.info("PCAP analysis completed", "pcap-processing", {
       filePath,
-      networksFound: analysis.estimatedNetworkCount || 0,
+      estimatedNetworkCount: analysis.estimatedNetworkCount || 0,
       totalPackets: analysis.totalPackets,
     });
 
-    const extractedNetworks = analysis.extractedNetworks || [];
+    // Extract actual networks using hcxpcapngtool (parses WPA handshakes/PMKIDs)
+    const extractionResult = await extractNetworksFromPCAP(filePath);
+
+    if (!extractionResult.success) {
+      logger.warn("Network extraction failed, continuing without networks", "pcap-processing", {
+        error: extractionResult.error,
+      });
+    }
+
+    const extractedNetworks = extractionResult.networks || [];
     const networkIds: string[] = [];
 
     for (const networkData of extractedNetworks) {
@@ -83,15 +94,10 @@ export async function processPCAP({
           ssid: networkData.ssid || networkData.bssid,
           bssid: networkData.bssid,
           encryption: networkData.encryption,
-          hasHandshake: networkData.hasHandshake,
-          hasPMKID: !!networkData.pmkid,
-          channel: networkData.channel,
-          frequency: networkData.frequency,
-          signalStrength: networkData.signalStrength,
           status: "ready",
           captureDate: new Date(),
           userId,
-          notes: `Extracted from PCAP file by worker`,
+          notes: `Extracted from PCAP file. Handshake: ${networkData.hasHandshake}, PMKID: ${networkData.hasPMKID}`,
         })
         .returning();
 
@@ -102,12 +108,15 @@ export async function processPCAP({
         ssid: networkData.ssid || networkData.bssid,
         bssid: networkData.bssid,
         encryption: networkData.encryption,
+        hasHandshake: networkData.hasHandshake,
+        hasPMKID: networkData.hasPMKID,
       });
     }
 
     logger.info("Networks extracted from PCAP", "pcap-processing", {
       networksFound: extractedNetworks.length,
       networkIds,
+      hc22000File: extractionResult.hc22000File,
     });
 
     await CapturesService.updateNetworkCount(

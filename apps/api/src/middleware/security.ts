@@ -385,26 +385,29 @@ export const inputValidation = () => {
 
 /**
  * Comprehensive security middleware that combines all security features
+ * Applies size limits and input validation BEFORE other checks
  */
 export const comprehensiveSecurity = (config: SecurityConfig = {}) => {
-  const middlewares = [
-    cors(config),
-    securityHeaders(config),
-    requestSizeLimit(config),
-    inputValidation(),
-    ipAccessControl(config),
-  ];
-
   return async (c: Context, next: Next) => {
-    // Apply all security middlewares
-    for (const middleware of middlewares) {
-      // Check if middleware returns early (e.g., c.json())
-      const result = await middleware(c, () => Promise.resolve());
-      if (result) {
-        // Middleware returned a response, stop the chain
-        return result;
-      }
+    // First, apply request size limit (should reject early if too large)
+    const sizeLimitResult = await requestSizeLimit(config)(c, () => Promise.resolve(undefined));
+    if (sizeLimitResult) {
+      return sizeLimitResult; // Request too large, stop here
     }
+
+    // Apply input validation
+    const validationResult = await inputValidation()(c, () => Promise.resolve(undefined));
+    if (validationResult) {
+      return validationResult; // Invalid input, stop here
+    }
+
+    // Apply IP access control
+    const ipResult = await ipAccessControl(config)(c, () => Promise.resolve(undefined));
+    // Note: ipAccessControl doesn't return early, it just adds headers
+
+    // Apply security headers and CORS (these add headers but don't reject)
+    await securityHeaders(config)(c, () => Promise.resolve(undefined));
+    await cors(config)(c, () => Promise.resolve(undefined));
 
     await next();
   };
