@@ -9,6 +9,7 @@ import {
   requireAdmin,
 } from "@/middleware/auth";
 import { logger } from "@/lib/logger";
+import { CapturesService } from "@/services/captures.service";
 
 const capturesRouter = new Hono();
 
@@ -85,7 +86,7 @@ capturesRouter.get("/", async (c) => {
  * POST /api/v1/captures/upload
  * Upload a new PCAP file
  */
-capturesRouter.post("/upload", async (c) => {
+capturesRouter.post("/upload", zValidator("form", uploadSchema), async (c) => {
   try {
     const userId = getUserId(c);
     const { file, metadata } = c.req.valid("form");

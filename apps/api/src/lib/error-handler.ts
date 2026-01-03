@@ -13,6 +13,20 @@ import {
   FileSystemError
 } from './logger'
 
+// Re-export error classes for use by other modules
+export {
+  AppError,
+  ValidationError,
+  AuthenticationError,
+  AuthorizationError,
+  NotFoundError,
+  ConflictError,
+  RateLimitError,
+  DatabaseError,
+  ExternalServiceError,
+  FileSystemError
+} from './logger'
+
 /**
  * Standard error response structure
  */

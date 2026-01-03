@@ -405,9 +405,9 @@ export const fileSecurityMiddleware = (config: Partial<FileSecurityConfig> = {})
       logger.error('File security middleware error', 'file_security', error, {
         errorType: fileError.constructor.name,
         code: fileError.code,
-        fileName: fileInfo?.name || file?.name,
-        fileSize: fileInfo?.size || file?.size,
-        fileType: fileInfo?.type || file?.type
+        fileName: fileInfo?.name || 'unknown',
+        fileSize: fileInfo?.size || 0,
+        fileType: fileInfo?.type || 'unknown'
       })
 
       // Re-throw to be handled by global error handler

@@ -44,8 +44,7 @@ export const dbSecurityMiddleware = () => {
     /%3B/i,  // Encoded semicolon
     /%2D%2D/i, // Encoded double dash
 
-    // Base64 and other encoding attempts
-    /(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)/,
+    // Note: Removed base64 pattern as it causes false positives on session tokens
 
     // Time-based blind SQL injection
     /waitfor\s+delay/i,
@@ -132,7 +131,10 @@ export const dbSecurityMiddleware = () => {
     }
 
     // Analyze request body for POST/PUT requests
-    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    // Skip body analysis for multipart/form-data (file uploads) as reading the body
+    // would consume it and prevent downstream handlers from processing the file
+    const contentType = c.req.header('content-type') || ''
+    if (['POST', 'PUT', 'PATCH'].includes(method) && !contentType.includes('multipart/form-data')) {
       try {
         const body = await c.req.text()
         if (body && body.length > 0 && body.length < 10000) { // Reasonable size check
@@ -142,7 +144,7 @@ export const dbSecurityMiddleware = () => {
               bodyLength: body.length,
               patterns: analysis.patterns,
               path,
-              contentType: c.req.header('content-type')
+              contentType
             })
           }
         }

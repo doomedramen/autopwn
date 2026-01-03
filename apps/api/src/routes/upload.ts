@@ -30,7 +30,6 @@ upload.use("*", getUserId);
 upload.post(
   "/",
   zValidator("form", uploadSchema),
-  createConfiguredRateLimit("upload"),
   async (c) => {
     try {
       const userId = getUserId(c);

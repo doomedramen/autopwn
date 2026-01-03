@@ -76,8 +76,9 @@ class ConfigService {
     }
 
     try {
+      // Query using original id (not cacheKey) since DB stores lowercase with dashes
       const cfg = await db.query.config.findFirst({
-        where: eq(config.id, cacheKey),
+        where: eq(config.id, id),
       });
 
       if (!cfg) {
