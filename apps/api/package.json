@@ -17,7 +17,11 @@
     "db:seed-config": "tsx src/db/seed-config.ts",
     "db:seed-all": "npm run db:seed-superuser && npm run db:seed-config",
     "queue:stats": "tsx -e \"import('./src/lib/queue').then(m => m.checkQueueHealth()).then(console.log)\"",
-    "worker:health": "tsx -e \"import('./src/workers').then(m => m.checkWorkerHealth()).then(console.log)\""
+    "worker:health": "tsx -e \"import('./src/workers').then(m => m.checkWorkerHealth()).then(console.log)\"",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.5",
@@ -50,7 +54,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.2",
+    "@vitest/coverage-v8": "^4.0.16",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.16"
   }
 }
