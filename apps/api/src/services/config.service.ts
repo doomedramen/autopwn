@@ -406,47 +406,35 @@ class ConfigService {
    */
 
   async getMaxPcapSize(): Promise<number> {
-    return this.getNumber("max-pcap-size");
+    return this.getNumber("maxPcapSize");
   }
 
   async getMaxDictionarySize(): Promise<number> {
-    return this.getNumber("max-dictionary-size");
+    return this.getNumber("maxDictionarySize");
   }
 
   async getMaxGeneratedDictSize(): Promise<number> {
-    return this.getNumber("max-generated-dict-size");
+    return this.getNumber("maxGeneratedDictSize");
   }
 
   async getMaxConcurrentJobs(): Promise<number> {
-    return this.getNumber("max-concurrent-jobs");
+    return this.getNumber("maxConcurrentJobs");
   }
 
   async getHashcatDefaultWorkload(): Promise<number> {
-    return this.getNumber("hashcat-default-workload");
+    return this.getNumber("hashcatDefaultWorkload");
   }
 
   async getHashcatJobTimeout(): Promise<number> {
-    return this.getNumber("hashcat-job-timeout");
+    return this.getNumber("hashcatJobTimeout");
   }
 
   async getAllowUserRegistration(): Promise<boolean> {
-    return this.getBoolean("allow-user-registration");
+    return this.getBoolean("allowUserRegistration");
   }
 
   async getSessionExpiry(): Promise<number> {
-    return this.getNumber("session-expiry");
-  }
-
-  async getRateLimitDefault(): Promise<number> {
-    return this.getNumber("rate-limit-default");
-  }
-
-  async getRateLimitUpload(): Promise<number> {
-    return this.getNumber("rateLimitUpload");
-  }
-
-  async getRateLimitAuth(): Promise<number> {
-    return this.getNumber("rate-limit-auth");
+    return this.getNumber("sessionExpiry");
   }
 }
 

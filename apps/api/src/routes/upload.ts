@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { db } from "../db/index";
-import { getUserId } from "../middleware/auth";
+import { authenticate, getUserId } from "../middleware/auth";
 import { storageManager } from "../lib/storage-manager";
 import { logger } from "../lib/logger";
 import { addPCAPProcessingJob } from "../lib/queue";
@@ -25,7 +25,7 @@ const uploadSchema = z.object({
 
 const upload = new Hono();
 
-upload.use("*", getUserId);
+upload.use("*", authenticate);
 
 upload.post(
   "/",
@@ -72,7 +72,8 @@ upload.post(
       }
 
       const captureId = uuidv4();
-      const uploadDir = `/data/uploads/captures/${captureId}`;
+      const baseUploadDir = process.env.UPLOAD_DIR || './uploads';
+      const uploadDir = `${baseUploadDir}/captures/${captureId}`;
 
       await fs.mkdir(uploadDir, { recursive: true });
 
