@@ -76,7 +76,6 @@ export const config = {
   // Feature flags
   features: {
     bullBoardEnabled: process.env.BULL_BOARD_ENABLED === 'true',
-    rateLimitEnabled: process.env.RATE_LIMIT_ENABLED === 'true',
   },
 };
 
@@ -335,7 +334,6 @@ BACKEND_PORT=4000
 # Development-friendly settings
 LOG_LEVEL=debug
 PRETTY_LOGS=true
-RATE_LIMIT_ENABLED=false
 BULL_BOARD_ENABLED=true
 
 # File paths (local development)

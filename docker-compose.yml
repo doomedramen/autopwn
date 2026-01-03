@@ -37,8 +37,6 @@ x-app-environment: &app-environment
 
   # Security settings
   CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-  RATE_LIMIT_WINDOW: 900000
-  RATE_LIMIT_MAX: 100
 
 x-web-environment: &web-environment
   NODE_ENV: ${NODE_ENV:-development}
@@ -70,7 +68,7 @@ services:
     networks:
       - autopwn-network
 
-  # Redis for caching and job queues
+  # Redis for job queues
   redis:
     image: redis:7-alpine
     container_name: autopwn-redis-${NODE_ENV:-development}
@@ -136,6 +134,7 @@ services:
       - ./apps/api:/app/apps/api
       - ./packages:/app/packages
       - /app/node_modules
+      - /app/apps/api/node_modules
       - uploads_data_${NODE_ENV:-development}:/app/uploads
     user: "apiuser"
     depends_on:

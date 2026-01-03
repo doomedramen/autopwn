@@ -30,7 +30,6 @@ import emailRoutes from "./routes/email";
 
 // Import middleware
 import { securityMiddleware } from "./middleware/security";
-// import { rateLimit, strictRateLimit, uploadRateLimit } from './middleware/rateLimit' // Temporarily disabled for testing
 import { fileSecurityMiddleware } from "./middleware/fileSecurity";
 import {
   dbSecurityMiddleware,

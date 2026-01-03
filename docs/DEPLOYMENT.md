@@ -183,7 +183,7 @@ export default async function Page() {
 - ✅ Session secrets and security settings
 - ✅ File size limits and storage paths
 - ✅ Hashcat job settings (concurrency, timeout, workload)
-- ✅ Rate limiting and performance tuning
+- ✅ Performance tuning
 - ✅ Feature flags (enable/disable features)
 - ✅ Logging levels and output formats
 - ✅ External service URLs (if any)
@@ -328,8 +328,7 @@ docker run -e HASHCAT_MAX_CONCURRENT_JOBS=5 autopwn-backend
 2. ✅ Use strong SESSION_SECRET (min 32 random characters)
 3. ✅ Enable HTTPS with valid SSL certificate
 4. ✅ Set up firewall rules
-5. ✅ Configure rate limiting
-6. ✅ Set up automated backups
+5. ✅ Set up automated backups
 7. ✅ Enable audit logging
 8. ✅ Restrict database/redis to internal network only
 9. ✅ Keep software updated
@@ -595,11 +594,6 @@ BCRYPT_ROUNDS=12
 # CORS (your domain only)
 CORS_ORIGINS=https://autopwn.yourdomain.com
 
-# Rate limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_MAX=100
-RATE_LIMIT_WINDOW=60000
-
 # ============================================
 # File Storage
 # ============================================
@@ -674,10 +668,6 @@ http {
     gzip_comp_level 6;
     gzip_types text/plain text/css text/xml text/javascript
                application/json application/javascript application/xml+rss;
-
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
-    limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=5r/m;
 
     # HTTP to HTTPS redirect
     server {

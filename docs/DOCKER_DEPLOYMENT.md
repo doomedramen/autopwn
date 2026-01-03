@@ -348,7 +348,6 @@ SMTP_FROM=noreply@yourdomain.com
 
 # Optional: Resource limits
 MAX_CONCURRENT_JOBS=3
-RATE_LIMIT_MAX=100
 CORS_ORIGIN=https://autopwn.yourdomain.com
 
 # Optional: Version tag

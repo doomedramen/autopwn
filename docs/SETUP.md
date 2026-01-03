@@ -257,11 +257,6 @@ PRETTY_LOGS=true  # false for production JSON logs
 # CORS origins (comma-separated)
 CORS_ORIGINS=http://localhost:3000
 
-# Rate limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_MAX=100  # requests per window
-RATE_LIMIT_WINDOW=60000  # window in milliseconds (1 minute)
-
 # ============================================
 # Features (Future)
 # ============================================

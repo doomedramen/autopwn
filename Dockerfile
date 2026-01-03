@@ -2,13 +2,18 @@
 # Supports development, test, and production builds
 
 # Build stage with dependencies and caching
-FROM node:20-alpine AS base
-RUN apk add --no-cache \
+FROM node:20-slim AS base
+
+# Install system dependencies and tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ca-certificates \
     dumb-init \
     postgresql-client \
-    redis \
-    pnpm
+    redis-tools \
+    hashcat \
+    hcxtools \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm globally
 RUN npm install -g pnpm@10.4.1
@@ -44,8 +49,8 @@ RUN cd apps/api && pnpm install
 RUN npm install -g tsx
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S apiuser -u 1001
+RUN groupadd --gid 1001 nodejs && \
+    useradd --uid 1001 --gid nodejs --shell /bin/bash --create-home apiuser
 
 # Create upload directory and set permissions
 RUN mkdir -p /app/uploads /app/.turbo/cache && chown -R apiuser:nodejs /app

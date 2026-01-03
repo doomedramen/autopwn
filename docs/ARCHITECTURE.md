@@ -200,7 +200,6 @@ See [DATABASE.md](./DATABASE.md) for detailed schema.
 - Automatic retry on failure (configurable)
 - Job progress tracking
 - Job priority support
-- Rate limiting
 - Job logs and error tracking
 - Bull Board dashboard for monitoring
 

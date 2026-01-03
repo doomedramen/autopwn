@@ -60,7 +60,6 @@ Authorization: Bearer <session-token>
 - `404` - Not Found
 - `409` - Conflict (duplicate resource)
 - `422` - Unprocessable Entity (invalid data)
-- `429` - Too Many Requests (rate limited)
 - `500` - Internal Server Error
 
 ## Endpoints
@@ -1095,26 +1094,6 @@ Update system configuration.
 
 ---
 
-## Rate Limiting
-
-API requests are rate-limited per user:
-
-- **Default:** 100 requests per minute
-- **Exceeded:** Returns HTTP 429 with:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Too many requests, please try again later",
-    "details": {
-      "retryAfter": 60
-    }
-  }
-}
-```
-
 ## Pagination
 
 All list endpoints support pagination:
@@ -1153,7 +1132,6 @@ All list endpoints support pagination:
 | `INVALID_FILE_TYPE`        | File type not allowed           |
 | `QUOTA_EXCEEDED`           | User quota exceeded             |
 | `JOB_RUNNING`              | Cannot delete running job       |
-| `RATE_LIMIT_EXCEEDED`      | Too many requests               |
 | `INTERNAL_ERROR`           | Server error                    |
 
 ## Examples
