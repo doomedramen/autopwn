@@ -133,7 +133,7 @@ class AuditService {
         conditions.length > 0 ? and(...conditions) : undefined;
 
       const [{ count }] = await db
-        .select({ count: () => sql`count(*)`.as("count") })
+        .select({ count: sql`count(*)`.mapWith(Number) })
         .from(auditLogs)
         .where(whereClause);
 

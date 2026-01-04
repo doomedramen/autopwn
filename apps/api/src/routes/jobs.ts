@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { db } from "@/db";
 import { jobs, selectJobSchema } from "@/db/schema";
-import { eq, desc, and, isNull, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, isNull, isNotNull, inArray } from "drizzle-orm";
 import {
   createNotFoundError,
   createValidationError,
@@ -11,9 +11,13 @@ import {
 import { logger } from "@/lib/logger";
 import { getHashcatJob, removeHashcatJob } from "@/lib/queue";
 import { auditService } from "@/services/audit.service";
-import { getUserId } from "@/lib/auth";
+import { authenticate, getUserId } from "@/middleware/auth";
+import { sql } from "drizzle-orm";
 
 const jobManagementRoutes = new Hono();
+
+// Apply authentication middleware to all routes
+jobManagementRoutes.use("*", authenticate);
 
 // Job update schema
 const updateJobSchema = z.object({
@@ -26,6 +30,7 @@ const updateJobSchema = z.object({
   hashcatMode: z.number().optional(),
 });
 
+// 1. GET / - List all jobs
 jobManagementRoutes.get("/", async (c) => {
   try {
     const userId = c.get("userId");
@@ -82,6 +87,439 @@ jobManagementRoutes.get("/", async (c) => {
   }
 });
 
+/**
+ * GET /api/jobs/stats - Get job statistics
+ */
+jobManagementRoutes.get("/stats", async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const userJobs = await db.query.jobs.findMany({
+      where: eq(jobs.userId, userId),
+      columns: {
+        status: true,
+      },
+    });
+
+    const stats = {
+      total: userJobs.length,
+      pending: userJobs.filter(
+        (job) => job.status === "pending" || job.status === "scheduled",
+      ).length,
+      running: userJobs.filter((job) => job.status === "running").length,
+      completed: userJobs.filter((job) => job.status === "completed").length,
+      failed: userJobs.filter((job) => job.status === "failed").length,
+      cancelled: userJobs.filter((job) => job.status === "cancelled").length,
+      scheduled: userJobs.filter((job) => job.status === "scheduled").length,
+    };
+
+    logger.info("job_stats_retrieved", "jobs", {
+      userId,
+      ...stats,
+    });
+
+    return c.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    logger.error("job_stats_error", "jobs", {
+      error: error.message,
+      userId: c.get("userId"),
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get job statistics",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * GET /api/jobs/scheduled - List scheduled jobs
+ */
+jobManagementRoutes.get("/scheduled", async (c) => {
+  try {
+    const userId = c.get("userId");
+    const page = parseInt(c.req.query("page") || "1");
+    const limit = parseInt(c.req.query("limit") || "20");
+    const offset = (page - 1) * limit;
+
+    const [scheduledJobs, totalCountResult] = await Promise.all([
+      db.query.jobs.findMany({
+        where: and(
+          eq(jobs.userId, userId),
+          eq(jobs.status, "scheduled"),
+          isNotNull(jobs.scheduledAt),
+        ),
+        orderBy: [asc(jobs.scheduledAt)],
+        with: {
+          network: true,
+          dictionary: true,
+        },
+        limit,
+        offset,
+      }),
+      db.query.jobs.findMany({
+        where: and(eq(jobs.userId, userId), eq(jobs.status, "scheduled")),
+      }),
+    ]);
+
+    const totalCount = totalCountResult.length;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    logger.info("scheduled_jobs_retrieved", "jobs", {
+      userId,
+      page,
+      limit,
+      totalFound: totalCount,
+    });
+
+    return c.json({
+      success: true,
+      data: scheduledJobs,
+      meta: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    logger.error("get_scheduled_jobs_error", "jobs", {
+      error: error.message,
+      userId: c.get("userId"),
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get scheduled jobs",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * GET /api/jobs/filter - Search and filter jobs
+ */
+jobManagementRoutes.get("/filter", async (c) => {
+  try {
+    const userId = c.get("userId");
+    const {
+      status,
+      priority,
+      tags,
+      networkId,
+      dictionaryId,
+      search,
+      page,
+      limit,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = c.req.query();
+
+    let whereConditions = [eq(jobs.userId, userId)];
+
+    if (status) {
+      whereConditions.push(eq(jobs.status, status));
+    }
+
+    if (priority) {
+      whereConditions.push(eq(jobs.priority, priority));
+    }
+
+    if (tags && tags.length > 0) {
+      const tagList = tags.split(",");
+      // Check if any of the tags are in the job's tags array
+      for (const tag of tagList) {
+        whereConditions.push(
+          sql`${jobs.tags} @> ${sql.raw(`'["${tag}"]'::jsonb`)}`
+        );
+      }
+    }
+
+    if (networkId) {
+      whereConditions.push(eq(jobs.networkId, networkId));
+    }
+
+    if (dictionaryId) {
+      whereConditions.push(eq(jobs.dictionaryId, dictionaryId));
+    }
+
+    if (search) {
+      const searchTerm = `%${search}%`;
+      whereConditions.push(sql`name ILIKE ${searchTerm}`);
+    }
+
+    const pageNum = parseInt(page || "1");
+    const limitNum = parseInt(limit || "20");
+    const offset = (pageNum - 1) * limitNum;
+
+    const allJobs = await db.query.jobs.findMany({
+      where:
+        whereConditions.length > 1
+          ? and(...whereConditions)
+          : whereConditions[0],
+      orderBy: sortOrder === "asc" ? [asc(jobs[sortBy])] : [desc(jobs[sortBy])],
+      with: {
+        network: true,
+        dictionary: true,
+      },
+      limit: limitNum,
+      offset,
+    });
+
+    const totalCountResult = await db.query.jobs.findMany({
+      where:
+        whereConditions.length > 1
+          ? and(...whereConditions)
+          : whereConditions[0],
+    });
+
+    const totalCount = totalCountResult.length;
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    logger.info("jobs_filtered", "jobs", {
+      userId,
+      filters: { status, priority, tags, networkId, dictionaryId, search },
+      page: pageNum,
+      limit: limitNum,
+      totalFound: totalCount,
+    });
+
+    return c.json({
+      success: true,
+      data: allJobs,
+      meta: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages,
+        filters: { status, priority, tags, networkId, dictionaryId, search },
+      },
+    });
+  } catch (error) {
+    logger.error("filter_jobs_error", "jobs", {
+      error: error.message,
+      userId: c.get("userId"),
+      query: c.req.query(),
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to filter jobs",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * GET /api/jobs/tags - Get all unique tags
+ */
+jobManagementRoutes.get("/tags", async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const allJobs = await db.query.jobs.findMany({
+      where: eq(jobs.userId, userId),
+      columns: {
+        tags: true,
+      },
+    });
+
+    const allTags = new Set<string>();
+    for (const job of allJobs) {
+      if (job.tags) {
+        for (const tag of job.tags) {
+          allTags.add(tag);
+        }
+      }
+    }
+
+    const uniqueTags = Array.from(allTags).sort();
+
+    logger.info("job_tags_retrieved", "jobs", {
+      userId,
+      totalJobs: allJobs.length,
+      uniqueTags: uniqueTags.length,
+    });
+
+    return c.json({
+      success: true,
+      data: uniqueTags,
+    });
+  } catch (error) {
+    logger.error("get_job_tags_error", "jobs", {
+      error: error.message,
+      userId: c.get("userId"),
+    });
+
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get job tags",
+        message: error.message,
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * POST /api/jobs/bulk-cancel - Cancel multiple jobs
+ */
+jobManagementRoutes.post(
+  "/bulk-cancel",
+  zValidator(
+    "json",
+    z.object({
+      jobIds: z.array(z.string().uuid()).min(1).max(50),
+    }),
+  ),
+  async (c) => {
+    try {
+      const userId = c.get("userId");
+      const { jobIds } = c.req.valid("json");
+
+      const jobsToCancel = await db.query.jobs.findMany({
+        where: and(inArray(jobs.id, jobIds), eq(jobs.userId, userId)),
+      });
+
+      if (jobsToCancel.length === 0) {
+        return c.json(
+          {
+            success: false,
+            error: "No cancellable jobs found",
+          },
+          404,
+        );
+      }
+
+      let results = [];
+
+      for (const job of jobsToCancel) {
+        const queueJobRemoved = job.status === "running";
+
+        if (job.status === "running") {
+          try {
+            await removeHashcatJob(job.id);
+            results.push({
+              id: job.id,
+              status: "cancellation_requested",
+              message: "Cancellation request sent to worker",
+            });
+          } catch (workerError) {
+            results.push({
+              id: job.id,
+              status: "error",
+              error:
+                workerError instanceof Error
+                  ? workerError.message
+                  : "Unknown error",
+            });
+          }
+        } else if (["completed", "failed", "cancelled"].includes(job.status)) {
+          results.push({
+            id: job.id,
+            status: "error",
+            error: `Job is already ${job.status}`,
+          });
+        } else {
+          await db
+            .update(jobs)
+            .set({
+              status: "cancelled",
+              cancelledAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(jobs.id, job.id));
+
+          results.push({
+            id: job.id,
+            status: "cancelled",
+            message: "Job cancelled successfully",
+          });
+
+          if (job.networkId && job.status === "pending") {
+            try {
+              const { networks } = await import("@/db/schema");
+              await db
+                .update(networks)
+                .set({
+                  status: "ready",
+                  updatedAt: new Date(),
+                })
+                .where(eq(networks.id, job.networkId));
+
+              logger.info("network_status_reset", "jobs", {
+                jobId: job.id,
+                networkId: job.networkId,
+              });
+            } catch (networkError) {
+              logger.error("failed_to_reset_network_status", "jobs", {
+                jobId: job.id,
+                networkId: job.networkId,
+                error:
+                  networkError instanceof Error
+                    ? networkError
+                    : new Error(String(networkError)),
+              });
+            }
+          }
+        }
+      }
+
+      logger.info("bulk_job_cancel", "jobs", {
+        userId,
+        totalRequested: jobIds.length,
+        totalProcessed: jobsToCancel.length,
+        cancelled: results.filter((r) => r.status === "cancelled").length,
+      });
+
+      return c.json({
+        success: true,
+        data: {
+          results,
+          summary: {
+            totalRequested: jobIds.length,
+            totalProcessed: jobsToCancel.length,
+            cancelled: results.filter((r) => r.status === "cancelled").length,
+            cancellationRequested: results.filter(
+              (r) => r.status === "cancellation_requested",
+            ).length,
+            errors: results.filter((r) => r.status === "error").length,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error("bulk_cancel_job_error", "jobs", {
+        error: error.message,
+        userId: c.get("userId"),
+      });
+
+      return c.json(
+        {
+          success: false,
+          error: "Failed to cancel jobs",
+          message: error.message,
+        },
+        500,
+      );
+    }
+  },
+);
+
+// Parameterized routes - must come after specific routes
 jobManagementRoutes.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
@@ -284,150 +722,6 @@ jobManagementRoutes.post("/:id/cancel", async (c) => {
     );
   }
 });
-
-/**
- * POST /api/jobs/bulk-cancel - Cancel multiple jobs
- */
-jobManagementRoutes.post(
-  "/bulk-cancel",
-  zValidator(
-    "json",
-    z.object({
-      jobIds: z.array(z.string().uuid()).min(1).max(50),
-    }),
-  ),
-  async (c) => {
-    try {
-      const userId = c.get("userId");
-      const { jobIds } = c.req.valid("json");
-
-      const jobsToCancel = await db.query.jobs.findMany({
-        where: and(inArray(jobs.id, jobIds), eq(jobs.userId, userId)),
-      });
-
-      if (jobsToCancel.length === 0) {
-        return c.json(
-          {
-            success: false,
-            error: "No cancellable jobs found",
-          },
-          404,
-        );
-      }
-
-      let results = [];
-
-      for (const job of jobsToCancel) {
-        const queueJobRemoved = job.status === "running";
-
-        if (job.status === "running") {
-          try {
-            await removeHashcatJob(job.id);
-            results.push({
-              id: job.id,
-              status: "cancellation_requested",
-              message: "Cancellation request sent to worker",
-            });
-          } catch (workerError) {
-            results.push({
-              id: job.id,
-              status: "error",
-              error:
-                workerError instanceof Error
-                  ? workerError.message
-                  : "Unknown error",
-            });
-          }
-        } else if (["completed", "failed", "cancelled"].includes(job.status)) {
-          results.push({
-            id: job.id,
-            status: "error",
-            error: `Job is already ${job.status}`,
-          });
-        } else {
-          await db
-            .update(jobs)
-            .set({
-              status: "cancelled",
-              cancelledAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .where(eq(jobs.id, job.id));
-
-          results.push({
-            id: job.id,
-            status: "cancelled",
-            message: "Job cancelled successfully",
-          });
-
-          if (job.networkId && job.status === "pending") {
-            try {
-              const { networks } = await import("@/db/schema");
-              await db
-                .update(networks)
-                .set({
-                  status: "ready",
-                  updatedAt: new Date(),
-                })
-                .where(eq(networks.id, job.networkId));
-
-              logger.info("network_status_reset", "jobs", {
-                jobId: job.id,
-                networkId: job.networkId,
-              });
-            } catch (networkError) {
-              logger.error("failed_to_reset_network_status", "jobs", {
-                jobId: job.id,
-                networkId: job.networkId,
-                error:
-                  networkError instanceof Error
-                    ? networkError
-                    : new Error(String(networkError)),
-              });
-            }
-          }
-        }
-      }
-
-      logger.info("bulk_job_cancel", "jobs", {
-        userId,
-        totalRequested: jobIds.length,
-        totalProcessed: jobsToCancel.length,
-        cancelled: results.filter((r) => r.status === "cancelled").length,
-      });
-
-      return c.json({
-        success: true,
-        data: {
-          results,
-          summary: {
-            totalRequested: jobIds.length,
-            totalProcessed: jobsToCancel.length,
-            cancelled: results.filter((r) => r.status === "cancelled").length,
-            cancellationRequested: results.filter(
-              (r) => r.status === "cancellation_requested",
-            ).length,
-            errors: results.filter((r) => r.status === "error").length,
-          },
-        },
-      });
-    } catch (error) {
-      logger.error("bulk_cancel_job_error", "jobs", {
-        error: error.message,
-        userId: c.get("userId"),
-      });
-
-      return c.json(
-        {
-          success: false,
-          error: "Failed to cancel jobs",
-          message: error.message,
-        },
-        500,
-      );
-    }
-  },
-);
 
 /**
  * DELETE /api/jobs/:id - Delete a job
@@ -762,72 +1056,6 @@ jobManagementRoutes.post(
 );
 
 /**
- * GET /api/jobs/scheduled - List scheduled jobs
- */
-jobManagementRoutes.get("/scheduled", async (c) => {
-  try {
-    const userId = c.get("userId");
-    const page = parseInt(c.req.query("page") || "1");
-    const limit = parseInt(c.req.query("limit") || "20");
-    const offset = (page - 1) * limit;
-
-    const [scheduledJobs, totalCount] = await Promise.all([
-      db.query.jobs.findMany({
-        where: and(
-          eq(jobs.userId, userId),
-          eq(jobs.status, "scheduled"),
-          isNotNull(jobs.scheduledAt),
-        ),
-        orderBy: [asc(jobs.scheduledAt)],
-        with: {
-          network: true,
-          dictionary: true,
-        },
-        limit,
-        offset,
-      }),
-      db.query.jobs.findMany({
-        where: and(eq(jobs.userId, userId), eq(jobs.status, "scheduled")),
-      }),
-    ]);
-
-    const totalPages = Math.ceil(totalCount / limit);
-
-    logger.info("scheduled_jobs_retrieved", "jobs", {
-      userId,
-      page,
-      limit,
-      totalFound: totalCount,
-    });
-
-    return c.json({
-      success: true,
-      data: scheduledJobs,
-      meta: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages,
-      },
-    });
-  } catch (error) {
-    logger.error("get_scheduled_jobs_error", "jobs", {
-      error: error.message,
-      userId: c.get("userId"),
-    });
-
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get scheduled jobs",
-        message: error.message,
-      },
-      500,
-    );
-  }
-});
-
-/**
  * GET /api/jobs/:id/dependencies - Get job dependencies
  */
 jobManagementRoutes.get("/:id/dependencies", async (c) => {
@@ -877,7 +1105,8 @@ jobManagementRoutes.get("/:id/dependencies", async (c) => {
       where: and(
         eq(jobs.userId, userId),
         isNotNull(jobs.dependsOn),
-        sql`jsonb_array_exists(${jobs.dependsOn}, ?${id})`,
+        // Use raw SQL to check if the dependsOn array contains the job id
+        sql`(${jobs.dependsOn})::jsonb ? ${id}`,
       ),
       columns: {
         id: true,
@@ -1039,60 +1268,6 @@ jobManagementRoutes.post("/:id/retry", async (c) => {
     );
   }
 });
-
-/**
- * GET /api/jobs/stats - Get job statistics
- */
-jobManagementRoutes.get("/stats", async (c) => {
-  try {
-    const userId = c.get("userId");
-
-    const userJobs = await db.query.jobs.findMany({
-      where: eq(jobs.userId, userId),
-      columns: {
-        status: true,
-      },
-    });
-
-    const stats = {
-      total: userJobs.length,
-      pending: userJobs.filter(
-        (job) => job.status === "pending" || job.status === "scheduled",
-      ).length,
-      running: userJobs.filter((job) => job.status === "running").length,
-      completed: userJobs.filter((job) => job.status === "completed").length,
-      failed: userJobs.filter((job) => job.status === "failed").length,
-      cancelled: userJobs.filter((job) => job.status === "cancelled").length,
-      scheduled: userJobs.filter((job) => job.status === "scheduled").length,
-    };
-
-    logger.info("job_stats_retrieved", "jobs", {
-      userId,
-      ...stats,
-    });
-
-    return c.json({
-      success: true,
-      data: stats,
-    });
-  } catch (error) {
-    logger.error("job_stats_error", "jobs", {
-      error: error.message,
-      userId: c.get("userId"),
-    });
-
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get job statistics",
-        message: error.message,
-      },
-      500,
-    );
-  }
-});
-
-export { jobManagementRoutes };
 
 /**
  * PATCH /api/jobs/:id/priority - Update job priority
@@ -1317,165 +1492,4 @@ jobManagementRoutes.patch(
   },
 );
 
-/**
- * GET /api/jobs/filter - Search and filter jobs
- */
-jobManagementRoutes.get("/filter", async (c) => {
-  try {
-    const userId = c.get("userId");
-    const {
-      status,
-      priority,
-      tags,
-      networkId,
-      dictionaryId,
-      search,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-    } = c.req.query();
-
-    let whereConditions = [eq(jobs.userId, userId)];
-
-    if (status) {
-      whereConditions.push(eq(jobs.status, status));
-    }
-
-    if (priority) {
-      whereConditions.push(eq(jobs.priority, priority));
-    }
-
-    if (tags && tags.length > 0) {
-      const tagList = tags.split(",");
-      whereConditions.push(
-        sql`jsonb_array_contains(${jobs.tags}, ?${tagList.map(() => "?").join(",")})`,
-      );
-    }
-
-    if (networkId) {
-      whereConditions.push(eq(jobs.networkId, networkId));
-    }
-
-    if (dictionaryId) {
-      whereConditions.push(eq(jobs.dictionaryId, dictionaryId));
-    }
-
-    if (search) {
-      const searchTerm = `%${search}%`;
-      whereConditions.push(sql`name ILIKE ?${searchTerm}`);
-    }
-
-    const page = parseInt(page || "1");
-    const limit = parseInt(limit || "20");
-    const offset = (page - 1) * limit;
-
-    const allJobs = await db.query.jobs.findMany({
-      where:
-        whereConditions.length > 1
-          ? and(...whereConditions)
-          : whereConditions[0],
-      orderBy: sortOrder === "asc" ? [asc(jobs[sortBy])] : [desc(jobs[sortBy])],
-      with: {
-        network: true,
-        dictionary: true,
-      },
-      limit,
-      offset,
-    });
-
-    const totalCount = await db.query.jobs.findMany({
-      where:
-        whereConditions.length > 1
-          ? and(...whereConditions)
-          : whereConditions[0],
-    });
-
-    const totalPages = Math.ceil(totalCount / limit);
-
-    logger.info("jobs_filtered", "jobs", {
-      userId,
-      filters: { status, priority, tags, networkId, dictionaryId, search },
-      page,
-      limit,
-      totalFound: totalCount,
-    });
-
-    return c.json({
-      success: true,
-      data: allJobs,
-      meta: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages,
-        filters: { status, priority, tags, networkId, dictionaryId, search },
-      },
-    });
-  } catch (error) {
-    logger.error("filter_jobs_error", "jobs", {
-      error: error.message,
-      userId: c.get("userId"),
-      query: c.req.query(),
-    });
-
-    return c.json(
-      {
-        success: false,
-        error: "Failed to filter jobs",
-        message: error.message,
-      },
-      500,
-    );
-  }
-});
-
-/**
- * GET /api/jobs/tags - Get all unique tags
- */
-jobManagementRoutes.get("/tags", async (c) => {
-  try {
-    const userId = c.get("userId");
-
-    const allJobs = await db.query.jobs.findMany({
-      where: eq(jobs.userId, userId),
-      columns: {
-        tags: true,
-      },
-    });
-
-    const allTags = new Set<string>();
-    for (const job of allJobs) {
-      if (job.tags) {
-        for (const tag of job.tags) {
-          allTags.add(tag);
-        }
-      }
-    }
-
-    const uniqueTags = Array.from(allTags).sort();
-
-    logger.info("job_tags_retrieved", "jobs", {
-      userId,
-      totalJobs: allJobs.length,
-      uniqueTags: uniqueTags.length,
-    });
-
-    return c.json({
-      success: true,
-      data: uniqueTags,
-    });
-  } catch (error) {
-    logger.error("get_job_tags_error", "jobs", {
-      error: error.message,
-      userId: c.get("userId"),
-    });
-
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get job tags",
-        message: error.message,
-      },
-      500,
-    );
-  }
-});
+export { jobManagementRoutes };

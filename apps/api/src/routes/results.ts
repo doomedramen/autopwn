@@ -21,6 +21,123 @@ const resultsQuerySchema = z.object({
   offset: z.string().transform(val => parseInt(val)).default('0'),
 })
 
+// IMPORTANT: Route order matters! Specific routes must be defined BEFORE parameterized routes.
+
+// GET /api/results/stats - Get statistics about results (MUST be before /:id)
+resultsRouter.get('/stats', async (c) => {
+  const userId = getUserId(c)
+
+  try {
+    // Count results by type
+    const resultsByType = await db
+      .select({
+        type: jobResults.type,
+        count: sql`count(*)`.mapWith(Number),
+      })
+      .from(jobResults)
+      .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
+      .where(eq(jobs.userId, userId))
+      .groupBy(jobResults.type)
+
+    // Count unique networks with cracked passwords
+    const [{ crackedNetworks }] = await db
+      .select({
+        crackedNetworks: sql`count(DISTINCT ${jobs.networkId})`.mapWith(Number),
+      })
+      .from(jobResults)
+      .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
+      .where(and(
+        eq(jobs.userId, userId),
+        eq(jobResults.type, 'password')
+      ))
+
+    // Total networks
+    const [{ totalNetworks }] = await db
+      .select({
+        totalNetworks: sql`count(*)`.mapWith(Number),
+      })
+      .from(networks)
+      .where(eq(networks.userId, userId))
+
+    logger.info('Results stats fetched', 'results', {
+      userId,
+      resultsByType,
+      crackedNetworks,
+      totalNetworks
+    })
+
+    return c.json({
+      success: true,
+      data: {
+        byType: resultsByType.reduce((acc, { type, count }) => {
+          acc[type] = count
+          return acc
+        }, {} as Record<string, number>),
+        crackedNetworks,
+        totalNetworks,
+        crackRate: totalNetworks > 0 ? (crackedNetworks / totalNetworks) * 100 : 0,
+      },
+    })
+  } catch (error) {
+    logger.error('Get results stats error', 'results', error instanceof Error ? error : new Error(String(error)))
+    return c.json({
+      success: false,
+      error: 'Failed to fetch results statistics',
+    }, 500)
+  }
+})
+
+// GET /api/results/passwords/cracked - Get only cracked passwords (MUST be before /:id)
+resultsRouter.get('/passwords/cracked', async (c) => {
+  const userId = getUserId(c)
+
+  try {
+    const crackedPasswords = await db
+      .select({
+        id: jobResults.id,
+        jobId: jobResults.jobId,
+        type: jobResults.type,
+        data: jobResults.data,
+        createdAt: jobResults.createdAt,
+        network: {
+          id: networks.id,
+          ssid: networks.ssid,
+          bssid: networks.bssid,
+          encryption: networks.encryption,
+        },
+        job: {
+          id: jobs.id,
+          name: jobs.name,
+        },
+      })
+      .from(jobResults)
+      .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
+      .innerJoin(networks, eq(jobs.networkId, networks.id))
+      .where(and(
+        eq(jobs.userId, userId),
+        eq(jobResults.type, 'password')
+      ))
+      .orderBy(desc(jobResults.createdAt))
+
+    logger.info('Cracked passwords fetched', 'results', {
+      userId,
+      count: crackedPasswords.length
+    })
+
+    return c.json({
+      success: true,
+      data: crackedPasswords,
+      count: crackedPasswords.length,
+    })
+  } catch (error) {
+    logger.error('Get cracked passwords error', 'results', error instanceof Error ? error : new Error(String(error)))
+    return c.json({
+      success: false,
+      error: 'Failed to fetch cracked passwords',
+    }, 500)
+  }
+})
+
 // GET /api/results - Get all results with filtering
 resultsRouter.get(
   '/',
@@ -84,7 +201,7 @@ resultsRouter.get(
 
       // Get total count for pagination
       const [{ count }] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql`count(*)`.mapWith(Number) })
         .from(jobResults)
         .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
         .where(eq(jobs.userId, userId))
@@ -251,7 +368,7 @@ resultsRouter.get('/by-network/:networkId', async (c) => {
   }
 })
 
-// GET /api/results/:id - Get a single result by ID
+// GET /api/results/:id - Get a single result by ID (MUST be last after all specific routes)
 resultsRouter.get('/:id', async (c) => {
   const id = c.req.param('id')
   const userId = getUserId(c)
@@ -312,120 +429,6 @@ resultsRouter.get('/:id', async (c) => {
     return c.json({
       success: false,
       error: 'Failed to fetch result',
-    }, 500)
-  }
-})
-
-// GET /api/results/passwords/cracked - Get only cracked passwords
-resultsRouter.get('/passwords/cracked', async (c) => {
-  const userId = getUserId(c)
-
-  try {
-    const crackedPasswords = await db
-      .select({
-        id: jobResults.id,
-        jobId: jobResults.jobId,
-        data: jobResults.data,
-        createdAt: jobResults.createdAt,
-        network: {
-          id: networks.id,
-          ssid: networks.ssid,
-          bssid: networks.bssid,
-          encryption: networks.encryption,
-        },
-        job: {
-          id: jobs.id,
-          name: jobs.name,
-        },
-      })
-      .from(jobResults)
-      .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
-      .innerJoin(networks, eq(jobs.networkId, networks.id))
-      .where(and(
-        eq(jobs.userId, userId),
-        eq(jobResults.type, 'password')
-      ))
-      .orderBy(desc(jobResults.createdAt))
-
-    logger.info('Cracked passwords fetched', 'results', {
-      userId,
-      count: crackedPasswords.length
-    })
-
-    return c.json({
-      success: true,
-      data: crackedPasswords,
-      count: crackedPasswords.length,
-    })
-  } catch (error) {
-    logger.error('Get cracked passwords error', 'results', error instanceof Error ? error : new Error(String(error)))
-    return c.json({
-      success: false,
-      error: 'Failed to fetch cracked passwords',
-    }, 500)
-  }
-})
-
-// GET /api/results/stats - Get statistics about results
-resultsRouter.get('/stats', async (c) => {
-  const userId = getUserId(c)
-
-  try {
-    // Count results by type
-    const resultsByType = await db
-      .select({
-        type: jobResults.type,
-        count: sql<number>`count(*)`,
-      })
-      .from(jobResults)
-      .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
-      .where(eq(jobs.userId, userId))
-      .groupBy(jobResults.type)
-
-    // Count unique networks with cracked passwords
-    const [{ crackedNetworks }] = await db
-      .select({
-        crackedNetworks: sql<number>`count(DISTINCT ${jobs.networkId})`,
-      })
-      .from(jobResults)
-      .innerJoin(jobs, eq(jobResults.jobId, jobs.id))
-      .where(and(
-        eq(jobs.userId, userId),
-        eq(jobResults.type, 'password')
-      ))
-
-    // Total networks
-    const [{ totalNetworks }] = await db
-      .select({
-        totalNetworks: sql<number>`count(*)`,
-      })
-      .from(networks)
-      .where(eq(networks.userId, userId))
-
-    logger.info('Results stats fetched', 'results', {
-      userId,
-      resultsByType,
-      crackedNetworks,
-      totalNetworks
-    })
-
-    return c.json({
-      success: true,
-      data: {
-        byType: resultsByType.reduce((acc, { type, count }) => {
-          acc[type] = count
-          return acc
-        }, {} as Record<string, number>),
-        crackedNetworks,
-        totalNetworks,
-        crackRate: totalNetworks > 0 ? (crackedNetworks / totalNetworks) * 100 : 0,
-      },
-    })
-  } catch (error) {
-    logger.error('Get results stats error', 'results', error instanceof Error ? error : new Error(String(error)))
-    return c.json({
-      success: false,
-      error: 'Failed to fetch results statistics',
     }, 500)
   }
 })

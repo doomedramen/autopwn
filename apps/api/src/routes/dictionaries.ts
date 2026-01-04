@@ -267,8 +267,8 @@ dictionariesRouter.delete("/:id", async (c) => {
   try {
     const [dictionary] = await db
       .select()
-      .from(dictionaries)
-      .where(eq(dictionaries.id, id))
+      .from(dictionariesSchema)
+      .where(eq(dictionariesSchema.id, id))
       .limit(1);
 
     if (!dictionary) {

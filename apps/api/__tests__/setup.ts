@@ -137,11 +137,17 @@ export const testHelpers = {
     const userId = overrides.id || uuidv4()
     const hashedPassword = await bcrypt.hash('testPassword123', 10)
 
+    // Generate unique email - either use provided email with suffix, or generate one
+    const baseEmail = overrides.email || 'test'
+    const uniqueEmail = overrides.email
+      ? `${baseEmail.replace('@', '-')}-${userId}@example.com`
+      : `test-${userId}@example.com`
+
     const [user] = await db
       .insert(schema.users)
       .values({
         id: userId,
-        email: overrides.email || `test-${userId}@example.com`,
+        email: uniqueEmail,
         name: overrides.name || 'Test User',
         role: overrides.role || 'user',
         emailVerified: overrides.emailVerified ?? true,
@@ -238,33 +244,49 @@ export const testHelpers = {
    */
   async createJob(
     userId: string,
-    networkId: string,
-    dictionaryId: string,
+    networkIdOrOverrides?: string | Partial<typeof schema.jobs.$inferInsert>,
+    dictionaryId?: string,
     overrides: Partial<typeof schema.jobs.$inferInsert> = {},
   ) {
     const db = getTestDb()
+
+    // Handle overloaded parameters
+    let finalNetworkId: string | null = null
+    let finalDictionaryId: string | null = null
+    let finalOverrides: Partial<typeof schema.jobs.$inferInsert> = {}
+
+    if (typeof networkIdOrOverrides === 'string') {
+      finalNetworkId = networkIdOrOverrides
+      finalDictionaryId = dictionaryId || null
+      finalOverrides = overrides
+    } else if (networkIdOrOverrides && typeof networkIdOrOverrides === 'object') {
+      finalOverrides = networkIdOrOverrides
+      finalNetworkId = networkIdOrOverrides.networkId || null
+      finalDictionaryId = networkIdOrOverrides.dictionaryId || null
+    }
+
     const [job] = await db
       .insert(schema.jobs)
       .values({
-        name: overrides.name || 'Test Job',
-        description: overrides.description || 'Test job description',
-        status: overrides.status || 'pending',
-        priority: overrides.priority || 'normal',
-        networkId,
-        dictionaryId,
-        config: overrides.config || { hashcatMode: 22000 },
-        progress: overrides.progress || 0,
-        startTime: overrides.startTime || null,
-        endTime: overrides.endTime || null,
-        result: overrides.result || null,
-        errorMessage: overrides.errorMessage || null,
+        name: finalOverrides.name || 'Test Job',
+        description: finalOverrides.description || 'Test job description',
+        status: finalOverrides.status || 'pending',
+        priority: finalOverrides.priority || 'normal',
+        networkId: finalNetworkId,
+        dictionaryId: finalDictionaryId,
+        config: finalOverrides.config || { hashcatMode: 22000 },
+        progress: finalOverrides.progress || 0,
+        startTime: finalOverrides.startTime || null,
+        endTime: finalOverrides.endTime || null,
+        result: finalOverrides.result || null,
+        errorMessage: finalOverrides.errorMessage || null,
         userId,
-        createdAt: overrides.createdAt || new Date(),
-        updatedAt: overrides.updatedAt || new Date(),
-        scheduledAt: overrides.scheduledAt || null,
-        cancelledAt: overrides.cancelledAt || null,
-        dependsOn: overrides.dependsOn || null,
-        tags: overrides.tags || [],
+        createdAt: finalOverrides.createdAt || new Date(),
+        updatedAt: finalOverrides.updatedAt || new Date(),
+        scheduledAt: finalOverrides.scheduledAt || null,
+        cancelledAt: finalOverrides.cancelledAt || null,
+        dependsOn: finalOverrides.dependsOn || null,
+        tags: finalOverrides.tags || [],
       })
       .returning()
 
@@ -360,9 +382,8 @@ afterAll(async () => {
   await closeTestDatabase()
 })
 
-// Clean database before each test suite
-beforeEach(async () => {
-  // Clean only between describe blocks, not between individual tests
-  // This allows tests in a describe block to share data
-  await cleanDatabase()
-})
+// Clean database before each test file runs - REMOVED
+// Tests should use unique data to avoid conflicts
+// beforeEach(async () => {
+//   await cleanDatabase()
+// })
