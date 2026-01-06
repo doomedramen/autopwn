@@ -56,7 +56,7 @@ docker compose logs backend | grep -A 2 "Initial Superuser"
 
 You'll see:
 ```
-Email: admin@autopwn.local
+Email: admin@crackhouse.local
 Password: <random-password>
 ```
 

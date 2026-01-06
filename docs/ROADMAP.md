@@ -1,10 +1,10 @@
 # Roadmap
 
-Future plans and feature development for autopwn.
+Future plans and feature development for crackhouse.
 
 ## Current Version: v0.1.0 (Planning)
 
-This document outlines the planned features and improvements for autopwn.
+This document outlines the planned features and improvements for crackhouse.
 
 ## Release Timeline
 
@@ -154,7 +154,7 @@ This document outlines the planned features and improvements for autopwn.
 
 The Pwnagotchi auto-upload plugin eliminates manual file transfer, creating a seamless workflow:
 1. Pwnagotchi captures handshakes in the field
-2. When WiFi is available, automatically uploads to autopwn
+2. When WiFi is available, automatically uploads to crackhouse
 3. User receives notification of new captures
 4. User can immediately create cracking jobs from web interface
 5. Results available without any manual file handling
@@ -178,7 +178,7 @@ Content-Type: multipart/form-data
 ```
 
 **Python Plugin:**
-Location: `apps/pwnagotchi-plugin/autopwn_uploader.py`
+Location: `apps/pwnagotchi-plugin/crackhouse_uploader.py`
 
 Features:
 - Single-file Python script
@@ -190,9 +190,9 @@ Features:
 - Minimal dependencies (requests library only)
 
 **User Workflow:**
-1. Generate API key in autopwn web interface
+1. Generate API key in crackhouse web interface
 2. Install plugin on Pwnagotchi
-3. Configure plugin with autopwn URL and API key
+3. Configure plugin with crackhouse URL and API key
 4. Plugin auto-uploads new handshakes when online
 
 ---
@@ -362,7 +362,7 @@ Features:
 **v0.4.0 - API & SDK:**
 - [ ] OpenAPI/Swagger documentation
 - [ ] REST API stability guarantee
-- [ ] CLI tool for autopwn
+- [ ] CLI tool for crackhouse
 - [ ] Python SDK
 - [ ] JavaScript/TypeScript SDK
 
@@ -434,7 +434,7 @@ Features:
 Features requested by the community will be prioritized and added here.
 
 **How to request features:**
-1. Open a [GitHub Issue](https://github.com/yourusername/autopwn/issues)
+1. Open a [GitHub Issue](https://github.com/yourusername/crackhouse/issues)
 2. Use the "Feature Request" template
 3. Describe the use case and expected behavior
 4. Upvote existing requests you'd like to see
@@ -511,8 +511,8 @@ Want to help build these features?
 
 Have suggestions for the roadmap?
 
-- **GitHub Discussions:** [Share ideas](https://github.com/yourusername/autopwn/discussions)
-- **GitHub Issues:** [Feature requests](https://github.com/yourusername/autopwn/issues)
+- **GitHub Discussions:** [Share ideas](https://github.com/yourusername/crackhouse/discussions)
+- **GitHub Issues:** [Feature requests](https://github.com/yourusername/crackhouse/issues)
 - **Discord:** Join our community server (TBD)
 
 ---

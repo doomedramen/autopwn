@@ -50,7 +50,7 @@ class EmailService {
         },
         from: await configService.getString(
           "email-from",
-          "noreply@autopwn.local",
+          "noreply@crackhouse.local",
         ),
       };
 
@@ -96,7 +96,7 @@ class EmailService {
         const info = await this.transporter.sendMail({
           from: await configService.getString(
             "email-from",
-            "noreply@autopwn.local",
+            "noreply@crackhouse.local",
           ),
           to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
           subject: options.subject,

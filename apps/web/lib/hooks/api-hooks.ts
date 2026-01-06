@@ -56,7 +56,7 @@ export function useAuthSession() {
 export function useNetworks(filters?: NetworkFilters) {
   return useQuery({
     queryKey: ['networks', filters],
-    queryFn: () => ApiClient.get<PaginatedResponse<Network>>('/networks', filters),
+    queryFn: () => ApiClient.get<PaginatedResponse<Network>>('/networks', filters as Record<string, unknown> | undefined),
     staleTime: 30 * 1000, // 30 seconds
   });
 }

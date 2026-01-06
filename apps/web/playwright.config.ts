@@ -1,41 +1,62 @@
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// require('dotenv').config();
+// ES module compatibility for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env.test file manually to avoid dotenv dependency
+try {
+  const envPath = path.resolve(process.cwd(), ".env.test");
+  const envContent = readFileSync(envPath, "utf-8");
+  envContent.split("\n").forEach((line) => {
+    const [key, ...valueParts] = line.split("=");
+    if (key && !key.startsWith("#") && valueParts.length > 0) {
+      const value = valueParts.join("=").trim();
+      process.env[key] = value;
+    }
+  });
+} catch {
+  // .env.test file not found, use existing env vars
+}
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './tests/specs',
+  testDir: "./tests/specs",
   /* Run tests in parallel for better performance */
-  fullyParallel: true,
+  fullyParallel: false,
+  /* Stop on first failure for debugging */
+  maxFailures: 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Enable retries for flaky tests */
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
   /* Use multiple workers for faster execution */
-  workers: process.env.CI ? 1 : 1,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI
-    ? [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']]
-    : [['html', { outputFolder: 'playwright-report', open: 'never' }], ['list']],
+    ? [["html", { outputFolder: "playwright-report", open: "never" }], ["list"]]
+    : [
+        ["html", { outputFolder: "playwright-report", open: "never" }],
+        ["list"],
+      ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || "http://localhost:3000",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'retain-on-failure',
+    trace: "retain-on-failure",
 
     /* Take screenshot on failure */
-    screenshot: 'only-on-failure',
+    screenshot: "only-on-failure",
 
     /* Enable video recording for debugging failed tests */
-    video: 'retain-on-failure',
+    video: "retain-on-failure",
 
     /* Viewport settings */
     viewport: { width: 1280, height: 720 },
@@ -51,18 +72,16 @@ export default defineConfig({
   /* Configure projects - test on Chromium only for focused testing */
   projects: [
     {
-      name: 'setup',
-      testDir: './tests',
-      testMatch: /.*\.setup\.ts/,
+      name: "setup",
+      testMatch: /.*\.setup\.global\.ts/,
     },
     {
-      name: 'chromium',
+      name: "chromium",
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 720 },
-        storageState: 'playwright/.auth/user.json'
       },
-      dependencies: ['setup'],
+      dependencies: ["setup"],
     },
     // Temporarily disabled other browsers for focused testing
     // {
@@ -85,15 +104,31 @@ export default defineConfig({
     // }
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'cd ../.. && SKIP_WEB_SERVER=false NODE_ENV=test PORT=3000 BASE_URL=http://localhost:3000 pnpm run dev',
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000, // 2 minutes
-  },
-  
+  /* Run both API and frontend servers before starting tests */
+  webServer: [
+    {
+      // API Server (Hono) - PORT=3001 explicitly set since dotenv-flow may not load without base .env
+      command: "NODE_ENV=test PORT=3001 pnpm run dev",
+      cwd: path.resolve(__dirname, "../../apps/api"),
+      url: "http://localhost:3001/health",
+      reuseExistingServer: !process.env.CI,
+      timeout: 60 * 1000, // 1 minute - API starts faster
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      // Frontend Server (Next.js)
+      command: "NODE_ENV=test PORT=3000 pnpm run dev",
+      cwd: __dirname,
+      url: "http://localhost:3000",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000, // 2 minutes - Next.js needs more time
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  ],
+
   // Global setup for resource management
-  globalSetup: './tests/global-setup',
-  globalTeardown: './tests/global-teardown',
-})
+  globalSetup: "./tests/global-setup.ts",
+  globalTeardown: "./tests/global-teardown.ts",
+});

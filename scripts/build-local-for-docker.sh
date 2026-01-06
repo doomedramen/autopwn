@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AutoPWN Local Build Script for Docker Production
+# CrackHouse Local Build Script for Docker Production
 # This script builds the applications locally before Docker deployment
 
 set -e  # Exit on any error
@@ -207,7 +207,7 @@ main() {
         esac
     done
 
-    print_status "Starting AutoPWN local build for Docker production..."
+    print_status "Starting CrackHouse local build for Docker production..."
 
     # Run build steps
     check_pnpm

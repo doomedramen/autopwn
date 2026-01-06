@@ -24,7 +24,7 @@ function getPasswordForEnvironment(): string {
 }
 
 export async function createSuperUser() {
-  const email = 'admin@autopwn.local'
+  const email = 'admin@crackhouse.local'
   const password = getPasswordForEnvironment();
 
   try {

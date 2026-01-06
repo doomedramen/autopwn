@@ -1,4 +1,4 @@
-# AutoPWN API
+# CrackHouse API
 
 A comprehensive backend API for WiFi penetration testing tools, built with Hono, Better-Auth, Drizzle ORM, and BullMQ.
 

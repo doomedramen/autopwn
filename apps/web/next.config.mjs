@@ -1,9 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@workspace/ui"],
-  env: process.env.NODE_ENV === 'test' ? {
-    NEXT_PUBLIC_API_URL: 'http://localhost:3001',
-  } : {},
+  // Don't set NEXT_PUBLIC_API_URL - use the Next.js rewrite proxy instead
+  // This ensures cookies work correctly for authentication
+  async rewrites() {
+    const apiUrl = process.env.API_URL || 'http://localhost:3001'
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${apiUrl}/api/:path*`,
+      },
+    ]
+  },
 }
 
 export default nextConfig

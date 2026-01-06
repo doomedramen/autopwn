@@ -155,7 +155,7 @@ class WebSocketServer {
     this.sendMessage(clientId, {
       type: 'system',
       data: {
-        message: 'Connected to AutoPWN WebSocket server',
+        message: 'Connected to CrackHouse WebSocket server',
         level: 'info',
         timestamp: new Date().toISOString()
       }

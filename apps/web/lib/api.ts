@@ -44,7 +44,7 @@ apiClient.interceptors.response.use(
     // Handle different types of errors
     if (error.response) {
       // Server responded with error status
-      const message = error.response.data?.error || error.response.data?.message || error.message;
+      const message = (error.response.data as any)?.error || error.response.data?.message || error.message;
       throw new Error(message);
     } else if (error.request) {
       // Request was made but no response received
@@ -77,8 +77,8 @@ export class ApiClient {
     return response.data;
   }
 
-  static async delete<T>(url: string): Promise<T> {
-    const response = await apiClient.delete<T>(url);
+  static async delete<T>(url: string, params?: Record<string, unknown>): Promise<T> {
+    const response = await apiClient.delete<T>(url, { params });
     return response.data;
   }
 
@@ -109,7 +109,7 @@ export class ResultsApi {
   }) {
     return ApiClient.get<{
       success: boolean;
-      data: JobResult[];
+      data: any[];
       count: number;
       pagination: {
         total: number;
@@ -123,7 +123,7 @@ export class ResultsApi {
   static async getResultsByJob(jobId: string) {
     return ApiClient.get<{
       success: boolean;
-      data: JobResult[];
+      data: any[];
       count: number;
     }>(`/api/results/by-job/${jobId}`);
   }
@@ -131,7 +131,7 @@ export class ResultsApi {
   static async getResultsByNetwork(networkId: string) {
     return ApiClient.get<{
       success: boolean;
-      data: JobResult[];
+      data: any[];
       count: number;
       network: {
         id: string;
@@ -145,14 +145,14 @@ export class ResultsApi {
   static async getResult(id: string) {
     return ApiClient.get<{
       success: boolean;
-      data: JobResult;
+      data: any;
     }>(`/api/results/${id}`);
   }
 
   static async getCrackedPasswords() {
     return ApiClient.get<{
       success: boolean;
-      data: JobResult[];
+      data: any[];
       count: number;
     }>('/api/results/passwords/cracked');
   }

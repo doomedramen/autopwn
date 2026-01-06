@@ -2,7 +2,7 @@
 
 ## System Design
 
-autopwn is built as a microservices-oriented application with clear separation between frontend, backend, database, and worker services.
+crackhouse is built as a microservices-oriented application with clear separation between frontend, backend, database, and worker services.
 
 ## High-Level Architecture
 

@@ -8,7 +8,7 @@ INSERT INTO config (id, value, description, category, type, default_value, min_v
   ('email-secure', 'false', 'Use SSL/TLS for SMTP connection', 'general', 'boolean', 'false', NULL, NULL, false, false, NOW(), NULL),
   ('email-user', '', 'SMTP authentication username', 'general', 'string', '', NULL, NULL, false, false, NOW(), NULL),
   ('email-password', '', 'SMTP authentication password', 'general', 'string', '', NULL, NULL, false, false, NOW(), NULL),
-  ('email-from', 'noreply@autopwn.local', 'From email address for system emails', 'general', 'string', 'noreply@autopwn.local', NULL, NULL, false, false, NOW(), NULL),
+  ('email-from', 'noreply@crackhouse.local', 'From email address for system emails', 'general', 'string', 'noreply@crackhouse.local', NULL, NULL, false, false, NOW(), NULL),
   ('email-enabled', 'false', 'Enable email notifications', 'general', 'boolean', 'false', NULL, NULL, false, false, NOW(), NULL);
 
 -- Email notification preferences

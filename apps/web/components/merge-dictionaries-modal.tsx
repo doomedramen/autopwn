@@ -98,7 +98,7 @@ export function MergeDictionariesModal({
                   no dictionaries available
                 </p>
               ) : (
-                dictionariesData?.data.map((dictionary) => (
+                dictionariesData?.data.map((dictionary: any) => (
                   <div
                     key={dictionary.id}
                     className={`flex items-center gap-3 p-2 rounded border cursor-pointer hover:bg-muted ${
@@ -111,7 +111,6 @@ export function MergeDictionariesModal({
                     <Checkbox
                       id={`dict-${dictionary.id}`}
                       checked={selectedDictionaries.has(dictionary.id)}
-                      readOnly
                     />
                     <div className="flex-1">
                       <label

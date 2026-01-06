@@ -102,7 +102,7 @@ app.get('/health', publicApiCORS(), (c) => {
   return c.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    service: 'autopwn-api',
+    service: 'crackhouse-api',
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development'
   })
@@ -111,7 +111,7 @@ app.get('/health', publicApiCORS(), (c) => {
 // Basic API info route - Public CORS
 app.get('/api/info', publicApiCORS(), (c) => {
   return c.json({
-    message: 'AutoPWN API is working',
+    message: 'CrackHouse API is working',
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
     endpoints: [
@@ -181,7 +181,7 @@ app.notFound((c) => {
 
 const port = parseInt(process.env.PORT || '3001')
 
-console.log(`🚀 AutoPWN API Server starting on port ${port}`)
+console.log(`🚀 CrackHouse API Server starting on port ${port}`)
 console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`)
 console.log(`🔗 Health check: http://localhost:${port}/health`)
 

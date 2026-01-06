@@ -59,12 +59,12 @@ export function StatsCards() {
 
   // Calculate stats
   const networks = networksData?.data || [];
-  const networksWithHandshakes = networks.filter(n => n.key).length;
+  const networksWithHandshakes = networks.filter((n: any) => n.key).length;
   const dictionaries = dictionariesData?.data || [];
-  const totalWords = dictionaries.reduce((sum, dict) => sum + (dict.wordCount || 0), 0);
+  const totalWords = dictionaries.reduce((sum: number, dict: any) => sum + (dict.wordCount || 0), 0);
   const jobs = jobsData?.data || [];
-  const activeJobs = jobs.filter(job => job.status === 'running').length;
-  const completedJobs = jobs.filter(job => job.status === 'completed').length;
+  const activeJobs = jobs.filter((job: any) => job.status === 'running').length;
+  const completedJobs = jobs.filter((job: any) => job.status === 'completed').length;
   const totalJobs = jobs.length;
   const successRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 

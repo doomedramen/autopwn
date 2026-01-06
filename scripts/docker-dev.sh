@@ -126,7 +126,7 @@ case "$COMMAND" in
         ;;
     "db")
         print_status "Opening PostgreSQL shell..."
-        docker-compose exec database psql -U postgres -d autopwn_development
+        docker-compose exec database psql -U postgres -d crackhouse_development
         ;;
     "redis")
         print_status "Opening Redis shell..."

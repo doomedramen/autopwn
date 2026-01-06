@@ -147,7 +147,7 @@ class EmailService {
   </div>
 
   <div style="text-align: center; font-size: 12px; color: #95a5a6;">
-    <p>AutoPWN - Automated WiFi Handshake Cracking</p>
+    <p>CrackHouse - where handshakes go to break</p>
     <p>This is an automated message, please do not reply.</p>
   </div>
 </body>
@@ -167,7 +167,7 @@ If you didn't create an account with AutoPWN, you can safely ignore this email.
 This link will expire in 24 hours for security reasons.
 
 ---
-AutoPWN - Automated WiFi Handshake Cracking
+CrackHouse - where handshakes go to break
 This is an automated message, please do not reply.
     `
 
@@ -217,7 +217,7 @@ This is an automated message, please do not reply.
   </div>
 
   <div style="text-align: center; font-size: 12px; color: #95a5a6;">
-    <p>AutoPWN - Automated WiFi Handshake Cracking</p>
+    <p>CrackHouse - where handshakes go to break</p>
     <p>This is an automated message, please do not reply.</p>
   </div>
 </body>
@@ -237,7 +237,7 @@ If you didn't request a password reset, you can safely ignore this email. Your p
 This link will expire in 1 hour for security reasons.
 
 ---
-AutoPWN - Automated WiFi Handshake Cracking
+CrackHouse - where handshakes go to break
 This is an automated message, please do not reply.
     `
 

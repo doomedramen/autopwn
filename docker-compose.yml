@@ -1,4 +1,4 @@
-# AutoPWN Docker Compose Configuration
+# CrackHouse Docker Compose Configuration
 # This file provides services for development and testing environments
 
 # Environment variable guidance:
@@ -12,7 +12,7 @@ x-app-environment: &app-environment
   PORT: 3001
 
   # Database configuration
-  DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@database:5432/autopwn_${NODE_ENV:-development}
+  DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@database:5432/crackhouse_${NODE_ENV:-development}
 
   # Redis configuration
   REDIS_URL: redis://redis:6379
@@ -47,9 +47,9 @@ services:
   # PostgreSQL Database
   database:
     image: postgres:16-alpine
-    container_name: autopwn-db-${NODE_ENV:-development}
+    container_name: crackhouse-db-${NODE_ENV:-development}
     environment:
-      POSTGRES_DB: autopwn_${NODE_ENV:-development}
+      POSTGRES_DB: crackhouse_${NODE_ENV:-development}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
@@ -66,12 +66,12 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
 
   # Redis for job queues
   redis:
     image: redis:7-alpine
-    container_name: autopwn-redis-${NODE_ENV:-development}
+    container_name: crackhouse-redis-${NODE_ENV:-development}
     ports:
       - "6379:6379"
     volumes:
@@ -86,7 +86,7 @@ services:
       start_period: 10s
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
 
   # API Service (Development)
   api:
@@ -96,7 +96,7 @@ services:
       target: development
       args:
         NODE_ENV: ${NODE_ENV:-development}
-    container_name: autopwn-api-${NODE_ENV:-development}
+    container_name: crackhouse-api-${NODE_ENV:-development}
     environment:
       <<: *app-environment
     ports:
@@ -115,7 +115,7 @@ services:
       start_period: 60s
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
     profiles:
       - dev
       - test
@@ -126,7 +126,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    container_name: autopwn-worker-${NODE_ENV:-development}
+    container_name: crackhouse-worker-${NODE_ENV:-development}
     environment:
       <<: *app-environment
     command: sh -c "cd /app/apps/api && /app/apps/api/node_modules/.bin/tsx src/workers/index.ts"
@@ -146,7 +146,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
     profiles:
       - dev
       - test
@@ -159,7 +159,7 @@ services:
       target: development
       args:
         NODE_ENV: ${NODE_ENV:-development}
-    container_name: autopwn-web-${NODE_ENV:-development}
+    container_name: crackhouse-web-${NODE_ENV:-development}
     environment:
       <<: *web-environment
     ports:
@@ -173,14 +173,14 @@ services:
       - api
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
     profiles:
       - dev
 
   # Database Administration
   adminer:
     image: adminer:latest
-    container_name: autopwn-adminer-${NODE_ENV:-development}
+    container_name: crackhouse-adminer-${NODE_ENV:-development}
     ports:
       - "1337:1337"
     environment:
@@ -189,7 +189,7 @@ services:
       - database
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
     profiles:
       - dev
       - tools
@@ -197,7 +197,7 @@ services:
   # Redis Administration
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: autopwn-redis-ui-${NODE_ENV:-development}
+    container_name: crackhouse-redis-ui-${NODE_ENV:-development}
     ports:
       - "8081:8081"
     environment:
@@ -206,7 +206,7 @@ services:
       - redis
     restart: unless-stopped
     networks:
-      - autopwn-network
+      - crackhouse-network
     profiles:
       - dev
       - tools
@@ -226,5 +226,5 @@ volumes:
     driver: local
 
 networks:
-  autopwn-network:
+  crackhouse-network:
     driver: bridge

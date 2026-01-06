@@ -77,7 +77,7 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }),
   emailVerified: boolean("email_verified").default(false),
   image: varchar("image", { length: 500 }),
-  role: roleEnum("role").default("user").notNull(), // AutoPWN custom field
+  role: roleEnum("role").default("user").notNull(), // CrackHouse custom field
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -316,7 +316,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
 
 // Drizzle relations for query API
-export const jobsRelations = relations(jobs, ({ one }) => ({
+export const jobsRelations = relations(jobs, ({ one, many }) => ({
   network: one(networks, {
     fields: [jobs.networkId],
     references: [networks.id],
@@ -325,6 +325,7 @@ export const jobsRelations = relations(jobs, ({ one }) => ({
     fields: [jobs.dictionaryId],
     references: [dictionaries.id],
   }),
+  results: many(jobResults),
 }));
 
 export const networksRelations = relations(networks, ({ many }) => ({

@@ -227,7 +227,7 @@ export function DictionariesTab({ className }: DictionariesTabProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-card divide-y">
-                  {dictionariesData?.data.map((dictionary) => (
+                  {dictionariesData?.data.map((dictionary: any) => (
                     <tr key={dictionary.id} className="hover:bg-muted/50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>

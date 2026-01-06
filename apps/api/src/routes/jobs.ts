@@ -50,6 +50,7 @@ jobManagementRoutes.get("/", async (c) => {
       with: {
         network: true,
         dictionary: true,
+        results: true,
       },
       limit,
       offset,
@@ -73,7 +74,7 @@ jobManagementRoutes.get("/", async (c) => {
     });
   } catch (error) {
     logger.error("get_jobs_error", "jobs", {
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error || "Unknown error"),
       userId: c.get("userId"),
     });
 
@@ -267,10 +268,10 @@ jobManagementRoutes.get("/filter", async (c) => {
         whereConditions.length > 1
           ? and(...whereConditions)
           : whereConditions[0],
-      orderBy: sortOrder === "asc" ? [asc(jobs[sortBy])] : [desc(jobs[sortBy])],
       with: {
         network: true,
         dictionary: true,
+        results: true,
       },
       limit: limitNum,
       offset,
@@ -530,6 +531,7 @@ jobManagementRoutes.get("/:id", async (c) => {
       with: {
         network: true,
         dictionary: true,
+        results: true,
       },
     });
 

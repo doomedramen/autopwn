@@ -27,11 +27,11 @@ export function AvatarDropdown() {
   // Fallback user data if session is not available
   const user = session?.user || {
     name: 'Admin User',
-    email: 'admin@autopwn.local'
+    email: 'admin@crackhouse.local'
   };
 
   return (
-    <DropdownMenu data-testid="avatar-dropdown">
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="h-8 w-8 cursor-pointer" data-testid="user-menu">
           <AvatarFallback className="bg-primary text-primary-foreground">
@@ -39,12 +39,12 @@ export function AvatarDropdown() {
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end" forceMount data-testid="avatar-dropdown">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name || 'Admin User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email || 'admin@autopwn.local'}
+              {user.email || 'admin@crackhouse.local'}
             </p>
           </div>
         </DropdownMenuLabel>

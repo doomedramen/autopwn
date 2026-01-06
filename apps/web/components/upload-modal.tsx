@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Uppy from '@uppy/core';
 import XHRUpload from '@uppy/xhr-upload';
-import Dashboard from '@uppy/dashboard';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +38,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
 
   const initializeUppy = useCallback((type: UploadType) => {
     const uppy = new Uppy({
-      id: `autopwn-uppy-${type}`,
+      id: `crackhouse-uppy-${type}`,
       autoProceed: false,
       restrictions: {
         maxFileSize: type === 'pcap' ? 500 * 1024 * 1024 : 10 * 1024 * 1024 * 1024, // 500MB for PCAP, 10GB for dictionaries
@@ -47,16 +46,6 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
         allowedFileTypes: type === 'pcap' ? ['.pcap', '.cap'] : ['.txt', '.lst', '.dict', '.wordlist'],
       },
       debug: process.env.NODE_ENV === 'development',
-    });
-
-    // Add Dashboard plugin for better UI
-    uppy.use(Dashboard, {
-      inline: false, // Will be used with React component
-      target: type === 'pcap' ? '#pcap-dashboard' : '#dictionary-dashboard',
-      width: '100%',
-      height: 400,
-      plugins: ['FileInput', 'ProgressBar', 'StatusBar'],
-      proudlyHostedByUppy: false,
     });
 
     // Add XHR Upload plugin
@@ -70,12 +59,11 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       },
       timeout: type === 'pcap' ? 120000 : 600000, // 2 min for PCAP, 10 min for large dictionaries
       limit: 3, // Number of concurrent uploads
-      chunkSize: type === 'pcap' ? 5000000 : 10000000, // 5MB chunks for PCAP, 10MB for dictionaries
     });
 
     // Handle upload progress
-    uppy.on('upload-progress', (data) => {
-      setUploadProgress(prev => ({ ...prev, [type]: data.progress }));
+    uppy.on('upload-progress', (data: any) => {
+      setUploadProgress(prev => ({ ...prev, [type]: data?.progress ?? 0 }));
     });
 
     // Handle upload success
@@ -94,8 +82,8 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
     });
 
     // Handle complete event
-    uppy.on('complete', (result) => {
-      if (result.successful.length > 0) {
+    uppy.on('complete', (result: any) => {
+      if (result.successful?.length > 0) {
         setUploadStatus(prev => ({ ...prev, [type]: 'success' }));
         setTimeout(() => {
           setUploadStatus(prev => ({ ...prev, [type]: 'idle' }));
@@ -126,11 +114,12 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
     return () => {
       if (!open) {
         // Clean up Uppy instances safely
-        if (uppyInstances.pcap && typeof uppyInstances.pcap.close === 'function') {
-          uppyInstances.pcap.close();
+        const instances = uppyInstances as any;
+        if (instances.pcap && typeof instances.pcap.close === 'function') {
+          instances.pcap.close();
         }
-        if (uppyInstances.dictionary && typeof uppyInstances.dictionary.close === 'function') {
-          uppyInstances.dictionary.close();
+        if (instances.dictionary && typeof instances.dictionary.close === 'function') {
+          instances.dictionary.close();
         }
         setUppyInstances({ pcap: null, dictionary: null });
         setUploadStatus({ pcap: 'idle', dictionary: 'idle' });
@@ -212,7 +201,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
 
         {/* Uppy Dashboard */}
         <div className="border rounded-lg p-4">
-          <div id={type === 'pcap' ? 'pcap-dashboard' : 'dictionary-dashboard'}>
+          <div>
             {uppy && (
               <div
                 className="min-h-[200px] border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-500"
@@ -239,7 +228,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
               Selected Files ({files.length})
             </h4>
             <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
-              {files.map((file) => (
+              {files.map((file: any) => (
                 <div key={file.id} className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -251,7 +240,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
                     </div>
                   </div>
                   <button
-                    onClick={() => uppy.removeFile(file.id)}
+                    onClick={() => uppy?.removeFile(file.id)}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <X className="h-4 w-4" />

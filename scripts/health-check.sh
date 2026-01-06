@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AutoPWN Health Check Script
+# CrackHouse Health Check Script
 # Performs comprehensive system health diagnostics
 
 set -e
@@ -101,7 +101,7 @@ check_permissions() {
     fi
 }
 
-print_status "AutoPWN System Health Check"
+print_status "CrackHouse System Health Check"
 echo "================================"
 
 # Check system dependencies
@@ -140,10 +140,10 @@ echo ""
 # Check Docker containers
 print_status "Checking Docker Containers..."
 
-check_container "autopwn-db-development" "Database"
-check_container "autopwn-redis-development" "Redis"
-check_container "autopwn-api-development" "API"
-check_container "autopwn-web-development" "Web"
+check_container "crackhouse-db-development" "Database"
+check_container "crackhouse-redis-development" "Redis"
+check_container "crackhouse-api-development" "API"
+check_container "crackhouse-web-development" "Web"
 
 echo ""
 
@@ -168,8 +168,8 @@ echo ""
 # Check database connectivity
 print_status "Checking Database Connectivity..."
 
-if docker ps --filter "name=autopwn-db-development" --format "{{.Status}}" | grep -q "Up"; then
-    if docker-compose exec -T database psql -U postgres -d autopwn_development -c "SELECT 1;" >/dev/null 2>&1; then
+if docker ps --filter "name=crackhouse-db-development" --format "{{.Status}}" | grep -q "Up"; then
+    if docker-compose exec -T database psql -U postgres -d crackhouse_development -c "SELECT 1;" >/dev/null 2>&1; then
         print_success "Database connection successful"
     else
         print_error "Database connection failed"
@@ -183,7 +183,7 @@ echo ""
 # Check Redis connectivity
 print_status "Checking Redis Connectivity..."
 
-if docker ps --filter "name=autopwn-redis-development" --format "{{.Status}}" | grep -q "Up"; then
+if docker ps --filter "name=crackhouse-redis-development" --format "{{.Status}}" | grep -q "Up"; then
     if docker-compose exec -T redis redis-cli ping >/dev/null 2>&1; then
         if [ "$(docker-compose exec -T redis redis-cli ping)" = "PONG" ]; then
             print_success "Redis connection successful"
@@ -301,7 +301,7 @@ print_status "Checking Recent Errors..."
 
 error_count=0
 for service in database redis api web; do
-    if docker ps --filter "name=autopwn-$service-development" --format "{{.Status}}" | grep -q "Up"; then
+    if docker ps --filter "name=crackhouse-$service-development" --format "{{.Status}}" | grep -q "Up"; then
         service_errors=$(docker-compose logs --tail=50 "$service" 2>&1 | grep -i "error\|failed\|exception" | wc -l)
         if [ "$service_errors" -gt 0 ]; then
             print_warning "$service has $service_errors recent error(s)"

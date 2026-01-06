@@ -70,7 +70,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       // Determine WebSocket URL based on current environment
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
       const wsHost = window.location.host
-      const wsUrl = `${protocol}//${wsHost.replace(':3001', ':3002')}?userId=${authData?.session?.user?.id || 'anonymous'}`
+      const wsUrl = `${protocol}//${wsHost.replace(':3001', ':3002')}?userId=${(authData as any)?.user?.id || 'anonymous'}`
 
       wsRef.current = new WebSocket(wsUrl)
 
@@ -88,7 +88,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         }, 30000) // Ping every 30 seconds
 
         // Subscribe to user's jobs
-        wsRef.current.send(JSON.stringify({
+        wsRef.current?.send(JSON.stringify({
           type: 'subscribe',
           data: { channel: 'user_jobs' }
         }))
@@ -195,14 +195,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Auto-connect when auth session is available
   useEffect(() => {
-    if (authData?.session?.user?.id) {
+    if ((authData as any)?.user?.id) {
       connect()
     }
 
     return () => {
       disconnect()
     }
-  }, [authData?.session?.user?.id, connect, disconnect])
+  }, [(authData as any)?.user?.id, connect, disconnect])
 
   // Cleanup on unmount
   useEffect(() => {

@@ -15,7 +15,7 @@ function getMigrationClient() {
       max: 1,
       connect_timeout: 10, // 10 seconds timeout
       connection: {
-        application_name: "autopwn-migration",
+        application_name: "crackhouse-migration",
       },
     });
   }
@@ -27,7 +27,7 @@ function getQueryClient() {
     queryClientInstance = postgres(process.env.DATABASE_URL!, {
       connect_timeout: 10, // 10 seconds timeout
       connection: {
-        application_name: "autopwn-app",
+        application_name: "crackhouse-app",
       },
     });
   }

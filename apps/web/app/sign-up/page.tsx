@@ -31,8 +31,10 @@ export default function SignUpPage() {
         credentials: 'include',
       })
 
-      if (!response.ok) {
-        const data = await response.json()
+      const data = await response.json()
+
+      // Better Auth returns 200 OK even for errors - check for error code in response
+      if (data.code) {
         throw new Error(data.message || 'Sign up failed')
       }
 
@@ -49,7 +51,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* AutoPWN Branding */}
+        {/* CrackHouse Branding */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="h-12 w-12 bg-primary rounded-lg flex items-center justify-center">
@@ -59,7 +61,7 @@ export default function SignUpPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold font-mono uppercase tracking-wider text-foreground" data-testid="branding-title">
-                AutoPWN
+                CrackHouse
               </h1>
               <p className="text-sm text-muted-foreground font-mono">
                 Network Security Platform

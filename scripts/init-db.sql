@@ -1,9 +1,9 @@
 -- ==============================================================================
--- AutoPWN Database Initialization Script
+-- CrackHouse Database Initialization Script
 -- ==============================================================================
 -- This script runs when PostgreSQL containers are first created via the
 -- docker-entrypoint-initdb.d mechanism. It configures the database for
--- optimal performance and security for AutoPWN workloads.
+-- optimal performance and security for CrackHouse workloads.
 --
 -- IMPORTANT NOTES:
 -- 1. This script runs BEFORE the server is fully started
@@ -15,7 +15,7 @@
 -- ------------------------------------------------------------------------------
 -- EXTENSIONS
 -- ------------------------------------------------------------------------------
--- Create PostgreSQL extensions required by AutoPWN
+-- Create PostgreSQL extensions required by CrackHouse
 
 -- UUID generation for primary keys
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -76,11 +76,11 @@ ALTER SYSTEM SET log_min_duration_statement = 1000;
 -- ------------------------------------------------------------------------------
 -- PERFORMANCE TUNING
 -- ------------------------------------------------------------------------------
--- These settings optimize PostgreSQL for AutoPWN's workload characteristics
+-- These settings optimize PostgreSQL for CrackHouse's workload characteristics
 -- IMPORTANT: Some settings require server restart to take effect
 
 -- Maximum number of concurrent connections
--- AutoPWN uses connection pooling, so 200 is sufficient
+-- CrackHouse uses connection pooling, so 200 is sufficient
 ALTER SYSTEM SET max_connections = 200;
 
 -- Memory for caching database blocks
@@ -106,14 +106,14 @@ SELECT pg_reload_conf();
 
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'autopwn_app') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'crackhouse_app') THEN
         -- Create role with login capability
         -- PASSWORD should be changed in production via environment variables
-        CREATE ROLE autopwn_app WITH LOGIN PASSWORD 'autopwn_password';
+        CREATE ROLE crackhouse_app WITH LOGIN PASSWORD 'crackhouse_password';
 
-        RAISE NOTICE 'Created autopwn_app role';
+        RAISE NOTICE 'Created crackhouse_app role';
     ELSE
-        RAISE NOTICE 'autopwn_app role already exists';
+        RAISE NOTICE 'crackhouse_app role already exists';
     END IF;
 END
 $$;
@@ -129,9 +129,9 @@ DO $$
 BEGIN
     -- Grant CONNECT privilege on the current database
     -- This allows the application to connect to the database
-    EXECUTE format('GRANT CONNECT ON DATABASE %I TO autopwn_app', current_database());
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO crackhouse_app', current_database());
 
-    RAISE NOTICE 'Granted CONNECT permission on database % to autopwn_app', current_database();
+    RAISE NOTICE 'Granted CONNECT permission on database % to crackhouse_app', current_database();
 EXCEPTION
     WHEN OTHERS THEN
         -- Log error but don't fail initialization
@@ -146,18 +146,18 @@ $$;
 -- after it creates the necessary schemas (public, drizzle, etc.)
 --
 -- The application will run:
---   GRANT USAGE ON SCHEMA public TO autopwn_app;
---   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO autopwn_app;
---   GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO autopwn_app;
+--   GRANT USAGE ON SCHEMA public TO crackhouse_app;
+--   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO crackhouse_app;
+--   GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO crackhouse_app;
 
 -- Add role description for documentation
-COMMENT ON ROLE autopwn_app IS 'AutoPWN application role for database access - uses principle of least privilege';
+COMMENT ON ROLE crackhouse_app IS 'CrackHouse application role for database access - uses principle of least privilege';
 
 -- ==============================================================================
 -- INITIALIZATION COMPLETE
 -- ==============================================================================
--- Database is now ready for AutoPWN application deployment
+-- Database is now ready for CrackHouse application deployment
 -- Next steps:
--- 1. Run database migrations: pnpm --filter @autopwn/api db:migrate
--- 2. Seed initial data: pnpm --filter @autopwn/api db:seed-superuser
+-- 1. Run database migrations: pnpm --filter @crackhouse/api db:migrate
+-- 2. Seed initial data: pnpm --filter @crackhouse/api db:seed-superuser
 -- ==============================================================================

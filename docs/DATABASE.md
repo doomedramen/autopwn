@@ -1,6 +1,6 @@
 # Database Schema
 
-PostgreSQL database schema for autopwn using Drizzle ORM.
+PostgreSQL database schema for crackhouse using Drizzle ORM.
 
 ## Overview
 
@@ -645,7 +645,7 @@ export const db = drizzle(pool);
 Monitor slow queries:
 ```sql
 -- Enable slow query logging
-ALTER DATABASE autopwn SET log_min_duration_statement = 1000;  -- 1 second
+ALTER DATABASE crackhouse SET log_min_duration_statement = 1000;  -- 1 second
 
 -- View slow queries
 SELECT * FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;

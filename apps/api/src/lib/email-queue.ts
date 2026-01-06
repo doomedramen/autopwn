@@ -1,5 +1,5 @@
 import { Queue, Worker, Job } from "bullmq";
-import { Ioredis } from "bullmq";
+import { Redis } from "ioredis";
 import { configService } from "@/services/config.service";
 import { logger } from "@/lib/logger";
 import { emailService } from "@/services/email.service";
@@ -33,11 +33,10 @@ class EmailQueue {
 
   async initialize(): Promise<void> {
     try {
-      const connection = new Ioredis({
+      const connection = new Redis({
         host: process.env.REDIS_HOST || "localhost",
         port: parseInt(process.env.REDIS_PORT || "6379"),
-        maxRetriesPerRequest: 3,
-        retryStrategy: "reconnect",
+        maxRetriesPerRequest: null, // Required by BullMQ
       });
 
       this.queue = new Queue<EmailJobData>("email", {

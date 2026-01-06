@@ -1,6 +1,8 @@
-# AutoPWN Documentation
+# CrackHouse
 
-Complete documentation for the AutoPWN security testing platform.
+> where handshakes go to break
+
+Complete documentation for the CrackHouse security testing platform.
 
 ## 📚 Documentation Index
 

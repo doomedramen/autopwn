@@ -83,7 +83,7 @@ export function ResultsTab({ className }: ResultsTabProps) {
     if (!dataToExport || dataToExport.length === 0) return;
 
     const csvHeaders = ['Type', 'Network', 'BSSID', 'Job', 'Data', 'Created'];
-    const csvData = dataToExport.map(result => [
+    const csvData = dataToExport.map((result: any) => [
       getDataTypeDisplay(result.type),
       result.network?.ssid || 'Unknown',
       result.network?.bssid || 'Unknown',
@@ -139,7 +139,7 @@ export function ResultsTab({ className }: ResultsTabProps) {
             <div>
               <p className="text-sm text-muted-foreground">Total Results</p>
               <p className="text-2xl font-bold">
-                {statsData?.byType ? Object.values(statsData.byType).reduce((a: number, b: number) => a + b, 0) : 0}
+                {statsData?.byType ? (Object.values(statsData.byType) as number[]).reduce((a: number, b: number) => a + b, 0) : 0}
               </p>
             </div>
             <div className="text-blue-500">
@@ -276,7 +276,7 @@ export function ResultsTab({ className }: ResultsTabProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-card divide-y">
-                  {(showCrackedOnly ? crackedPasswords?.data : resultsData?.data).map((result) => (
+                  {(showCrackedOnly ? crackedPasswords?.data : resultsData?.data).map((result: any) => (
                     <tr key={result.id} className="hover:bg-muted/50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(result.type)}`}>

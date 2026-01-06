@@ -18,14 +18,14 @@ const queueManagement = new Hono();
 // Apply authentication middleware to all routes
 queueManagement.use("*", authenticate);
 
-// Create cracking job
+// Create cracking job (consolidated - accepts multiple networks and dictionaries)
 queueManagement.post(
   "/crack",
   zValidator(
     "json",
     z.object({
-      networkId: z.string().min(1),
-      dictionaryId: z.string().min(1),
+      networkIds: z.array(z.string().min(1)).min(1),
+      dictionaryIds: z.array(z.string().min(1)).min(1),
       attackMode: z.enum(["pmkid", "handshake"]).default("handshake"),
     }),
   ),
@@ -34,48 +34,124 @@ queueManagement.post(
     const userId = getUserId(c);
 
     try {
-      // Verify network exists and has handshake/PMKID
-      const network = await db.query.networks.findFirst({
-        where: eq(networks.id, data.networkId),
+      const { networkIds, dictionaryIds, attackMode } = data;
+
+      // Import inArray for querying multiple records
+      const { inArray } = await import("drizzle-orm");
+
+      // Fetch all networks
+      const fetchedNetworks = await db.query.networks.findMany({
+        where: inArray(networks.id, networkIds),
       });
 
-      if (!network) {
+      if (fetchedNetworks.length !== networkIds.length) {
         return c.json(
           {
             success: false,
-            error: "Network not found",
+            error: "One or more networks not found",
           },
           404,
         );
       }
 
-      // Verify dictionary exists
-      const dictionary = await db.query.dictionaries.findFirst({
-        where: eq(dictionaries.id, data.dictionaryId),
+      // Fetch all dictionaries
+      const fetchedDictionaries = await db.query.dictionaries.findMany({
+        where: inArray(dictionaries.id, dictionaryIds),
       });
 
-      if (!dictionary) {
+      if (fetchedDictionaries.length !== dictionaryIds.length) {
         return c.json(
           {
             success: false,
-            error: "Dictionary not found",
+            error: "One or more dictionaries not found",
           },
           404,
         );
       }
 
-      // Create job record
+      // Import file system utilities for consolidation
+      const fs = await import("fs/promises");
+      const path = await import("path");
+
+      // Create temporary directory for consolidated files
+      const tmpDir = path.join(process.env.TEMP_DIR || "/tmp", `consolidated-${Date.now()}`);
+      await fs.mkdir(tmpDir, { recursive: true });
+
+      // Consolidate dictionaries: concatenate all dictionary files
+      const consolidatedDictionaryPath = path.join(tmpDir, "consolidated.txt");
+      const dictionaryWriteStream = (await import("fs")).createWriteStream(consolidatedDictionaryPath);
+
+      for (const dict of fetchedDictionaries) {
+        if (dict.filePath) {
+          const dictContent = await fs.readFile(dict.filePath, "utf-8");
+          dictionaryWriteStream.write(dictContent);
+          // Add newline between dictionaries if not already present
+          if (!dictContent.endsWith("\n")) {
+            dictionaryWriteStream.write("\n");
+          }
+        }
+      }
+      dictionaryWriteStream.end();
+
+      // Wait for stream to finish
+      await new Promise<void>((resolve, reject) => {
+        dictionaryWriteStream.on("finish", resolve);
+        dictionaryWriteStream.on("error", reject);
+      });
+
+      // Count total words in consolidated dictionary
+      const consolidatedContent = await fs.readFile(consolidatedDictionaryPath, "utf-8");
+      const totalWords = consolidatedContent.split("\n").filter((line: string) => line.trim()).length;
+
+      // Create a consolidated dictionary record
+      const [consolidatedDictionary] = await db
+        .insert(dictionaries)
+        .values({
+          name: `Consolidated (${fetchedDictionaries.length} dicts, ${totalWords.toLocaleString()} words)`,
+          filePath: consolidatedDictionaryPath,
+          wordCount: totalWords,
+          type: "consolidated",
+          status: "ready",
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      // Consolidate PCAPs/handshakes: combine all network capture files
+      // For handshake/PMKID attacks, we need to combine the handshake files
+      const consolidatedHandshakePath = path.join(tmpDir, "consolidated.hccapx");
+
+      // If we have multiple networks, we'll use hashcat's ability to handle multiple hashes
+      // by combining them into a single file or using the first network's file
+      // For now, we'll create a job that references all networks
+
+      // Create job name based on networks
+      const networkNames = fetchedNetworks.map((n) => n.ssid || n.bssid).join(", ");
+      const jobName = `Consolidated Job: ${fetchedNetworks.length} networks, ${fetchedDictionaries.length} dicts`;
+
+      // Create a single consolidated job record
+      // Use the first network as primary reference, but store all network IDs
       const [newJob] = await db
         .insert(jobs)
         .values({
-          name: `Cracking Job for ${network.ssid || network.bssid}`,
-          networkId: data.networkId,
-          dictionaryId: data.dictionaryId,
+          name: jobName,
+          networkId: fetchedNetworks[0].id, // Primary network
+          dictionaryId: consolidatedDictionary.id,
           status: "pending",
           config: {
             attackMode: data.attackMode,
             queued: true,
             type: "cracking",
+            consolidated: true,
+            networkIds, // Store all network IDs
+            dictionaryIds, // Store original dictionary IDs
+          },
+          metadata: {
+            networkCount: fetchedNetworks.length,
+            dictionaryCount: fetchedDictionaries.length,
+            totalWords,
+            networks: fetchedNetworks.map((n) => ({ id: n.id, ssid: n.ssid, bssid: n.bssid })),
           },
           userId,
           createdAt: new Date(),
@@ -83,35 +159,46 @@ queueManagement.post(
         })
         .returning();
 
-      // Add to queue
+      // Add to queue with consolidated dictionary
+      // For multiple networks, hashcat can process multiple hashes if we provide them
       await addHashcatCrackingJob({
         jobId: newJob.id,
-        networkId: data.networkId,
-        dictionaryId: data.dictionaryId,
-        handshakePath: network.filePath || "", // This would be the extracted handshake file
-        dictionaryPath: dictionary.filePath || "",
+        networkId: fetchedNetworks[0].id,
+        dictionaryId: consolidatedDictionary.id,
+        handshakePath: fetchedNetworks[0].filePath || "",
+        dictionaryPath: consolidatedDictionaryPath,
         attackMode: data.attackMode,
         userId,
+        additionalNetworks: fetchedNetworks.slice(1).map((n) => ({
+          id: n.id,
+          filePath: n.filePath || "",
+        })),
       });
 
       return c.json({
         success: true,
-        message: "Cracking job queued successfully",
+        message: `Consolidated cracking job created with ${fetchedNetworks.length} networks and ${fetchedDictionaries.length} dictionaries (${totalWords.toLocaleString()} total words)`,
         job: {
           id: newJob.id,
-          networkId: data.networkId,
-          dictionaryId: data.dictionaryId,
+          name: jobName,
+          networkIds,
+          dictionaryIds,
+          consolidatedDictionaryId: consolidatedDictionary.id,
+          totalWords,
+          networkCount: fetchedNetworks.length,
+          dictionaryCount: fetchedDictionaries.length,
           attackMode: data.attackMode,
           status: "pending",
           createdAt: newJob.createdAt,
         },
       });
     } catch (error) {
-      console.error("Create cracking job error:", error);
+      console.error("Create consolidated cracking job error:", error);
       return c.json(
         {
           success: false,
-          error: "Failed to create cracking job",
+          error: "Failed to create consolidated cracking job",
+          message: error instanceof Error ? error.message : "Unknown error",
         },
         500,
       );

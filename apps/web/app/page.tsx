@@ -66,8 +66,8 @@ export default function Page() {
     );
   }
 
-  // Check if user is admin
-  const isAdmin = authData?.session?.user?.role === 'admin';
+  // Check if user is admin or superuser
+  const isAdmin = (authData?.user as any)?.role === 'admin' || (authData?.user as any)?.role === 'superuser';
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -117,10 +117,10 @@ export default function Page() {
               <Skull className="h-8 w-8" />
               <div>
                 <h1 className="text-xl font-mono font-bold uppercase tracking-wider">
-                  AutoPWN
+                  CrackHouse
                 </h1>
                 <p className="text-xs text-muted-foreground font-mono">
-                  Network Security Platform
+                  where handshakes go to break
                 </p>
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function Page() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                data-testid={`tab-${tab.id}`}
+                data-testid={`${tab.id}-tab`}
                 data-tab={tab.id}
                 className={`py-4 px-1 border-b-2 font-medium text-sm font-mono uppercase tracking-wider flex items-center space-x-2 ${
                   activeTab === tab.id
@@ -186,7 +186,7 @@ export default function Page() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
+        <div className="space-y-6" data-testid={`${activeTab}-content`}>
           {renderActiveTab()}
         </div>
       </main>

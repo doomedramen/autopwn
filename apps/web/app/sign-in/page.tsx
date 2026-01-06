@@ -33,7 +33,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* AutoPWN Branding */}
+        {/* CrackHouse Branding */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="h-12 w-12 bg-primary rounded-lg flex items-center justify-center">
@@ -43,7 +43,7 @@ export default function SignInPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold font-mono uppercase tracking-wider text-foreground" data-testid="branding-title">
-                AutoPWN
+                CrackHouse
               </h1>
               <p className="text-sm text-muted-foreground font-mono">
                 Network Security Platform

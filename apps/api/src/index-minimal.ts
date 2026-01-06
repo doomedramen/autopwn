@@ -26,7 +26,7 @@ app.get('/health', (c) => {
   return c.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    service: 'autopwn-api',
+    service: 'crackhouse-api',
     version: '1.0.0-minimal',
     environment: process.env.NODE_ENV || 'development',
     uptime: process.uptime(),
@@ -37,7 +37,7 @@ app.get('/health', (c) => {
 // API info endpoint
 app.get('/api/info', (c) => {
   return c.json({
-    message: 'AutoPWN Minimal API - Working Docker Setup',
+    message: 'CrackHouse Minimal API - Working Docker Setup',
     version: '1.0.0-minimal',
     environment: process.env.NODE_ENV || 'development',
     endpoints: [
@@ -110,7 +110,7 @@ app.get('/api/db/status', (c) => {
     configuration: {
       host: process.env.POSTGRES_HOST || 'database',
       port: process.env.POSTGRES_PORT || '5432',
-      database: process.env.POSTGRES_DB || 'autopwn_production',
+      database: process.env.POSTGRES_DB || 'crackhouse_production',
       user: process.env.POSTGRES_USER || 'postgres'
     },
     status: 'Ready for Drizzle ORM integration'
@@ -180,7 +180,7 @@ app.notFound((c) => {
 
 const port = parseInt(process.env.PORT || '3001')
 
-console.log(`🚀 AutoPWN Minimal API Server starting on port ${port}`)
+console.log(`🚀 CrackHouse Minimal API Server starting on port ${port}`)
 console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`)
 console.log(`🔗 Health check: http://localhost:${port}/health`)
 console.log(`📊 API info: http://localhost:${port}/api/info`)

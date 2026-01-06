@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AutoPWN Local Production Deployment Script
+# CrackHouse Local Production Deployment Script
 # This script deploys a production-like setup locally for testing
 
 set -e  # Exit on any error
@@ -95,11 +95,11 @@ wait_for_services() {
 
     # Wait for database
     print_status "Waiting for database..."
-    timeout 60 bash -c 'until docker exec autopwn-db-prod-local pg_isready -U postgres; do sleep 2; done'
+    timeout 60 bash -c 'until docker exec crackhouse-db-prod-local pg_isready -U postgres; do sleep 2; done'
 
     # Wait for Redis
     print_status "Waiting for Redis..."
-    timeout 30 bash -c 'until docker exec autopwn-redis-prod-local redis-cli ping; do sleep 2; done'
+    timeout 30 bash -c 'until docker exec crackhouse-redis-prod-local redis-cli ping; do sleep 2; done'
 
     # Wait for API
     print_status "Waiting for API..."

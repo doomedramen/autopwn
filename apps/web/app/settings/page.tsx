@@ -31,7 +31,7 @@ import Link from 'next/link'
 
 export default function SettingsPage() {
   const { data: authData, isLoading, refetch } = useAuthSession()
-  const user = authData?.session?.user
+  const user = authData?.user
 
   const updateProfileMutation = useUpdateProfile()
   const changePasswordMutation = useChangePassword()
@@ -197,9 +197,9 @@ export default function SettingsPage() {
                   <h2 className="text-2xl font-bold">{user.name || 'User'}</h2>
                   <p className="text-muted-foreground">{user.email}</p>
                   <div className="flex items-center space-x-2">
-                    <Badge className={getRoleColor(user.role)}>
+                    <Badge className={getRoleColor((user as any).role)}>
                       <Shield className="h-3 w-3 mr-1" />
-                      {user.role}
+                      {(user as any).role}
                     </Badge>
                     {user.emailVerified && (
                       <Badge variant="outline" className="text-green-600 border-green-600">
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Joined:</span>
-                  <span>{formatDate(user.createdAt)}</span>
+                  <span>{formatDate(user.createdAt.toISOString())}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4 text-muted-foreground" />

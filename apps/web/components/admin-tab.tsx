@@ -18,7 +18,7 @@ export function AdminTab({ className }: AdminTabProps) {
   >("config");
 
   const isAdmin =
-    authData?.user?.role === "admin" || authData?.user?.role === "superuser";
+    (authData?.user as any)?.role === "admin" || (authData?.user as any)?.role === "superuser";
 
   if (!isAdmin) {
     return (

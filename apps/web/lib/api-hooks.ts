@@ -22,15 +22,23 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: LoginRequest) =>
-      authClient.signIn.email({
+    mutationFn: async (data: LoginRequest) => {
+      const response = await authClient.signIn.email({
         email: data.email,
         password: data.password,
-        callbackURL: "/", // Redirect to home after login
-      }),
+        callbackURL: "/",
+      });
+
+      // Better Auth returns { data, error } - throw if error exists
+      if (response.error) {
+        throw new Error(response.error.message || "Sign in failed");
+      }
+
+      return response;
+    },
     onSuccess: (data: any) => {
       queryClient.setQueryData(["auth", "session"], data);
-      queryClient.invalidateQueries({ queryKey: ["auth", "session"] }); // This will trigger a refresh of session data
+      queryClient.invalidateQueries({ queryKey: ["auth", "session"] });
     },
   });
 }
@@ -41,11 +49,15 @@ export function useLogout() {
   return useMutation({
     mutationFn: () =>
       authClient.signOut({
-        callbackURL: "/sign-in", // Redirect to sign-in after logout
+        fetchOptions: {
+          onSuccess: () => {
+            // Redirect after signout completes
+            window.location.href = "/sign-in";
+          },
+        },
       }),
     onSuccess: () => {
       queryClient.clear();
-      // The redirect will be handled by Better Auth
     },
   });
 }
@@ -54,8 +66,9 @@ export function useAuthSession() {
   return useQuery({
     queryKey: ["auth", "session"],
     queryFn: async () => {
-      const session = await authClient.getSession();
-      return session?.session || null;
+      const response = await authClient.getSession();
+      // Return the full response containing both session and user
+      return response?.data || null;
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -294,13 +307,14 @@ export function useStartCrackingJob() {
 
   return useMutation({
     mutationFn: (data: {
-      networkId: string;
-      dictionaryId: string;
+      networkIds: string[];
+      dictionaryIds: string[];
       attackMode?: "pmkid" | "handshake";
     }) => ApiClient.post("/api/queue/crack", data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       queryClient.invalidateQueries({ queryKey: ["networks"] });
+      queryClient.invalidateQueries({ queryKey: ["dictionaries"] });
     },
   });
 }
@@ -756,7 +770,7 @@ export function useCleanupAuditLogs() {
 
   return useMutation({
     mutationFn: (data: { olderThanDays: number }) =>
-      ApiClient.delete("/api/v1/audit/cleanup", { data }),
+      ApiClient.delete("/api/v1/audit/cleanup", { params: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audit", "logs"] });
       queryClient.invalidateQueries({ queryKey: ["audit", "statistics"] });

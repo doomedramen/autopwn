@@ -115,7 +115,7 @@ configRoutes.patch(
 
       const results = [];
       const errors = [];
-      const requiresRestart = false;
+      let requiresRestart = false;
 
       for (const { id, value } of updates) {
         try {

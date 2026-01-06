@@ -144,7 +144,7 @@ export function JobsTab({ className }: JobsTabProps) {
                   </tr>
                 </thead>
             <tbody className="bg-card divide-y">
-              {jobsData?.data.map((job) => (
+              {jobsData?.data.map((job: any) => (
                 <tr key={job.id} className="hover:bg-muted/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
@@ -159,10 +159,17 @@ export function JobsTab({ className }: JobsTabProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex items-center gap-1 ${getStatusColor(job.status)}`}>
-                      <span>{getStatusIcon(job.status)}</span>
-                      {job.status}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={`inline-flex items-center gap-1 ${getStatusColor(job.status)}`}>
+                        <span>{getStatusIcon(job.status)}</span>
+                        {job.status}
+                      </span>
+                      {job.status === 'failed' && job.errorMessage && (
+                        <span className="text-[10px] text-destructive mt-1 max-w-[150px] truncate font-mono" title={job.errorMessage}>
+                          {job.errorMessage}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <JobProgressBar
@@ -180,10 +187,10 @@ export function JobsTab({ className }: JobsTabProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {job.networks.length}
+                    {(job.networks || []).length}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {job.dictionaries.length}
+                    {(job.dictionaries || []).length}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {job.startedAt && (

@@ -30,7 +30,6 @@ import {
   X,
   CheckSquare,
   Square,
-  Select,
 } from "lucide-react";
 
 interface NetworksTabProps {
@@ -72,7 +71,7 @@ export function NetworksTab({ className }: NetworksTabProps) {
 
   const handleSelectAll = () => {
     const filteredNetworks =
-      networksData?.data.filter((network) => {
+      networksData?.data.filter((network: any) => {
         const matchesStatus =
           filterStatus === "all" || network.status === filterStatus;
         const matchesEncryption =
@@ -87,7 +86,7 @@ export function NetworksTab({ className }: NetworksTabProps) {
     if (filteredNetworks.length === selectedNetworks.size) {
       setSelectedNetworks(new Set());
     } else {
-      setSelectedNetworks(new Set(filteredNetworks.map((n) => n.id)));
+      setSelectedNetworks(new Set(filteredNetworks.map((n: any) => n.id)));
     }
   };
 
@@ -111,7 +110,7 @@ export function NetworksTab({ className }: NetworksTabProps) {
   };
 
   const filteredNetworks =
-    networksData?.data.filter((network) => {
+    networksData?.data.filter((network: any) => {
       const matchesStatus =
         filterStatus === "all" || network.status === filterStatus;
       const matchesEncryption =
@@ -125,7 +124,7 @@ export function NetworksTab({ className }: NetworksTabProps) {
 
   const allSelected =
     filteredNetworks.length > 0 &&
-    filteredNetworks.every((n) => selectedNetworks.has(n.id));
+    filteredNetworks.every((n: any) => selectedNetworks.has(n.id));
 
   if (error) {
     return (
@@ -207,24 +206,26 @@ export function NetworksTab({ className }: NetworksTabProps) {
               </>
             )}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setSelectedNetworks(new Set())}
-            disabled={selectedNetworks.size === 0}
-            className="font-mono text-sm"
-          >
-            <X className="h-4 w-4 mr-2" />
-            clear selection ({selectedNetworks.size})
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleBulkDelete}
-            disabled={selectedNetworks.size === 0}
-            className="font-mono text-sm"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            delete selected ({selectedNetworks.size})
-          </Button>
+          {selectedNetworks.size > 0 && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedNetworks(new Set())}
+                className="font-mono text-sm"
+              >
+                <X className="h-4 w-4 mr-2" />
+                clear selection ({selectedNetworks.size})
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleBulkDelete}
+                className="font-mono text-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                delete selected ({selectedNetworks.size})
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

@@ -230,7 +230,7 @@ export function DictionaryGenerationModal({ children }: DictionaryGenerationModa
               <div className="space-y-2">
                 <Label className="font-mono text-sm">Hashcat Rules</Label>
                 <div className="border rounded-md p-3 space-y-2">
-                  {templates?.commonRules?.slice(0, 6).map((rule: GenerationRule) => (
+                  {(templates as any)?.commonRules?.slice(0, 6).map((rule: GenerationRule) => (
                     <div key={rule.rule} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Checkbox
@@ -283,7 +283,7 @@ export function DictionaryGenerationModal({ children }: DictionaryGenerationModa
               <div className="space-y-2">
                 <Label className="font-mono text-sm">Transformations</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {templates?.transformations?.slice(0, 6).map((transformation: Transformation) => (
+                  {(templates as any)?.transformations?.slice(0, 6).map((transformation: Transformation) => (
                     <div key={transformation.id} className="flex items-center gap-2">
                       <Checkbox
                         id={`trans-${transformation.id}`}
@@ -334,7 +334,7 @@ export function DictionaryGenerationModal({ children }: DictionaryGenerationModa
                   <Checkbox
                     id="async-mode"
                     checked={useAsync}
-                    onCheckedChange={setUseAsync}
+                    onCheckedChange={(checked) => setUseAsync(checked === true)}
                     disabled={isLoading}
                   />
                   <Label htmlFor="async-mode" className="text-sm font-mono cursor-pointer">
@@ -355,7 +355,7 @@ export function DictionaryGenerationModal({ children }: DictionaryGenerationModa
               <div className="space-y-3">
                 <Label className="font-mono text-sm">Predefined Word Lists</Label>
                 <div className="grid gap-3">
-                  {templates?.wordLists && Object.entries(templates.wordLists).map(([key, wordList]) => (
+                  {(templates as any)?.wordLists && Object.entries((templates as any).wordLists).map(([key, wordList]: [string, any]) => (
                     <div key={key} className="border rounded-md p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

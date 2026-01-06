@@ -1,11 +1,11 @@
 import { Hono } from 'hono'
 import { getWebSocketServer } from '@/lib/websocket'
-import { requireAuth } from '@/middleware/auth'
+import { authenticate } from '@/middleware/auth'
 
 const websocket = new Hono()
 
 // Apply authentication middleware to all routes
-websocket.use('*', requireAuth)
+websocket.use('*', authenticate)
 
 /**
  * Get WebSocket connection info

@@ -1,14 +1,14 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { requireAuth } from '@/middleware/auth'
+import { authenticate } from '@/middleware/auth'
 import { storageManager, type StorageStats, type CleanupResult } from '@/lib/storage-manager'
 import { logger } from '@/lib/logger'
 
 const app = new Hono()
 
 // Apply authentication middleware to all routes
-app.use('*', requireAuth)
+app.use('*', authenticate)
 
 // Get storage statistics for current user
 app.get('/stats', async (c) => {

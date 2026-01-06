@@ -1,4 +1,4 @@
-# AutoPWN Multi-service Dockerfile
+# CrackHouse Multi-service Dockerfile
 # Supports development, test, and production builds
 
 # Build stage with dependencies and caching

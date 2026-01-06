@@ -1,4 +1,4 @@
-# AutoPWN Dockerfile for Web Frontend
+# CrackHouse Dockerfile for Web Frontend
 # Supports development, test, and production builds
 
 # Base stage with pnpm

@@ -56,10 +56,10 @@ function getProductionOrigins(): string[] {
 
   // Add specific production domains
   const productionDomains = [
-    'https://autopwn.example.com',
-    'https://www.autopwn.example.com',
-    'https://admin.autopwn.example.com',
-    'https://staging.autopwn.example.com'
+    'https://crackhouse.example.com',
+    'https://www.crackhouse.example.com',
+    'https://admin.crackhouse.example.com',
+    'https://staging.crackhouse.example.com'
   ]
 
   // Only add production domains in production environment
@@ -237,8 +237,8 @@ export const stagingCORS = () => {
     mode: 'staging',
     strictMode: true,
     allowedOrigins: [
-      'https://staging.autopwn.example.com',
-      'https://dev.autopwn.example.com',
+      'https://staging.crackhouse.example.com',
+      'https://dev.crackhouse.example.com',
       ...getProductionOrigins()
     ],
     credentials: true,
@@ -292,7 +292,7 @@ export const internalApiCORS = () => {
     allowedOrigins: [
       'http://localhost:3001', // API server
       'http://localhost:3002', // Worker service
-      'https://internal.autopwn.example.com'
+      'https://internal.crackhouse.example.com'
     ],
     credentials: true,
     strictMode: true,

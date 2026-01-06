@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# AutoPWN Development Setup Script
+# CrackHouse Development Setup Script
 # This script sets up the development environment with Docker Compose
 
 set -e
 
-echo "🚀 AutoPWN Development Setup"
+echo "🚀 CrackHouse Development Setup"
 echo "=============================="
 
 # Check if Docker is running
@@ -44,18 +44,18 @@ echo "✅ All services are healthy"
 # Initialize database schema
 echo "🗄️ Initializing database schema..."
 cd apps/api
-DATABASE_URL="postgresql://postgres:password@localhost:5432/autopwn_development" npx drizzle-kit push --force
+DATABASE_URL="postgresql://postgres:password@localhost:5432/crackhouse_development" npx drizzle-kit push --force
 
 # Create superuser
 echo "👤 Creating superuser..."
-DATABASE_URL="postgresql://postgres:password@localhost:5432/autopwn_development" npx tsx src/db/seed-superuser.ts
+DATABASE_URL="postgresql://postgres:password@localhost:5432/crackhouse_development" npx tsx src/db/seed-superuser.ts
 
 cd ../..
 
 echo ""
 echo "🎉 Setup completed successfully!"
 echo "=============================="
-echo "📧 Admin Email: admin@autopwn.local"
+echo "📧 Admin Email: admin@crackhouse.local"
 echo "🔑 Admin Password: admin123 (development environment)"
 echo "🌐 Web Server: http://localhost:3000 (run locally with 'cd apps/web && pnpm dev')"
 echo "🔧 API Server: http://localhost:3001"
@@ -63,4 +63,4 @@ echo ""
 echo "Next steps:"
 echo "1. Start web server: cd apps/web && pnpm dev"
 echo "2. Visit http://localhost:3000 and sign in with the admin credentials"
-echo "3. Run e2e tests: DATABASE_URL=\"postgresql://postgres:password@localhost:5432/autopwn_test\" E2E_ADMIN_PASSWORD=admin123 pnpm test:e2e"
+echo "3. Run e2e tests: DATABASE_URL=\"postgresql://postgres:password@localhost:5432/crackhouse_test\" E2E_ADMIN_PASSWORD=admin123 pnpm test:e2e"

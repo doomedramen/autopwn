@@ -115,7 +115,7 @@ export function UsersTab({ className }: UsersTabProps) {
                   </tr>
                 </thead>
             <tbody className="bg-card divide-y">
-              {usersData?.data.map((user) => (
+              {usersData?.data.map((user: any) => (
                 <tr key={user.id} className="hover:bg-muted/50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {user.email}

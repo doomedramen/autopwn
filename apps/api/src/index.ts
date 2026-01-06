@@ -42,6 +42,7 @@ import { auth } from "./lib/auth";
 import { getWebSocketServer } from "./lib/websocket";
 import type { HonoAuthContext } from "./types/auth";
 import { configService } from "./services/config.service";
+import { emailService } from "./services/email.service";
 import { emailQueue } from "./lib/email-queue";
 
 const app = new Hono<HonoAuthContext>();
@@ -127,7 +128,7 @@ app.get("/health", publicApiCORS(), (c) => {
   return c.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    service: "autopwn-api",
+    service: "crackhouse-api",
     version: "1.0.0",
     environment: process.env.NODE_ENV || "development",
   });
@@ -175,7 +176,7 @@ async function startServer() {
     );
 
     // Start HTTP server
-    console.log(`🚀 AutoPWN API Server starting on port ${port}`);
+    console.log(`🚀 CrackHouse API Server starting on port ${port}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
     console.log(`🔗 Health check: http://localhost:${port}/health`);
     console.log(

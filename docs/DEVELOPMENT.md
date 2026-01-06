@@ -259,7 +259,7 @@ services:
     ports:
       - "5050:80"
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@autopwn.local
+      - PGADMIN_DEFAULT_EMAIL=admin@crackhouse.local
       - PGADMIN_DEFAULT_PASSWORD=admin
     volumes:
       - dev_pgadmin_data:/var/lib/pgadmin

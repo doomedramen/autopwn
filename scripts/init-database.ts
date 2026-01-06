@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 /**
- * Database initialization script for AutoPWN
+ * Database initialization script for CrackHouse
  * This script sets up the database schema and creates the initial superuser
  */
 
@@ -9,7 +9,7 @@ import { runMigrations } from '../apps/api/src/db/migrate'
 import { createSuperUser } from '../apps/api/src/db/seed-superuser'
 
 async function initializeDatabase() {
-  console.log('🚀 Initializing AutoPWN database...')
+  console.log('🚀 Initializing CrackHouse database...')
 
   try {
     // Step 1: Run database migrations
@@ -21,7 +21,7 @@ async function initializeDatabase() {
     await createSuperUser()
 
     console.log('\n✅ Database initialization completed successfully!')
-    console.log('🎉 AutoPWN is now ready to use!')
+    console.log('🎉 CrackHouse is now ready to use!')
 
   } catch (error) {
     console.error('\n❌ Database initialization failed:', error)

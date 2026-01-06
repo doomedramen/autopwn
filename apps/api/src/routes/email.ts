@@ -1,16 +1,15 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { requireAuth, requireSuperuser } from "../middleware/auth";
+import { authenticate, requireSuperuser, getUserId } from "../middleware/auth";
 import { configService } from "../services/config.service";
 import { auditService } from "../services/audit.service";
-import { getUserId } from "../lib/auth";
 import { logger } from "../lib/logger";
 import { emailQueue } from "../lib/email-queue";
 
 const email = new Hono();
 
-email.use("*", requireAuth);
+email.use("*", authenticate);
 
 const testEmailSchema = z.object({
   to: z.string().email("Invalid email address"),

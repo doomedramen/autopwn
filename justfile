@@ -1,4 +1,4 @@
-# Justfile for AutoPWN - Complete replacement for npm scripts and bash scripts
+# Justfile for CrackHouse - Complete replacement for npm scripts and bash scripts
 
 # Default task
 default:
@@ -11,7 +11,7 @@ build:
 
 # Build the test container
 build-test:
-    @docker build -f Dockerfile.test -t autopwn/test-runner .
+    @docker build -f Dockerfile.test -t crackhouse/test-runner .
 
 # DEVELOPMENT
 # Start development environment
@@ -20,7 +20,7 @@ dev:
 
 # Start test development environment
 dev-test:
-    @dotenv -e .env.test -- pnpm --filter @autopwn/api test:dev
+    @dotenv -e .env.test -- pnpm --filter @crackhouse/api test:dev
 
 # TESTING INFRASTRUCTURE
 # Start the test infrastructure
@@ -32,14 +32,14 @@ test-infra-up:
 test-cleanup:
     @echo "Cleaning up test infrastructure..."
     @docker compose -f docker-compose.test.runner.yml down -v
-    @docker volume rm autopwn_postgres_test_data autopwn_redis_test_data 2>/dev/null || true
-    @docker network rm autopwn-test-network 2>/dev/null || true
+    @docker volume rm crackhouse_postgres_test_data crackhouse_redis_test_data 2>/dev/null || true
+    @docker network rm crackhouse-test-network 2>/dev/null || true
 
 # Force cleanup
 test-cleanup-force:
     @docker compose -f docker-compose.test.runner.yml down -v --remove-orphans
-    @docker ps -aq --filter "name=autopwn-" | xargs -r docker rm -f 2>/dev/null || true
-    @docker volume ls -q --filter "name=autopwn_" | xargs -r docker volume rm 2>/dev/null || true
+    @docker ps -aq --filter "name=crackhouse-" | xargs -r docker rm -f 2>/dev/null || true
+    @docker volume ls -q --filter "name=crackhouse_" | xargs -r docker volume rm 2>/dev/null || true
 
 # Show test logs
 test-logs:
@@ -73,13 +73,13 @@ test-ui:
 
 # API specific tests
 test-api:
-    @pnpm test:unit --filter @autopwn/api
+    @pnpm test:unit --filter @crackhouse/api
 
 test-api-integration:
-    @pnpm test:integration --filter @autopwn/api
+    @pnpm test:integration --filter @crackhouse/api
 
 test-api-performance:
-    @pnpm test:performance --filter @autopwn/api
+    @pnpm test:performance --filter @crackhouse/api
 
 # Web app specific tests
 test-web:
@@ -201,7 +201,7 @@ test-cleanup-volumes:
 
 # API development
 test-api-dev:
-    @dotenv -e .env.test -- turbo test:dev --filter=@autopwn/api
+    @dotenv -e .env.test -- turbo test:dev --filter=@crackhouse/api
 
 # Web development  
 test-web-dev:

@@ -1,7 +1,7 @@
 {
-  "name": "@autopwn/api",
+  "name": "@crackhouse/api",
   "version": "1.0.0",
-  "description": "AutoPWN API Server",
+  "description": "CrackHouse API Server",
   "main": "src/index-minimal.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",

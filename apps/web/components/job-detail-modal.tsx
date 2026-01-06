@@ -51,7 +51,7 @@ export function JobDetailModal({
   onOpenChange
 }: JobDetailModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'config'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'results' | 'config' | 'logs'>('overview');
 
   const isControlled = controlledOpen !== undefined;
   const isOpen = isControlled ? controlledOpen : internalOpen;
@@ -73,7 +73,7 @@ export function JobDetailModal({
   const handleDownloadResults = () => {
     if (!job?.results || job.results.length === 0) return;
 
-    const resultsData = job.results.map(result => ({
+    const resultsData = job.results.map((result: any) => ({
       type: result.type,
       data: result.data,
       createdAt: result.createdAt
@@ -282,6 +282,17 @@ export function JobDetailModal({
             Results ({job.results?.length || 0})
           </button>
           <button
+            onClick={() => setActiveTab('logs')}
+            className={`flex-1 py-3 px-4 font-mono text-sm border-b-2 transition-colors ${
+              activeTab === 'logs'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Logs
+          </button>
+          <button
             onClick={() => setActiveTab('config')}
             className={`flex-1 py-3 px-4 font-mono text-sm border-b-2 transition-colors ${
               activeTab === 'config'
@@ -476,7 +487,7 @@ export function JobDetailModal({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {job.results.map((result, index) => (
+                  {job.results.map((result: any, index: number) => (
                     <div key={result.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -522,6 +533,40 @@ export function JobDetailModal({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'logs' && (
+            <div className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold font-mono flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Execution Logs & Errors
+              </h3>
+              
+              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-y-auto max-h-[400px] border border-muted">
+                <div className="mb-2 text-muted-foreground"># system logs initialized for job {job.id}</div>
+                <div className="mb-1 text-muted-foreground">[{formatDate(job.createdAt)}] job created</div>
+                {job.startTime && <div className="mb-1 text-muted-foreground">[{formatDate(job.startTime)}] job execution started</div>}
+                
+                {job.errorMessage && (
+                  <div className="mt-4 p-2 bg-destructive/20 border border-destructive/50 text-red-400 rounded">
+                    <span className="font-bold">[ERROR]</span> {job.errorMessage}
+                  </div>
+                )}
+
+                {job.results?.filter((r: any) => r.type === 'error').map((err: any, i: number) => (
+                  <div key={i} className="mt-2 p-2 bg-destructive/10 border border-destructive/30 text-red-300 rounded">
+                    <span className="font-bold">[ERROR]</span> {err.data?.error || JSON.stringify(err.data)}
+                    <div className="text-[10px] opacity-70">at {formatDate(err.createdAt)}</div>
+                  </div>
+                ))}
+
+                {job.endTime && <div className="mt-4 text-muted-foreground">[{formatDate(job.endTime)}] job execution finished with status: {job.status}</div>}
+                
+                {job.status === 'completed' && !job.errorMessage && (
+                  <div className="mt-2 text-green-500 font-bold">[SUCCESS] hashcat process completed successfully</div>
+                )}
+              </div>
             </div>
           )}
 

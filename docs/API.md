@@ -1,6 +1,6 @@
 # API Documentation
 
-REST API reference for autopwn v1.
+REST API reference for crackhouse v1.
 
 ## Base URL
 

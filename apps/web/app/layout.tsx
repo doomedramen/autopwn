@@ -13,6 +13,13 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "CrackHouse",
+  description: "where handshakes go to break",
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
