@@ -39,13 +39,16 @@ jobManagementRoutes.get("/", async (c) => {
     const status = c.req.query("status") as string;
     const offset = (page - 1) * limit;
 
-    let whereCondition = undefined;
+    let whereConditions = [eq(jobs.userId, userId)];
     if (status) {
-      whereCondition = eq(jobs.status, status);
+      whereConditions.push(eq(jobs.status, status));
     }
 
     const allJobs = await db.query.jobs.findMany({
-      where: whereCondition,
+      where:
+        whereConditions.length > 1
+          ? and(...whereConditions)
+          : whereConditions[0],
       orderBy: [desc(jobs.createdAt)],
       with: {
         network: true,
@@ -57,7 +60,10 @@ jobManagementRoutes.get("/", async (c) => {
     });
 
     const totalCount = await db.query.jobs.findMany({
-      where: whereCondition,
+      where:
+        whereConditions.length > 1
+          ? and(...whereConditions)
+          : whereConditions[0],
     });
 
     const totalPages = Math.ceil(totalCount.length / limit);

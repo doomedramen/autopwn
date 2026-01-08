@@ -244,7 +244,9 @@ export async function quickPCAPValidation(fileName: string, fileBuffer: Buffer):
     }
 
     const magicNumber = fileBuffer.readUInt32LE(0)
-    return Object.values(PCAP_MAGIC_BYTES).includes(magicNumber)
+    const isValid = Object.values(PCAP_MAGIC_BYTES).includes(magicNumber)
+
+    return isValid
 
   } catch (error) {
     logger.error('Quick PCAP validation failed', 'pcap-validator', {

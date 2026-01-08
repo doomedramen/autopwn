@@ -23,16 +23,18 @@ import { Upload, X, FileText, AlertCircle, CheckCircle, Loader2, Wifi, BookOpen 
 interface UploadModalProps {
   children: React.ReactNode;
   defaultTab?: 'pcap' | 'dictionary';
+  onUploadSuccess?: (type: 'pcap' | 'dictionary') => void;
 }
 
 type UploadType = 'pcap' | 'dictionary';
 
-export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps) {
+export function UploadModal({ children, defaultTab = 'pcap', onUploadSuccess }: UploadModalProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<UploadType>(defaultTab);
   const [uppyInstances, setUppyInstances] = useState<{ pcap: Uppy | null; dictionary: Uppy | null }>({ pcap: null, dictionary: null });
   const [uploadProgress, setUploadProgress] = useState<{ pcap: number; dictionary: number }>({ pcap: 0, dictionary: 0 });
   const [uploadStatus, setUploadStatus] = useState<{ pcap: 'idle' | 'uploading' | 'success' | 'error'; dictionary: 'idle' | 'uploading' | 'success' | 'error' }>({ pcap: 'idle', dictionary: 'idle' });
+  const [, forceUpdate] = useState({});
   const pcapDashboardRef = useRef<HTMLDivElement>(null);
   const dictionaryDashboardRef = useRef<HTMLDivElement>(null);
 
@@ -48,9 +50,10 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       debug: process.env.NODE_ENV === 'development',
     });
 
-    // Add XHR Upload plugin
+    // Add XHR Upload plugin - use correct endpoint based on type
+    const uploadEndpoint = type === 'pcap' ? '/api/upload' : '/api/dictionaries/upload'
     uppy.use(XHRUpload, {
-      endpoint: `/api/upload?type=${type}`,
+      endpoint: uploadEndpoint,
       method: 'POST',
       fieldName: 'file',
       headers: {
@@ -74,10 +77,13 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
         // Show success message with auto-extraction info
         console.log('PCAP uploaded successfully - networks will be extracted automatically');
       }
+
+      // Notify parent component to refresh data
+      onUploadSuccess?.(type);
     });
 
     // Handle upload error
-    uppy.on('upload-error', (file, error, response) => {
+    uppy.on('upload-error', (file, error) => {
       setUploadStatus(prev => ({ ...prev, [type]: 'error' }));
     });
 
@@ -203,20 +209,60 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
         <div className="border rounded-lg p-4">
           <div>
             {uppy && (
-              <div
-                className="min-h-[200px] border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-500"
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const files = Array.from(e.dataTransfer.files);
-                  files.forEach((file) => uppy.addFile(file));
-                }}
-                onDragOver={(e) => e.preventDefault()}
-              >
-                <div className="text-center">
-                  <Upload className="mx-auto h-12 w-12 mb-4" />
-                  <p>Drop files here or click to browse</p>
+              <>
+                <input
+                  type="file"
+                  data-testid={`file-input-${type}`}
+                  className="hidden"
+                  multiple
+                  accept={acceptedTypes}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    files.forEach((file) => {
+                      try {
+                        uppy.addFile({
+                          name: file.name,
+                          size: file.size,
+                          type: file.type,
+                          data: file,
+                        })
+                      } catch (err) {
+                        // File might already exist in Uppy
+                        console.warn('File already added:', file.name)
+                      }
+                    })
+                    // Reset input so same file can be selected again
+                    e.target.value = ''
+                    // Force re-render to show selected files
+                    forceUpdate({})
+                  }}
+                />
+                <div
+                  className="min-h-[200px] border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-500 cursor-pointer"
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const files = Array.from(e.dataTransfer.files)
+                    files.forEach((file) => {
+                      try {
+                        uppy.addFile(file)
+                      } catch (err) {
+                        console.warn('File already added:', file.name)
+                      }
+                    })
+                    forceUpdate({})
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const input = document.querySelector(`[data-testid="file-input-${type}"]`) as HTMLInputElement
+                    input?.click()
+                  }}
+                >
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 mb-4" />
+                    <p>Drop files here or click to browse</p>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -227,9 +273,9 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
             <h4 className="text-sm font-semibold font-mono uppercase text-muted-foreground">
               Selected Files ({files.length})
             </h4>
-            <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
+            <div className="border rounded-md divide-y max-h-40 overflow-y-auto" data-testid={`selected-files-${type}`}>
               {files.map((file: any) => (
-                <div key={file.id} className="flex items-center justify-between p-3">
+                <div key={file.id} className="flex items-center justify-between p-3" data-testid={`file-item-${type}-${file.name}`}>
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <div className="min-w-0 flex-1">
@@ -240,7 +286,10 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
                     </div>
                   </div>
                   <button
-                    onClick={() => uppy?.removeFile(file.id)}
+                    onClick={() => {
+                      uppy?.removeFile(file.id)
+                      forceUpdate({})
+                    }}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <X className="h-4 w-4" />
@@ -269,7 +318,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
 
         {/* Success Message */}
         {uploadStatus[type] === 'success' && (
-          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md" data-testid={`upload-success-${type}`}>
             <CheckCircle className="h-4 w-4 text-green-600" />
             <span className="text-sm text-green-800 font-mono">
               {type === 'pcap'
@@ -285,6 +334,7 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
             onClick={() => handleUpload(type)}
             disabled={files.length === 0 || uploadStatus[type] === 'uploading'}
             className="font-mono"
+            data-testid={`upload-button-${type}`}
           >
             {uploadStatus[type] === 'uploading' ? (
               <>
@@ -308,8 +358,8 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col" data-testid="upload-modal">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[700px] h-[85vh] max-h-[85vh] p-0 gap-0" data-testid="upload-modal">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 font-mono uppercase">
             <Upload className="h-5 w-5" />
             Upload Files
@@ -320,39 +370,42 @@ export function UploadModal({ children, defaultTab = 'pcap' }: UploadModalProps)
         </DialogHeader>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UploadType)} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 bg-muted text-muted-foreground inline-flex h-9 items-center justify-center rounded-lg p-[3px]">
-            <TabsTrigger
-              value="pcap"
-              className="font-mono flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-            >
-              <Wifi className="h-4 w-4" />
-              Captures
-            </TabsTrigger>
-            <TabsTrigger
-              value="dictionary"
-              className="font-mono flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-            >
-              <BookOpen className="h-4 w-4" />
-              Dictionaries
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UploadType)} className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-6 pt-4 pb-2 border-b">
+            <TabsList className="grid w-full grid-cols-2 bg-muted text-muted-foreground inline-flex h-9 items-center justify-center rounded-lg p-[3px]">
+              <TabsTrigger
+                value="pcap"
+                className="font-mono flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+              >
+                <Wifi className="h-4 w-4" />
+                Captures
+              </TabsTrigger>
+              <TabsTrigger
+                value="dictionary"
+                className="font-mono flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+              >
+                <BookOpen className="h-4 w-4" />
+                Dictionaries
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <div className="flex-1 overflow-y-auto">
-            <TabsContent value="pcap" className="mt-6 p-6">
+            <TabsContent value="pcap" className="mt-6 p-6 h-full">
               {renderUploadArea('pcap')}
             </TabsContent>
-            <TabsContent value="dictionary" className="mt-6 p-6">
+            <TabsContent value="dictionary" className="mt-6 p-6 h-full">
               {renderUploadArea('dictionary')}
             </TabsContent>
           </div>
         </Tabs>
 
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-end p-4 border-t">
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
             className="font-mono"
+            data-testid="upload-modal-close"
           >
             <X className="h-4 w-4 mr-2" />
             Close

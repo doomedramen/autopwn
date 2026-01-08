@@ -167,8 +167,12 @@ export function DictionariesTab({ className }: DictionariesTabProps) {
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between font-mono">
         <div></div>
         <div className="flex gap-2">
-          <UploadModal defaultTab="dictionary">
-            <Button variant="outline" className="font-mono text-sm">
+          <UploadModal defaultTab="dictionary" onUploadSuccess={(type) => {
+            if (type === 'dictionary') {
+              refetch();
+            }
+          }}>
+            <Button variant="outline" className="font-mono text-sm" data-testid="dictionaries-upload-button">
               Upload Dictionary
             </Button>
           </UploadModal>

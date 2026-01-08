@@ -388,6 +388,75 @@ export const jobResultDataSchema = z
 export type JobResultData = z.infer<typeof jobResultDataSchema>;
 
 // ============================================================================
+// Job Progress Metadata Schema
+// ============================================================================
+
+/**
+ * Schema for job progress metadata
+ * Used in: jobs.progressMetadata (nullable)
+ */
+export const jobProgressMetadataSchema = z
+  .object({
+    stage: z
+      .enum([
+        "validation",
+        "extraction",
+        "preparation",
+        "cracking",
+        "parsing",
+        "completed",
+      ])
+      .optional()
+      .describe("Current stage of job execution"),
+    stageProgress: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe("Progress percentage within current stage"),
+    currentAction: z
+      .string()
+      .optional()
+      .describe("Human-readable description of current action"),
+    eta: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Estimated time remaining in seconds"),
+    passwordsTested: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Number of passwords tested so far"),
+    passwordsPerSecond: z
+      .number()
+      .min(0)
+      .optional()
+      .describe("Current cracking speed in passwords per second"),
+    dictionaryProgress: z
+      .object({
+        current: z.number().int().min(0).describe("Current position in dictionary"),
+        total: z.number().int().min(0).describe("Total dictionary size"),
+      })
+      .optional()
+      .describe("Progress through dictionary"),
+    hashcatStatus: z
+      .object({
+        recovered: z.string().optional().describe("Recovered hashes (e.g., '0/1')"),
+        speed: z.string().optional().describe("Speed unit (e.g., 'MH/s')"),
+        progress: z.string().optional().describe("Progress string from hashcat"),
+      })
+      .optional()
+      .describe("Raw hashcat status information"),
+  })
+  .strict()
+  .describe("Job progress metadata for real-time tracking");
+
+export type JobProgressMetadata = z.infer<typeof jobProgressMetadataSchema>;
+
+// ============================================================================
 // Validation Helper Functions
 // ============================================================================
 
@@ -456,6 +525,26 @@ export function validateJobResultData(data: unknown): JobResultData {
   return result.data;
 }
 
+/**
+ * Validates job progress metadata and returns typed result
+ */
+export function validateJobProgressMetadata(
+  data: unknown,
+): JobProgressMetadata | null {
+  if (!data) return null;
+
+  const result = jobProgressMetadataSchema.safeParse(data);
+  if (!result.success) {
+    console.error(
+      "Job progress metadata validation failed:",
+      result.error.format(),
+    );
+    return null;
+  }
+
+  return result.data;
+}
+
 // ============================================================================
 // Schema Exports for Direct Use
 // ============================================================================
@@ -465,4 +554,5 @@ export const JSONB_SCHEMAS = {
   jobConfig: jobConfigSchema,
   jobResult: jobResultSchema,
   jobResultData: jobResultDataSchema,
+  jobProgressMetadata: jobProgressMetadataSchema,
 } as const;

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuthSession, useUpdateProfile, useChangePassword, useSendEmailVerification } from '@/lib/api-hooks'
 import { authClient } from '@/lib/auth'
 import { Button } from '@workspace/ui/components/button'
@@ -27,11 +28,18 @@ import {
   Trash2
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
-import Link from 'next/link'
 
 export default function SettingsPage() {
+  const router = useRouter()
   const { data: authData, isLoading, refetch } = useAuthSession()
   const user = authData?.user
+
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/sign-in')
+    }
+  }, [isLoading, user, router])
 
   const updateProfileMutation = useUpdateProfile()
   const changePasswordMutation = useChangePassword()
@@ -70,20 +78,8 @@ export default function SettingsPage() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-muted-foreground">Please log in to access settings.</p>
-              <Link href="/login">
-                <Button className="mt-4 font-mono text-sm">Go to Login</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    // Redirecting to sign-in via useEffect
+    return null
   }
 
   const handleProfileUpdate = async (e: React.FormEvent) => {

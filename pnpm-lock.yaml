@@ -241,6 +241,9 @@ importers:
       drizzle-orm:
         specifier: ^0.44.6
         version: 0.44.6(@prisma/client@6.17.1(prisma@6.17.1(magicast@0.3.5)(typescript@5.9.2))(typescript@5.9.2))(@types/pg@8.15.5)(better-sqlite3@12.4.1)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)(prisma@6.17.1(magicast@0.3.5)(typescript@5.9.2))
+      playwright-coverage-reporter:
+        specifier: ^3.1.23
+        version: 3.1.23(@playwright/test@1.57.0)
       postgres:
         specifier: ^3.4.7
         version: 3.4.7
@@ -5436,6 +5439,12 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  playwright-coverage-reporter@3.1.23:
+    resolution: {integrity: sha512-omfGAYmmQf/FNuwkSOXTpOdpYMNFecPpwmkUE+XzalmhuRaMHwFV8nwyK91JPr7WGSlxTDjxMIj8vGB6+JpftQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@playwright/test': ^1.40.0
+
   playwright@1.57.0:
     resolution: {integrity: sha512-ilYQj1s8sr2ppEJ2YVadYBN0Mb3mdo9J0wQ+UuDhzYqURwSoW4n1Xs5vs7ORwgDGmyEh33tRMeS8KhdkMoLXQw==}
     engines: {node: '>=18'}
@@ -6212,6 +6221,11 @@ packages:
 
   typescript@5.9.2:
     resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -11898,6 +11912,11 @@ snapshots:
 
   playwright-core@1.57.0: {}
 
+  playwright-coverage-reporter@3.1.23(@playwright/test@1.57.0):
+    dependencies:
+      '@playwright/test': 1.57.0
+      typescript: 5.9.3
+
   playwright@1.57.0:
     dependencies:
       playwright-core: 1.57.0
@@ -12789,6 +12808,8 @@ snapshots:
       - supports-color
 
   typescript@5.9.2: {}
+
+  typescript@5.9.3: {}
 
   ua-is-frozen@0.1.2: {}
 

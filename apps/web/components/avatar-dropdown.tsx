@@ -50,7 +50,7 @@ export function AvatarDropdown() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/settings">
+          <Link href="/settings" data-testid="settings-link">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Link>

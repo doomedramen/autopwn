@@ -18,6 +18,7 @@ import {
   jobConfigSchema,
   jobResultSchema,
   jobResultDataSchema,
+  jobProgressMetadataSchema,
 } from "./jsonb-schemas";
 
 // Enums
@@ -128,6 +129,7 @@ export const networks = pgTable("networks", {
   captureDate: timestamp("capture_date").defaultNow().notNull(),
   location: text("location"),
   notes: text("notes"),
+  key: text("key"), // HC22000 hash line for cracking
   userId: text("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
@@ -183,6 +185,20 @@ export const jobs = pgTable("jobs", {
   cancelledAt: timestamp("cancelled_at"),
   dependsOn: jsonb("depends_on").$type<string[]>().default([]),
   tags: varchar("tags", { length: 255 }).array().default([]),
+  progressMetadata: jsonb("progress_metadata").$type<{
+    stage?: 'validation' | 'extraction' | 'preparation' | 'cracking' | 'parsing' | 'completed';
+    stageProgress?: number;
+    currentAction?: string;
+    eta?: number;
+    passwordsTested?: number;
+    passwordsPerSecond?: number;
+    dictionaryProgress?: { current: number; total: number };
+    hashcatStatus?: {
+      recovered?: string;
+      speed?: string;
+      progress?: string;
+    };
+  }>(),
 });
 
 // Job results table for captured handshakes/cracked passwords
@@ -334,4 +350,11 @@ export const networksRelations = relations(networks, ({ many }) => ({
 
 export const dictionariesRelations = relations(dictionaries, ({ many }) => ({
   jobs: many(jobs),
+}));
+
+export const jobResultsRelations = relations(jobResults, ({ one }) => ({
+  job: one(jobs, {
+    fields: [jobResults.jobId],
+    references: [jobs.id],
+  }),
 }));

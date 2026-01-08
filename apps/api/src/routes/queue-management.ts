@@ -103,15 +103,21 @@ queueManagement.post(
       const consolidatedContent = await fs.readFile(consolidatedDictionaryPath, "utf-8");
       const totalWords = consolidatedContent.split("\n").filter((line: string) => line.trim()).length;
 
+      // Get the file size of the consolidated dictionary
+      const dictionaryStats = await fs.stat(consolidatedDictionaryPath);
+
       // Create a consolidated dictionary record
       const [consolidatedDictionary] = await db
         .insert(dictionaries)
         .values({
           name: `Consolidated (${fetchedDictionaries.length} dicts, ${totalWords.toLocaleString()} words)`,
+          filename: `consolidated-${Date.now()}.txt`,
           filePath: consolidatedDictionaryPath,
           wordCount: totalWords,
-          type: "consolidated",
+          size: dictionaryStats.size,
+          type: "generated",
           status: "ready",
+          encoding: "utf-8",
           userId,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -146,8 +152,6 @@ queueManagement.post(
             consolidated: true,
             networkIds, // Store all network IDs
             dictionaryIds, // Store original dictionary IDs
-          },
-          metadata: {
             networkCount: fetchedNetworks.length,
             dictionaryCount: fetchedDictionaries.length,
             totalWords,

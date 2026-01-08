@@ -685,60 +685,56 @@ dictionariesRouter.post("/:id/validate", async (c) => {
 // GET /api/dictionaries/:id/statistics - Get detailed statistics for a dictionary
 dictionariesRouter.get("/:id/statistics", async (c) => {
   try {
-    // Check if cache-dictionaries config is enabled
-    const cacheEnabled = await configService.getBoolean("cache-dictionaries", false);
+    const dictionaryId = c.req.param("id");
+    const dictionary = await db.query.dictionaries.findFirst({
+      where: eq(dictionariesSchema.id, dictionaryId),
+    });
 
-    if (cacheEnabled) {
-      const dictionaryId = c.req.param("id");
-      const cachedStats = await getCachedStats(dictionaryId);
-
-      if (cachedStats) {
-        logger.info(`Cache hit for dictionary ${dictionaryId}`);
-        return c.json({
-          success: true,
-          data: {
-            basic: cachedStats.basic,
-            frequency: cachedStats.frequency,
-            size: cachedStats.size,
-            fromCache: true,
-            timestamp: cachedStats.timestamp
-          }
-        });
-      }
-
-      // Cache miss - calculate and cache
-      logger.info(`Cache miss for dictionary ${dictionaryId} - calculating statistics`);
-      const stats = await calculateStatistics(dictionaryId);
-
-      await setCachedStats(dictionaryId, stats);
-
-      return c.json({
-        success: true,
-        data: {
-          basic: stats.basic,
-          frequency: stats.frequency,
-          size: stats.size,
-          timestamp: Date.now()
-        }
-      });
+    if (!dictionary) {
+      return c.json(
+        {
+          success: false,
+          error: "Dictionary not found",
+        },
+        404,
+      );
     }
 
-    // Cache disabled - calculate directly
-    const dictionaryId = c.req.param("id");
-    logger.info(`Cache disabled - calculating statistics for dictionary ${dictionaryId}`);
-    const stats = await calculateStatistics(dictionaryId);
+    if (dictionary.userId !== getUserId(c)) {
+      return c.json(
+        {
+          success: false,
+          error: "Access denied",
+        },
+        403,
+      );
+    }
 
     return c.json({
       success: true,
       data: {
-        basic: stats.basic,
-        frequency: stats.frequency,
-        size: stats.size,
-        timestamp: Date.now()
-      }
+        basic: {
+          wordCount: dictionary.wordCount,
+          size: dictionary.size,
+          encoding: dictionary.encoding,
+        },
+        frequency: [],
+        size: dictionary.size,
+        timestamp: dictionary.createdAt.getTime(),
+      },
     });
   } catch (error) {
-    logger.error(`Failed to get dictionary statistics for ${c.req.param("id")}`, error);
-    throw error;
+    logger.error(
+      "Failed to get dictionary statistics",
+      "dictionaries",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+    return c.json(
+      {
+        success: false,
+        error: "Failed to get dictionary statistics",
+      },
+      500,
+    );
   }
 });

@@ -15,6 +15,41 @@
       "when": 1762168637806,
       "tag": "0001_curious_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1735640054000,
+      "tag": "0002_add_critical_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1736078640000,
+      "tag": "0003_add_email_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1735663200000,
+      "tag": "0004_add_job_scheduling",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1735672380000,
+      "tag": "0005_add_job_priority_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1736359900000,
+      "tag": "0006_add_progress_metadata",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ import { eq } from "drizzle-orm";
 import * as fs from "fs/promises";
 import { configService } from "../services/config.service";
 import { auditService } from "../services/audit.service";
+import { processPCAP } from "../workers/pcap-processing";
 
 const uploadSchema = z.object({
   file: z.instanceof(File),
@@ -85,6 +86,7 @@ upload.post(
       await fs.chmod(filePath, 0o600);
 
       const isValidPCAP = await quickPCAPValidation(file.name, fileBuffer);
+
       if (!isValidPCAP) {
         await fs
           .rm(uploadDir, { recursive: true, force: true })
@@ -160,31 +162,29 @@ upload.post(
         success: true,
       });
 
-      const queueHealth = await (
-        await import("../lib/queue")
-      ).checkQueueHealth();
-      if (queueHealth.status === "healthy") {
-        await addPCAPProcessingJob({
-          captureId: capture.id,
-          filePath,
-          originalFilename: file.name,
-          userId,
-          metadata: {
-            pcapInfo,
-            pcapAnalysis,
-            uploadId: captureId,
-          },
-        });
-      } else {
-        logger.warn("Queue not healthy, skipping PCAP processing", "upload", {
-          queueHealth,
-        });
-      }
+      // Process PCAP synchronously to extract networks
+      logger.info("Starting PCAP processing", "upload", {
+        captureId: capture.id,
+        filePath,
+      });
+
+      const processingResult = await processPCAP({
+        captureId: capture.id,
+        filePath,
+        originalFilename: file.name,
+        userId,
+      });
+
+      logger.info("PCAP processing completed", "upload", {
+        captureId: capture.id,
+        networksFound: processingResult.data?.networksFound || 0,
+        success: processingResult.success,
+      });
 
       return c.json(
         {
           success: true,
-          message: "PCAP file uploaded successfully and queued for processing",
+          message: "PCAP file uploaded successfully and processed",
           data: {
             uploadId: captureId,
             captureId: capture.id,
@@ -192,7 +192,8 @@ upload.post(
             fileSize: capture.fileSize,
             status: capture.status,
             uploadedAt: capture.uploadedAt,
-            queuedForProcessing: queueHealth.status === "healthy",
+            networksFound: processingResult.data?.networksFound || 0,
+            networkIds: processingResult.data?.networkIds || [],
             pcapInfo: pcapInfo
               ? {
                   version: pcapInfo.version,

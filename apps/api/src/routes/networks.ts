@@ -14,7 +14,9 @@ networksRouter.use('*', authenticate)
 // Get all networks
 networksRouter.get('/', async (c) => {
   try {
+    const userId = getUserId(c)
     const allNetworks = await db.query.networks.findMany({
+      where: eq(networksSchema.userId, userId),
       orderBy: [desc(networksSchema.createdAt)],
     })
 
