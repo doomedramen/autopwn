@@ -70,6 +70,24 @@ export function JobDetailModal({
     navigator.clipboard.writeText(text);
   };
 
+  // Formatting helpers for progress metrics
+  const formatSpeed = (speed: number): string => {
+    if (speed === 0) return '0 H/s';
+    if (speed >= 1000000000) return `${(speed / 1000000000).toFixed(2)} GH/s`;
+    if (speed >= 1000000) return `${(speed / 1000000).toFixed(2)} MH/s`;
+    if (speed >= 1000) return `${(speed / 1000).toFixed(2)} kH/s`;
+    return `${speed.toFixed(0)} H/s`;
+  };
+
+  const formatETA = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return 'Calculating...';
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  };
+
   const handleDownloadResults = () => {
     if (!job?.results || job.results.length === 0) return;
 
@@ -428,6 +446,53 @@ export function JobDetailModal({
                   </h3>
                   <div className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
                     {job.errorMessage}
+                  </div>
+                </div>
+              )}
+
+              {/* Real-time Progress Metrics */}
+              {realTimeStatus === 'running' && jobUpdate?.metadata && (
+                <div>
+                  <h3 className="text-lg font-semibold font-mono mb-3 flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-purple-500" />
+                    Cracking Progress
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {jobUpdate.metadata.passwordsPerSecond > 0 && (
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                        <div className="text-xs text-blue-600 font-mono mb-1">Speed</div>
+                        <div className="text-2xl font-bold text-blue-900">
+                          {formatSpeed(jobUpdate.metadata.passwordsPerSecond)}
+                        </div>
+                      </div>
+                    )}
+
+                    {jobUpdate.metadata.eta > 0 && (
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                        <div className="text-xs text-purple-600 font-mono mb-1">Time Remaining</div>
+                        <div className="text-2xl font-bold text-purple-900">
+                          {formatETA(jobUpdate.metadata.eta)}
+                        </div>
+                      </div>
+                    )}
+
+                    {jobUpdate.metadata.passwordsTested > 0 && (
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                        <div className="text-xs text-green-600 font-mono mb-1">Passwords Tested</div>
+                        <div className="text-2xl font-bold text-green-900">
+                          {jobUpdate.metadata.passwordsTested.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+
+                    {jobUpdate.metadata.hashcatStatus?.recovered && (
+                      <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
+                        <div className="text-xs text-yellow-600 font-mono mb-1">Recovered</div>
+                        <div className="text-2xl font-bold text-yellow-900">
+                          {jobUpdate.metadata.hashcatStatus.recovered}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

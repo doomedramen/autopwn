@@ -12,7 +12,8 @@ import {
   Loader2,
   Play,
   Pause,
-  Zap
+  Zap,
+  Activity
 } from 'lucide-react';
 
 interface JobProgressBarProps {
@@ -99,6 +100,30 @@ export function JobProgressBar({
     }
   };
 
+  const formatSpeed = (speed: number): string => {
+    if (speed === 0) return '0 H/s';
+    if (speed >= 1000000000) return `${(speed / 1000000000).toFixed(2)} GH/s`;
+    if (speed >= 1000000) return `${(speed / 1000000).toFixed(2)} MH/s`;
+    if (speed >= 1000) return `${(speed / 1000).toFixed(2)} kH/s`;
+    return `${speed.toFixed(0)} H/s`;
+  };
+
+  const formatETA = (seconds: number): string => {
+    if (!seconds || seconds <= 0) return 'Calculating...';
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  };
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000000) return `${(num / 1000000000).toFixed(2)}B`;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
+    return num.toString();
+  };
+
   return (
     <div className={`space-y-2 ${className}`}>
       {/* Status Header */}
@@ -143,14 +168,35 @@ export function JobProgressBar({
 
       {/* Additional Details */}
       {showDetails && (
-        <div className="space-y-1">
-          {/* Current Stage */}
-          {metadata?.stage && status === 'running' && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Zap className="h-3 w-3" />
-              <span className="capitalize">
-                {metadata.stage.replace(/_/g, ' ')}
-              </span>
+        <div className="space-y-2">
+          {/* Current Action with Stage */}
+          {status === 'running' && metadata?.currentAction && (
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Zap className="h-3 w-3" />
+                <span>{metadata.currentAction}</span>
+              </div>
+              {metadata.eta !== undefined && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>ETA: {formatETA(metadata.eta)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Speed and Progress Metrics */}
+          {status === 'running' && metadata?.passwordsPerSecond > 0 && (
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-blue-600">
+                <Activity className="h-3 w-3" />
+                <span>Speed: {formatSpeed(metadata.passwordsPerSecond)}</span>
+              </div>
+              {metadata?.dictionaryProgress && (
+                <span className="text-muted-foreground">
+                  {formatNumber(metadata.dictionaryProgress.current)} / {formatNumber(metadata.dictionaryProgress.total)}
+                </span>
+              )}
             </div>
           )}
 
@@ -161,43 +207,13 @@ export function JobProgressBar({
             </div>
           )}
 
-          {/* Metadata for Dictionary Generation */}
-          {metadata?.type === 'dictionary_generation' && metadata?.baseWordsCount && (
-            <div className="text-xs text-muted-foreground space-y-1">
-              <div>Base words: {metadata.baseWordsCount}</div>
-              {metadata.rulesCount !== undefined && (
-                <div>Rules: {metadata.rulesCount}</div>
-              )}
-              {metadata.transformationsCount !== undefined && (
-                <div>Transformations: {metadata.transformationsCount}</div>
-              )}
-              {metadata.wordCount && (
-                <div className="text-green-600">Generated {metadata.wordCount} words</div>
-              )}
-            </div>
-          )}
-
-          {/* Metadata for Hashcat */}
-          {metadata?.type === 'hashcat_execution' && (
-            <div className="text-xs text-muted-foreground space-y-1">
-              <div>Attack mode: {metadata.attackMode}</div>
-              {metadata.wordCount && (
-                <div className="text-green-600">
-                  {status === 'completed'
-                    ? `Found ${metadata.wordCount} passwords`
-                    : 'Processing...'}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Success Result */}
           {jobUpdate?.result && status === 'completed' && (
             <div className="text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200">
               <strong>Success:</strong> {
-                typeof jobUpdate.result === 'string'
-                  ? jobUpdate.result
-                  : JSON.stringify(jobUpdate.result, null, 2)
+                typeof jobUpdate.result === 'object' && jobUpdate.result.passwordsFound !== undefined
+                  ? `Found ${jobUpdate.result.passwordsFound} password(s)`
+                  : JSON.stringify(jobUpdate.result)
               }
             </div>
           )}
