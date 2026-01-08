@@ -360,6 +360,13 @@ export async function runHashcatAttack({
       networkId,
     });
 
+    // Stage 1: Validation complete
+    await smartUpdateJobProgress(jobId, 5, {
+      stage: 'preparation',
+      currentAction: 'Validating job configuration',
+      stageProgress: 100
+    });
+
     // Prepare hashcat command with validated paths
     const hashcatCommand = await buildHashcatCommand({
       attackMode,
@@ -513,6 +520,13 @@ export async function runHashcatAttack({
       throw execError;
     }
 
+    // Stage 2: Hashcat completed, parsing results
+    await smartUpdateJobProgress(jobId, 90, {
+      stage: 'parsing',
+      currentAction: 'Parsing hashcat output',
+      stageProgress: 0
+    });
+
     // Process results
     const crackedPasswords = await parseHashcatOutput(result, jobId);
 
@@ -570,6 +584,13 @@ export async function runHashcatAttack({
           updatedAt: new Date(),
         })
         .where(eq(jobs.id, jobId));
+
+      // Stage 3: Completion
+      await smartUpdateJobProgress(jobId, 100, {
+        stage: 'completed',
+        currentAction: `Found ${crackedPasswords.length} password(s)`,
+        stageProgress: 100
+      }, true); // Force immediate update
 
       logger.info("Hashcat attack completed successfully", "hashcat", {
         jobId,
@@ -651,6 +672,13 @@ export async function runHashcatAttack({
           updatedAt: new Date(),
         })
         .where(eq(networks.id, networkId));
+
+      // Stage 3: Completion (no passwords found)
+      await smartUpdateJobProgress(jobId, 100, {
+        stage: 'completed',
+        currentAction: 'No passwords found',
+        stageProgress: 100
+      }, true); // Force immediate update
 
       logger.info("Hashcat attack completed - no passwords found", "hashcat", {
         jobId,
