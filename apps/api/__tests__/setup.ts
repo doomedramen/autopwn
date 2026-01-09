@@ -363,8 +363,8 @@ export async function closeTestDatabase() {
 
 // Global setup - runs once before all tests
 beforeAll(async () => {
-  // Set NODE_ENV to test
-  process.env.NODE_ENV = 'test'
+  // NODE_ENV is now set by vitest.config.ts before any imports
+  // This ensures dotenv-flow loads .env.test correctly
 
   // Set up test database and run migrations
   await setupTestDatabase()

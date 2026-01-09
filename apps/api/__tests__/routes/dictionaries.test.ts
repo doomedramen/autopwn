@@ -61,14 +61,8 @@ vi.mock('crypto', () => ({
   })),
 }))
 
-// Mock the env config
-vi.mock('../../src/config/env', () => ({
-  env: {
-    UPLOAD_DIR: './uploads/test',
-    MAX_DICTIONARY_SIZE: '1GB',
-    NODE_ENV: 'test',
-  },
-}))
+// Note: We don't mock env config anymore - it loads from .env.test via dotenv-flow
+// which is configured in vitest.config.ts with NODE_ENV='test'
 
 // Mock path module for join
 vi.mock('path', () => ({

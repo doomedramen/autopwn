@@ -2,7 +2,20 @@ import { z } from 'zod'
 import dotenvFlow from 'dotenv-flow'
 
 // Load environment variables
-const result = dotenvFlow.config()
+// dotenv-flow will automatically load:
+// 1. .env (base)
+// 2. .env.local (local overrides, gitignored)
+// 3. .env.{NODE_ENV} (environment-specific, e.g., .env.test)
+// 4. .env.{NODE_ENV}.local (environment-specific local)
+// Files loaded later override earlier ones
+const result = dotenvFlow.config({
+  node_env: process.env.NODE_ENV || 'development',
+  default_node_env: 'development',
+  // Ensure environment-specific files override base .env
+  purge_dotenv: true,
+  silent: true,
+})
+
 if (result.error) {
   console.error('Error loading .env file:', result.error)
 }
