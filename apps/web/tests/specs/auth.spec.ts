@@ -67,14 +67,18 @@ test.describe('Authentication', () => {
       await page.goto('/sign-up');
       await page.waitForLoadState('networkidle');
 
-      // Look for a link to sign-in
-      const signInLink = page.getByRole('link', { name: /sign in|log in|already have/i });
+      // Look for the sign-in link using data-testid
+      const signInLink = page.locator('[data-testid="signin-link"]');
 
-      if (await signInLink.isVisible()) {
-        await signInLink.click();
-        await page.waitForLoadState('networkidle');
-        expect(page.url()).toContain('/sign-in');
-      }
+      await expect(signInLink).toBeVisible();
+
+      // Use Promise.all to click and wait for navigation simultaneously
+      await Promise.all([
+        page.waitForURL(/sign-in/),
+        signInLink.click(),
+      ]);
+
+      expect(page.url()).toContain('/sign-in');
     });
   });
 
@@ -94,11 +98,16 @@ test.describe('Authentication', () => {
       // Login first
       await loginViaUI(page, TEST_USER.email, TEST_USER.password);
 
+      // Verify we're logged in (redirected away from sign-in)
+      await expect(page).not.toHaveURL(/sign-in/, { timeout: 10000 });
+
       // Navigate to settings
       await page.goto('/settings');
       await page.waitForLoadState('networkidle');
 
       // Should stay on settings (not redirect to sign-in)
+      // Note: If auth is working, we should be on settings
+      // If not working, we get redirected to sign-in
       expect(page.url()).toContain('/settings');
     });
   });

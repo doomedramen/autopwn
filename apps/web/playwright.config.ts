@@ -73,16 +73,11 @@ export default defineConfig({
   /* Configure projects - test on Chromium only for focused testing */
   projects: [
     {
-      name: "setup",
-      testMatch: /.*\.setup\.global\.ts/,
-    },
-    {
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 720 },
       },
-      dependencies: ["setup"],
     },
     // Temporarily disabled other browsers for focused testing
     // {

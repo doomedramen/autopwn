@@ -126,13 +126,13 @@ export default function Page() {
             </div>
             <div className="flex items-center space-x-2">
               <UploadModal>
-                <Button variant="outline" size="sm" className="font-mono text-xs">
+                <Button variant="outline" size="sm" className="font-mono text-xs" data-testid="header-upload-button">
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Files
                 </Button>
               </UploadModal>
               <CreateJobModal>
-                <Button variant="outline" size="sm" className="font-mono text-xs">
+                <Button variant="outline" size="sm" className="font-mono text-xs" data-testid="header-create-job-button">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Jobs
                 </Button>

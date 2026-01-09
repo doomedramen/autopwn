@@ -1,5 +1,4 @@
 import { Page, BrowserContext, expect } from '@playwright/test';
-import { createTestUser, deleteTestUser } from './database';
 
 /**
  * Auth helpers for E2E tests
@@ -21,27 +20,79 @@ export const TEST_ADMIN = {
   role: 'admin',
 };
 
+const createdUsers = new Set<string>();
+
 /**
- * Setup test users in the database
+ * Ensure a test user exists (creates via API if needed)
+ * This is idempotent - safe to call multiple times
  */
-export async function setupTestUsers() {
-  console.log('👤 Creating test users...');
+export async function ensureTestUserExists(user: {
+  email: string;
+  password: string;
+  name: string;
+  role?: string;
+}): Promise<void> {
+  // Skip if already created in this test run
+  if (createdUsers.has(user.email)) {
+    return;
+  }
 
-  // Clean up any existing test users first
-  await deleteTestUser(TEST_USER.email);
-  await deleteTestUser(TEST_ADMIN.email);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-  // Create fresh test users
-  await createTestUser(TEST_USER);
-  await createTestUser(TEST_ADMIN);
+  try {
+    // Try to create user via API
+    // Include Origin header for Better Auth CORS validation
+    const response = await fetch(`${apiUrl}/api/auth/sign-up/email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': 'http://localhost:3000',
+      },
+      body: JSON.stringify({
+        email: user.email,
+        password: user.password,
+        name: user.name,
+      }),
+    });
 
-  console.log('✅ Test users created');
+    if (response.ok) {
+      createdUsers.add(user.email);
+      console.log(`  Created user: ${user.email}`);
+
+      // Update role if needed
+      if (user.role && user.role !== 'user') {
+        const postgres = (await import('postgres')).default;
+        const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/autopwn_test';
+        const sql = postgres(DATABASE_URL, { max: 1 });
+        await sql`UPDATE users SET role = ${user.role} WHERE email = ${user.email}`;
+        await sql.end();
+      }
+    } else if (response.status === 400 || response.status === 409) {
+      // User likely already exists, that's fine
+      createdUsers.add(user.email);
+    } else {
+      const error = await response.text();
+      console.warn(`  Warning: Could not create user ${user.email}: ${error}`);
+    }
+  } catch (error) {
+    console.warn(`  Warning: Failed to create user ${user.email}:`, error);
+  }
 }
 
 /**
  * Login via the UI
+ * Automatically ensures the test user exists before attempting login
  */
-export async function loginViaUI(page: Page, email: string, password: string) {
+export async function loginViaUI(page: Page, email: string, password: string, name?: string) {
+  // Ensure user exists before trying to log in
+  const userName = name || email.split('@')[0] || 'Test User';
+  await ensureTestUserExists({
+    email,
+    password,
+    name: userName,
+    role: email === TEST_ADMIN.email ? 'admin' : 'user',
+  });
+
   await page.goto('/sign-in');
   await page.waitForLoadState('networkidle');
 
@@ -49,11 +100,23 @@ export async function loginViaUI(page: Page, email: string, password: string) {
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(password);
 
-  // Submit the form
-  await page.getByRole('button', { name: /sign in/i }).click();
+  // Submit the form and wait for redirect
+  await Promise.all([
+    page.waitForURL((url) => !url.pathname.includes('/sign-in'), { timeout: 15000 }),
+    page.getByRole('button', { name: /sign in/i }).click(),
+  ]);
 
-  // Wait for navigation (either to dashboard or error)
+  // Wait for page to be fully loaded
   await page.waitForLoadState('networkidle');
+
+  // Wait a moment for cookies to be fully set
+  await page.waitForTimeout(500);
+
+  // Verify we're not on sign-in page (login succeeded)
+  const currentUrl = page.url();
+  if (currentUrl.includes('/sign-in')) {
+    throw new Error(`Login failed for ${email} - still on sign-in page`);
+  }
 }
 
 /**
@@ -83,16 +146,31 @@ export async function loginAndSaveState(
  * Logout via the UI
  */
 export async function logout(page: Page) {
-  // Click on user avatar/dropdown
-  const avatarButton = page.getByRole('button', { name: /user|account|avatar/i }).first();
+  // First, navigate to dashboard to ensure we're on a page with the navigation
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
 
-  if (await avatarButton.isVisible()) {
-    await avatarButton.click();
-    await page.getByRole('menuitem', { name: /sign out|logout/i }).click();
-    await page.waitForLoadState('networkidle');
+  // Click on user avatar to open dropdown
+  const avatar = page.locator('[data-testid="user-menu"]');
+
+  if (await avatar.isVisible({ timeout: 5000 })) {
+    await avatar.click();
+
+    // Wait for dropdown content to appear
+    const dropdown = page.locator('[data-testid="avatar-dropdown"]');
+    await expect(dropdown).toBeVisible({ timeout: 5000 });
+
+    // Click the logout menu item
+    const logoutButton = page.getByRole('menuitem', { name: /log out/i });
+    await expect(logoutButton).toBeVisible({ timeout: 5000 });
+    await logoutButton.click();
+
+    // Wait for redirect to sign-in page
+    await page.waitForURL(/sign-in/, { timeout: 10000 });
   } else {
-    // Fallback: navigate directly to sign-out endpoint
-    await page.goto('/api/auth/sign-out');
+    // Fallback: clear cookies to log out
+    await page.context().clearCookies();
+    await page.goto('/sign-in');
     await page.waitForLoadState('networkidle');
   }
 }
