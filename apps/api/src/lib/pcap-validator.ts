@@ -33,6 +33,19 @@ interface PCAPHeader {
  */
 export async function validatePCAPFile(filePath: string): Promise<boolean> {
   try {
+    // Check file size before reading to prevent memory exhaustion
+    const stats = await fs.stat(filePath)
+    const maxSize = 1024 * 1024 * 1024 // 1GB
+    if (stats.size > maxSize) {
+      logger.warn('PCAP validation: File too large', 'pcap-validator', {
+        filePath,
+        size: stats.size,
+        maxSize,
+        sizeMB: (stats.size / (1024 * 1024)).toFixed(2)
+      })
+      return false
+    }
+
     // Read the first 24 bytes (PCAP global header size)
     const fileBuffer = await fs.readFile(filePath)
 

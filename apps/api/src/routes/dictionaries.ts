@@ -12,6 +12,8 @@ import { authMiddleware as authenticate, getUserId } from "@/middleware/auth";
 import { fileSecurityMiddleware } from "@/middleware/fileSecurity";
 import { logger } from "@/lib/logger";
 import * as fs from "fs/promises";
+import { createReadStream } from "fs";
+import * as readline from "readline";
 import * as path from "path";
 import * as crypto from "crypto";
 import { env } from "@/config/env";
@@ -130,19 +132,51 @@ const uploadDictionarySchema = z.object({
   metadata: z.record(z.string()).optional(),
 });
 
-// Helper function to count lines in a file
+// Helper function to count lines in a file using streaming (memory-efficient)
 async function countLines(filePath: string): Promise<number> {
-  try {
-    const content = await fs.readFile(filePath, "utf-8");
-    const lines = content.split("\n").filter((line) => line.trim().length > 0);
-    return lines.length;
-  } catch (error) {
-    logger.warn("Failed to count lines in dictionary", "dictionaries", {
-      filePath,
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-    return 0;
-  }
+  return new Promise((resolve, reject) => {
+    try {
+      let lineCount = 0;
+      const stream = createReadStream(filePath, { encoding: "utf-8" });
+      const rl = readline.createInterface({
+        input: stream,
+        crlfDelay: Infinity,
+      });
+
+      rl.on("line", (line) => {
+        // Only count non-empty lines
+        if (line.trim().length > 0) {
+          lineCount++;
+        }
+      });
+
+      rl.on("close", () => {
+        resolve(lineCount);
+      });
+
+      rl.on("error", (error) => {
+        logger.warn("Failed to count lines in dictionary", "dictionaries", {
+          filePath,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        resolve(0); // Return 0 on error instead of rejecting
+      });
+
+      stream.on("error", (error) => {
+        logger.warn("Failed to read dictionary file", "dictionaries", {
+          filePath,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        resolve(0); // Return 0 on error instead of rejecting
+      });
+    } catch (error) {
+      logger.warn("Failed to count lines in dictionary", "dictionaries", {
+        filePath,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      resolve(0);
+    }
+  });
 }
 
 // Helper function to calculate file checksum

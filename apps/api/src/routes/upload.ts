@@ -17,7 +17,6 @@ import { eq } from "drizzle-orm";
 import * as fs from "fs/promises";
 import { configService } from "../services/config.service";
 import { auditService } from "../services/audit.service";
-import { processPCAP } from "../workers/pcap-processing";
 
 const uploadSchema = z.object({
   file: z.instanceof(File),
@@ -162,29 +161,27 @@ upload.post(
         success: true,
       });
 
-      // Process PCAP synchronously to extract networks
-      logger.info("Starting PCAP processing", "upload", {
+      // Queue PCAP processing in background
+      logger.info("Queueing PCAP processing", "upload", {
         captureId: capture.id,
         filePath,
       });
 
-      const processingResult = await processPCAP({
+      await addPCAPProcessingJob({
         captureId: capture.id,
         filePath,
         originalFilename: file.name,
         userId,
       });
 
-      logger.info("PCAP processing completed", "upload", {
+      logger.info("PCAP processing job queued", "upload", {
         captureId: capture.id,
-        networksFound: processingResult.data?.networksFound || 0,
-        success: processingResult.success,
       });
 
       return c.json(
         {
           success: true,
-          message: "PCAP file uploaded successfully and processed",
+          message: "PCAP file uploaded successfully and queued for processing",
           data: {
             uploadId: captureId,
             captureId: capture.id,
@@ -192,8 +189,6 @@ upload.post(
             fileSize: capture.fileSize,
             status: capture.status,
             uploadedAt: capture.uploadedAt,
-            networksFound: processingResult.data?.networksFound || 0,
-            networkIds: processingResult.data?.networkIds || [],
             pcapInfo: pcapInfo
               ? {
                   version: pcapInfo.version,
@@ -208,7 +203,7 @@ upload.post(
               : null,
           },
         },
-        201,
+        202,
       );
     } catch (error) {
       logger.error(
