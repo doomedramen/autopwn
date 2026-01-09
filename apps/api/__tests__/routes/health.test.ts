@@ -98,7 +98,7 @@ describe('Health Routes', () => {
       expect(status).toBe(200)
       expect(data.status).toBe('ok')
       expect(data.timestamp).toBeDefined()
-      expect(data.service).toBe('autopwn-api')
+      expect(data.service).toBe('crackhouse-api')
       expect(data.version).toBe('1.0.0')
       expect(data.environment).toBeDefined()
     })
@@ -106,7 +106,7 @@ describe('Health Routes', () => {
     it('should include correct service name', async () => {
       const { data } = await makeRequest(app, '/')
 
-      expect(data.service).toBe('autopwn-api')
+      expect(data.service).toBe('crackhouse-api')
     })
 
     it('should return a valid ISO timestamp', async () => {
