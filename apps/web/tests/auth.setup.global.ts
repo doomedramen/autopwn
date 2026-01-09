@@ -1,11 +1,29 @@
 import { test as setup, expect } from '@playwright/test';
-import { TEST_USER, loginViaUI } from './helpers/auth';
+import { TEST_USER, TEST_ADMIN } from './helpers/auth';
+import { createTestUser } from './helpers/database';
 
 /**
  * Global authentication setup
- * This runs before all other tests to set up authenticated sessions
+ * This runs before all other tests to set up test users and authenticated sessions
+ * Runs AFTER servers have started (unlike globalSetup)
  */
-setup('authenticate as test user', async ({ page }) => {
+setup('create test users and authenticate', async ({ page }) => {
+  console.log('👤 Creating test users via API...');
+
+  try {
+    // Create test users via the API (ensures proper password hashing)
+    await createTestUser(TEST_USER);
+    console.log(`  Created user: ${TEST_USER.email}`);
+
+    await createTestUser(TEST_ADMIN);
+    console.log(`  Created admin: ${TEST_ADMIN.email}`);
+
+    console.log('✅ Test users created');
+  } catch (error) {
+    // User might already exist, which is fine
+    console.log('⚠️ User creation failed (may already exist):', error);
+  }
+
   console.log('🔐 Setting up authentication state...');
 
   try {

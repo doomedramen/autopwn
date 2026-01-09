@@ -119,7 +119,12 @@ export class DashboardPage {
     await this.openUserMenu();
     const logoutButton = this.page.getByRole('menuitem', { name: /log out/i });
     await expect(logoutButton).toBeVisible({ timeout: 5000 });
-    await logoutButton.click();
+
+    // Click and wait for redirect to sign-in
+    await Promise.all([
+      this.page.waitForURL(/sign-in/, { timeout: 10000 }),
+      logoutButton.click(),
+    ]);
     await this.page.waitForLoadState('networkidle');
   }
 }

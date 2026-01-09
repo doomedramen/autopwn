@@ -104,7 +104,8 @@ export default defineConfig({
   webServer: [
     {
       // API Server (Hono) - PORT=3001 explicitly set since dotenv-flow may not load without base .env
-      command: "NODE_ENV=test PORT=3001 pnpm run dev",
+      // Seed config before starting the server (globalSetup runs AFTER webServer starts)
+      command: "tsx ../web/tests/seed-config.ts && NODE_ENV=test PORT=3001 pnpm run dev",
       cwd: path.resolve(__dirname, "../../apps/api"),
       url: "http://localhost:3001/health",
       reuseExistingServer: !process.env.CI,
