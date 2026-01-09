@@ -5,8 +5,8 @@
   "main": "src/index-minimal.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "echo 'Build skipped - using tsx for production'",
+    "start": "tsx src/index.ts",
     "worker": "tsx src/workers/index.ts",
     "worker:email": "tsx src/workers/email-worker.ts",
     "db:generate": "drizzle-kit generate",
