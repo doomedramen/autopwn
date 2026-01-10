@@ -100,12 +100,13 @@ export default defineConfig({
     // }
   ],
 
-  /* Run both API and frontend servers before starting tests */
+  /* Run API + Worker and frontend servers before starting tests */
   webServer: [
     {
-      // API Server (Hono) - PORT=3001 explicitly set since dotenv-flow may not load without base .env
+      // API Server + Worker (Hono + BullMQ) - PORT=3001 explicitly set since dotenv-flow may not load without base .env
       // Seed config before starting the server (globalSetup runs AFTER webServer starts)
-      command: "tsx ../web/tests/seed-config.ts && NODE_ENV=test PORT=3001 pnpm run dev",
+      // Worker runs in background (&), API in foreground so Playwright can check health endpoint
+      command: "tsx ../web/tests/seed-config.ts && NODE_ENV=test pnpm run worker & NODE_ENV=test PORT=3001 pnpm run dev",
       cwd: path.resolve(__dirname, "../../apps/api"),
       url: "http://localhost:3001/health",
       reuseExistingServer: !process.env.CI,

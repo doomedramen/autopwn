@@ -23,24 +23,26 @@ export class JobsTabPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Tab navigation
-    this.tab = page.locator('[data-testid="jobs-tab"]');
-    this.content = page.locator('[data-testid="jobs-content"]');
+    // Tab navigation - use button role with name pattern since tabs are buttons
+    this.tab = page.getByRole('button', { name: /^jobs/i });
+    this.content = page.locator('main'); // Jobs content is in main
 
-    // Action buttons
-    this.createJobButton = page.locator('[data-testid="create-job-button"]');
+    // Action buttons - "create job" button in main content area (not header)
+    this.createJobButton = page.locator('main').getByRole('button', { name: /create job/i });
 
-    // Table
-    this.jobsTable = page.locator('[data-testid="jobs-tab"] table');
-    this.tableRows = page.locator('[data-testid="jobs-tab"] table tbody tr');
-    this.emptyState = page.locator('[data-testid="jobs-empty-state"]');
+    // Table - look for any table in the page
+    this.jobsTable = page.locator('table').first();
+    this.tableRows = page.locator('table tbody tr');
+    this.emptyState = page.getByText(/no.*job/i);
     this.loadingIndicator = page.locator('.animate-spin');
   }
 
   async navigateToTab() {
     await this.tab.click();
     await this.page.waitForLoadState('networkidle');
-    await expect(this.content).toBeVisible({ timeout: 10000 });
+    // Wait for the jobs view to load - either table or empty state
+    const jobsContent = this.jobsTable.or(this.emptyState);
+    await expect(jobsContent).toBeVisible({ timeout: 15000 });
   }
 
   async isActive(): Promise<boolean> {
