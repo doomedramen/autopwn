@@ -289,10 +289,12 @@ export async function runHashcatAttack({
     });
 
     // Ensure handshake/PMKID files exist and are properly extracted
+    // The network.key field contains the HC22000 hash line from PCAP processing
     const validatedAttackFile = await ensureAttackFileExists(
       handshakePath,
       attackMode,
       network.bssid!,
+      network.key, // Pass the HC22000 hash line from the database
     );
 
     // SECURITY: Validate file paths before using them
@@ -323,6 +325,7 @@ export async function runHashcatAttack({
         "temp/dictionaries",
         "data/dictionaries",
         "uploads/dictionaries",
+        "/tmp", // Consolidated dictionaries are created in /tmp
       ],
       allowedExtensions: [".txt", ".lst", ".dict"],
       mustExist: true,
@@ -931,75 +934,63 @@ export async function checkHashcatAvailability() {
 
 /**
  * Ensure attack file exists and is properly extracted
+ * The networks table stores the HC22000 hash line in the `key` field
+ * This function will create a temp file from the key if no file path is provided
  */
 async function ensureAttackFileExists(
   handshakePath: string,
   attackMode: "pmkid" | "handshake",
   bssid: string,
+  networkKey?: string,
 ): Promise<string> {
   logger.info("Ensuring attack file exists", "hashcat", {
     handshakePath,
     attackMode,
     bssid,
+    hasNetworkKey: !!networkKey,
   });
 
-  try {
-    // Check if the file already exists
-    await fs.access(handshakePath);
-    logger.info("Attack file already exists", "hashcat", {
-      handshakePath,
-      attackMode,
-    });
-    return handshakePath;
-  } catch (error) {
-    logger.info(
-      "Attack file does not exist, attempting extraction",
-      "hashcat",
-      {
-        handshakePath,
-        attackMode,
-        bssid,
-      },
-    );
+  const workDir = path.join(process.cwd(), "temp", "handshakes");
 
-    // File doesn't exist, try to extract it from the original PCAP
-    const pcapPath = handshakePath.replace(
-      /\/(handshakes|pmkids)\/.*$/,
-      "/original.pcap",
-    );
+  // Ensure temp directory exists
+  await fs.mkdir(workDir, { recursive: true });
 
+  // First, try to use the provided path if it exists
+  if (handshakePath) {
     try {
-      let extractedPath: string;
-
-      if (attackMode === "pmkid") {
-        extractedPath = await extractPMKID(pcapPath, bssid);
-      } else {
-        extractedPath = await extractHandshake(pcapPath, bssid);
-      }
-
-      logger.info("Attack file extracted successfully", "hashcat", {
-        pcapPath,
-        extractedPath,
-        attackMode,
-        bssid,
+      await fs.access(handshakePath);
+      logger.info("Attack file exists at provided path", "hashcat", {
+        handshakePath,
       });
-
-      return extractedPath;
-    } catch (extractError) {
-      logger.error("Failed to extract attack file", "hashcat", {
-        pcapPath,
-        attackMode,
-        bssid,
-        error:
-          extractError instanceof Error
-            ? extractError.message
-            : "Unknown error",
-      });
-      throw new Error(
-        `Attack file not found and extraction failed: ${extractError instanceof Error ? extractError.message : "Unknown error"}`,
-      );
+      return handshakePath;
+    } catch {
+      // File doesn't exist, continue to create from network key
     }
   }
+
+  // If we have a network key (HC22000 hash line), write it to a temp file
+  if (networkKey) {
+    const tempFilePath = path.join(workDir, `${bssid.replace(/:/g, '')}.hc22000`);
+
+    await fs.writeFile(tempFilePath, networkKey, 'utf-8');
+
+    logger.info("Attack file created from network key", "hashcat", {
+      tempFilePath,
+      bssid,
+      keyLength: networkKey.length,
+    });
+
+    return tempFilePath;
+  }
+
+  // No key and no file path - throw error
+  logger.warn("No attack file or network key available", "hashcat", {
+    bssid,
+  });
+
+  throw new Error(
+    `No handshake file available for BSSID ${bssid}. Please upload a PCAP file containing a handshake for this network.`
+  );
 }
 
 /**
