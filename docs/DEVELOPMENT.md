@@ -1,6 +1,6 @@
 # Development Guide
 
-Contributing to autopwn and local development setup.
+Contributing to crackhouse and local development setup.
 
 ## Table of Contents
 - [Critical: Runtime Configuration Philosophy](#critical-runtime-configuration-philosophy)
@@ -16,7 +16,7 @@ Contributing to autopwn and local development setup.
 
 ## Critical: Runtime Configuration Philosophy
 
-**⚠️ IMPORTANT: autopwn must be deployable via Docker Compose without building.**
+**⚠️ IMPORTANT: crackhouse must be deployable via Docker Compose without building.**
 
 ### Core Principle
 
@@ -27,7 +27,7 @@ Contributing to autopwn and local development setup.
 End users should be able to:
 ```bash
 # 1. Pull pre-built images
-docker pull ghcr.io/doomedramen/autopwn-backend:latest
+docker pull ghcr.io/doomedramen/crackhouse-backend:latest
 
 # 2. Create docker-compose.yml and .env file
 cp .env.example .env
@@ -148,8 +148,8 @@ docker run -e LOG_LEVEL=debug test-backend
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/autopwn.git
-cd autopwn
+git clone https://github.com/yourusername/crackhouse.git
+cd crackhouse
 ```
 
 2. **Install dependencies:**
@@ -224,24 +224,24 @@ version: '3.8'
 services:
   db:
     image: postgres:16-alpine
-    container_name: autopwn-dev-db
+    container_name: crackhouse-dev-db
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=autopwn_dev
-      - POSTGRES_USER=autopwn
+      - POSTGRES_DB=crackhouse_dev
+      - POSTGRES_USER=crackhouse
       - POSTGRES_PASSWORD=dev_password
     volumes:
       - dev_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autopwn -d autopwn_dev"]
+      test: ["CMD-SHELL", "pg_isready -U crackhouse -d crackhouse_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: autopwn-dev-redis
+    container_name: crackhouse-dev-redis
     ports:
       - "6379:6379"
     volumes:
@@ -255,7 +255,7 @@ services:
   # Optional: Database admin interface
   pgadmin:
     image: dpage/pgadmin4
-    container_name: autopwn-dev-pgadmin
+    container_name: crackhouse-dev-pgadmin
     ports:
       - "5050:80"
     environment:
@@ -267,7 +267,7 @@ services:
   # Optional: Redis admin interface
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: autopwn-dev-redis-ui
+    container_name: crackhouse-dev-redis-ui
     ports:
       - "8081:8081"
     environment:
@@ -325,7 +325,7 @@ volumes:
 **backend/.env.development:**
 ```bash
 NODE_ENV=development
-DATABASE_URL=postgresql://autopwn:dev_password@localhost:5432/autopwn_dev
+DATABASE_URL=postgresql://crackhouse:dev_password@localhost:5432/crackhouse_dev
 REDIS_URL=redis://localhost:6379
 SESSION_SECRET=development_secret_do_not_use_in_production
 FRONTEND_URL=http://localhost:3000
@@ -360,7 +360,7 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 ## Project Structure
 
 ```
-autopwn/
+crackhouse/
 ├── frontend/                 # Next.js frontend
 │   ├── src/
 │   │   ├── app/             # App router pages
@@ -477,7 +477,7 @@ autopwn/
 
 ### 1. Pick an Issue
 
-Browse [GitHub Issues](https://github.com/yourusername/autopwn/issues) and comment to claim one.
+Browse [GitHub Issues](https://github.com/yourusername/crackhouse/issues) and comment to claim one.
 
 ### 2. Create a Branch
 
@@ -783,7 +783,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const capture = await fetchCapture(params.id);
 
   return {
-    title: `${capture.filename} - autopwn`,
+    title: `${capture.filename} - crackhouse`,
     description: `View capture details for ${capture.filename}`,
   };
 }
@@ -796,10 +796,10 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | autopwn',
-    default: 'autopwn - WiFi Handshake Cracking',
+    template: '%s | crackhouse',
+    default: 'crackhouse - WiFi Handshake Cracking',
   },
-  description: 'Automate WiFi handshake cracking with autopwn',
+  description: 'Automate WiFi handshake cracking with crackhouse',
 };
 ```
 
@@ -812,14 +812,14 @@ import Image from 'next/image';
 // Good
 <Image
   src="/logo.png"
-  alt="autopwn logo"
+  alt="crackhouse logo"
   width={200}
   height={50}
   priority // For above-the-fold images
 />
 
 // Avoid
-<img src="/logo.png" alt="autopwn logo" />
+<img src="/logo.png" alt="crackhouse logo" />
 ```
 
 #### Font Optimization
@@ -971,7 +971,7 @@ export default async function CapturesPage() {
 'use client';
 
 import { useState } from 'react';
-import { Capture } from '@autopwn/shared';
+import { Capture } from '@crackhouse/shared';
 import { CaptureList } from '@/components/captures/capture-list';
 import { UploadDialog } from '@/components/captures/upload-dialog';
 
@@ -1066,7 +1066,7 @@ export default async function JobsPage() {
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Job, Network, Dictionary } from '@autopwn/shared';
+import { Job, Network, Dictionary } from '@crackhouse/shared';
 import { JobList } from '@/components/jobs/job-list';
 import { CreateJobDialog } from '@/components/jobs/create-job-dialog';
 
@@ -1120,7 +1120,7 @@ export function JobsContent({
 | Bundle Size | ❌ Large | ✅ Small | ✅ Optimized |
 | Maintainability | ⚠️ Medium | ✅ Good | ✅ Excellent |
 
-**This pattern is preferred for all interactive pages in autopwn.**
+**This pattern is preferred for all interactive pages in crackhouse.**
 
 #### Common Pitfalls to Avoid
 
@@ -1455,7 +1455,7 @@ npm run db:seed   # Optional: add test data
 **View database:**
 ```bash
 # Using psql
-psql postgresql://autopwn:dev_password@localhost:5432/autopwn_dev
+psql postgresql://crackhouse:dev_password@localhost:5432/crackhouse_dev
 
 # Or use PgAdmin at http://localhost:5050
 ```

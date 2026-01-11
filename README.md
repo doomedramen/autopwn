@@ -120,10 +120,8 @@ crackhouse/
 │   ├── ui/               # Shared UI components (shadcn/ui)
 │   ├── typescript-config/
 │   └── eslint-config/
-├── docker-compose.yml         # Development compose
-├── docker-compose.prod.yml    # Production compose
-├── DEPLOYMENT.md              # Deployment guide
-└── KNOWN_ISSUES.md            # Known issues and limitations
+├── docker-compose.yml         # Production compose (uses registry images)
+└── docs/                      # Documentation
 ```
 
 ## 🛠️ Technology Stack
@@ -161,10 +159,8 @@ crackhouse/
 
 ## 📖 Documentation
 
-- [Deployment Guide](DEPLOYMENT.md) - Production deployment instructions
-- [Known Issues](KNOWN_ISSUES.md) - Current limitations and todos
-- [API Documentation](#) - Coming soon
-- [Architecture](#) - Coming soon
+- [Development Guide](docs/DEVELOPMENT.md) - Local setup, contributing, code standards
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment, Docker, environment configuration
 
 ## 🧪 Testing
 
@@ -250,27 +246,6 @@ By using this software, you agree to use it only for legal and authorized purpos
 - Email: your-email@example.com
 - Twitter: [@yourhandle](https://twitter.com/yourhandle)
 
-## 🗺️ Roadmap
-
-### v1.1 (Planned)
-- [ ] GPU acceleration support for hashcat
-- [ ] Multi-language support
-- [ ] Advanced analytics dashboard
-- [ ] Scheduled job execution
-- [ ] Email notifications for job completion
-- [ ] API key authentication
-- [ ] Docker image on DockerHub
-- [ ] Helm chart for Kubernetes
-
-### v1.2 (Planned)
-- [ ] Team collaboration features
-- [ ] Role-based access control (RBAC)
-- [ ] Audit logging
-- [ ] Export job results
-- [ ] Batch job creation
-- [ ] Advanced filtering and search
-
 ---
 
-<p align="center">Made with ❤️ by the CrackHouse team</p>
-<p align="center">⭐ Star us on GitHub if this project helped you!</p>
+<p align="center">Made with care by the CrackHouse team</p>

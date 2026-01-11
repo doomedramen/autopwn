@@ -1,0 +1,10 @@
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      run: pnpm --filter web typecheck
+
+pre-push:
+  commands:
+    test:
+      run: pnpm --filter @crackhouse/api test:run

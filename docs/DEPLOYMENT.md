@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Production deployment guide for autopwn.
+Production deployment guide for crackhouse.
 
 ## Table of Contents
 - [Critical: Runtime Configuration](#critical-runtime-configuration)
@@ -17,7 +17,7 @@ Production deployment guide for autopwn.
 
 ## Critical: Runtime Configuration
 
-**⚠️ IMPORTANT: autopwn is designed for easy deployment with Docker Compose.**
+**⚠️ IMPORTANT: crackhouse is designed for easy deployment with Docker Compose.**
 
 ### Runtime Environment Variables
 
@@ -35,7 +35,7 @@ Production deployment guide for autopwn.
 # docker-compose.yml
 services:
   backend:
-    image: ghcr.io/doomedramen/autopwn-backend:latest  # Pre-built image
+    image: ghcr.io/doomedramen/crackhouse-backend:latest  # Pre-built image
     environment:
       # ALL config provided at runtime
       - DATABASE_URL=${DATABASE_URL}
@@ -126,7 +126,7 @@ const server = await app.listen({ port: config.port, host: '0.0.0.0' });
 // Bad - Hardcoded values
 const maxConcurrentJobs = 2;
 const sessionSecret = 'my-secret-key';
-const databaseUrl = 'postgresql://localhost:5432/autopwn';
+const databaseUrl = 'postgresql://localhost:5432/crackhouse';
 
 // Bad - Config file that can't be overridden
 import config from './config.json';
@@ -230,7 +230,7 @@ version: '3.8'
 
 services:
   backend:
-    image: ghcr.io/doomedramen/autopwn-backend:latest
+    image: ghcr.io/doomedramen/crackhouse-backend:latest
     restart: unless-stopped
     environment:
       # ALL configuration via environment variables
@@ -267,12 +267,12 @@ services:
 
 ```bash
 # 1. Build image once
-docker build -t autopwn-backend .
+docker build -t crackhouse-backend .
 
 # 2. Test with different configs (no rebuild)
-docker run -e DATABASE_URL=postgresql://test1 autopwn-backend
-docker run -e DATABASE_URL=postgresql://test2 autopwn-backend
-docker run -e HASHCAT_MAX_CONCURRENT_JOBS=5 autopwn-backend
+docker run -e DATABASE_URL=postgresql://test1 crackhouse-backend
+docker run -e DATABASE_URL=postgresql://test2 crackhouse-backend
+docker run -e HASHCAT_MAX_CONCURRENT_JOBS=5 crackhouse-backend
 
 # Config changes should work without rebuilding!
 ```
@@ -345,22 +345,22 @@ version: '3.8'
 
 services:
   frontend:
-    image: autopwn/frontend:latest
-    container_name: autopwn-frontend
+    image: crackhouse/frontend:latest
+    container_name: crackhouse-frontend
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     networks:
-      - autopwn-network
+      - crackhouse-network
     depends_on:
       - backend
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
   backend:
-    image: autopwn/backend:latest
-    container_name: autopwn-backend
+    image: crackhouse/backend:latest
+    container_name: crackhouse-backend
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -373,9 +373,9 @@ services:
       - HASHCAT_MAX_CONCURRENT_JOBS=${HASHCAT_MAX_CONCURRENT_JOBS}
     volumes:
       - data:/data
-      - logs:/var/log/autopwn
+      - logs:/var/log/crackhouse
     networks:
-      - autopwn-network
+      - crackhouse-network
     depends_on:
       db:
         condition: service_healthy
@@ -391,8 +391,8 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   worker:
-    image: autopwn/backend:latest
-    container_name: autopwn-worker
+    image: crackhouse/backend:latest
+    container_name: crackhouse-worker
     restart: unless-stopped
     command: ["npm", "run", "worker"]
     environment:
@@ -402,9 +402,9 @@ services:
       - HASHCAT_MAX_CONCURRENT_JOBS=${HASHCAT_MAX_CONCURRENT_JOBS}
     volumes:
       - data:/data
-      - logs:/var/log/autopwn
+      - logs:/var/log/crackhouse
     networks:
-      - autopwn-network
+      - crackhouse-network
     depends_on:
       - backend
       - redis
@@ -421,7 +421,7 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: autopwn-db
+    container_name: crackhouse-db
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${DATABASE_NAME}
@@ -435,7 +435,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     networks:
-      - autopwn-network
+      - crackhouse-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
       interval: 10s
@@ -456,7 +456,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: autopwn-redis
+    container_name: crackhouse-redis
     restart: unless-stopped
     command: >
       redis-server
@@ -466,7 +466,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - autopwn-network
+      - crackhouse-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -475,7 +475,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: autopwn-nginx
+    container_name: crackhouse-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -485,7 +485,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_cache:/var/cache/nginx
     networks:
-      - autopwn-network
+      - crackhouse-network
     depends_on:
       - frontend
       - backend
@@ -498,7 +498,7 @@ services:
   # Auto-update containers
   watchtower:
     image: containrrr/watchtower
-    container_name: autopwn-watchtower
+    container_name: crackhouse-watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -507,10 +507,10 @@ services:
       - WATCHTOWER_LABEL_ENABLE=true
       - WATCHTOWER_POLL_INTERVAL=86400  # Check daily
     networks:
-      - autopwn-network
+      - crackhouse-network
 
 networks:
-  autopwn-network:
+  crackhouse-network:
     driver: bridge
     ipam:
       config:
@@ -521,7 +521,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /opt/autopwn/data
+      device: /opt/crackhouse/data
       o: bind
   postgres_data:
     driver: local
@@ -537,8 +537,8 @@ volumes:
 
 ```bash
 # Create data directory
-sudo mkdir -p /opt/autopwn/data
-sudo chown -R 1000:1000 /opt/autopwn/data
+sudo mkdir -p /opt/crackhouse/data
+sudo chown -R 1000:1000 /opt/crackhouse/data
 
 # Start services
 docker compose -f docker-compose.prod.yml up -d
@@ -559,22 +559,22 @@ docker compose -f docker-compose.prod.yml ps
 # Application
 # ============================================
 NODE_ENV=production
-APP_NAME=autopwn
-APP_URL=https://autopwn.yourdomain.com
+APP_NAME=crackhouse
+APP_URL=https://crackhouse.yourdomain.com
 
 # Frontend
-NEXT_PUBLIC_API_URL=https://autopwn.yourdomain.com/api
+NEXT_PUBLIC_API_URL=https://crackhouse.yourdomain.com/api
 
 # Backend
 BACKEND_PORT=4000
-FRONTEND_URL=https://autopwn.yourdomain.com
+FRONTEND_URL=https://crackhouse.yourdomain.com
 
 # ============================================
 # Database
 # ============================================
-DATABASE_URL=postgresql://autopwn:CHANGE_THIS_PASSWORD@db:5432/autopwn
-DATABASE_NAME=autopwn
-DATABASE_USER=autopwn
+DATABASE_URL=postgresql://crackhouse:CHANGE_THIS_PASSWORD@db:5432/crackhouse
+DATABASE_NAME=crackhouse
+DATABASE_USER=crackhouse
 DATABASE_PASSWORD=CHANGE_THIS_PASSWORD
 DATABASE_POOL_MIN=5
 DATABASE_POOL_MAX=20
@@ -592,7 +592,7 @@ SESSION_MAX_AGE=604800
 BCRYPT_ROUNDS=12
 
 # CORS (your domain only)
-CORS_ORIGINS=https://autopwn.yourdomain.com
+CORS_ORIGINS=https://crackhouse.yourdomain.com
 
 # ============================================
 # File Storage
@@ -601,7 +601,7 @@ UPLOAD_DIR=/data/uploads
 PROCESSED_DIR=/data/processed
 GENERATED_DIR=/data/generated
 HASHCAT_DIR=/data/hashcat
-LOG_DIR=/var/log/autopwn
+LOG_DIR=/var/log/crackhouse
 
 # Production limits
 MAX_PCAP_SIZE=524288000        # 500MB
@@ -672,7 +672,7 @@ http {
     # HTTP to HTTPS redirect
     server {
         listen 80;
-        server_name autopwn.yourdomain.com;
+        server_name crackhouse.yourdomain.com;
 
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
@@ -686,7 +686,7 @@ http {
     # HTTPS server
     server {
         listen 443 ssl http2;
-        server_name autopwn.yourdomain.com;
+        server_name crackhouse.yourdomain.com;
 
         # SSL configuration
         ssl_certificate /etc/nginx/ssl/fullchain.pem;
@@ -764,7 +764,7 @@ Alternative to nginx - `docker-compose.traefik.yml`:
 services:
   traefik:
     image: traefik:v2.10
-    container_name: autopwn-traefik
+    container_name: crackhouse-traefik
     restart: unless-stopped
     ports:
       - "80:80"
@@ -775,14 +775,14 @@ services:
       - ./traefik/acme.json:/acme.json
       - traefik_logs:/var/log/traefik
     networks:
-      - autopwn-network
+      - crackhouse-network
     labels:
       - "traefik.enable=true"
 
   frontend:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`autopwn.yourdomain.com`)"
+      - "traefik.http.routers.frontend.rule=Host(`crackhouse.yourdomain.com`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
@@ -790,7 +790,7 @@ services:
   backend:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`autopwn.yourdomain.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.rule=Host(`crackhouse.yourdomain.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=4000"
@@ -806,13 +806,13 @@ sudo apt-get update
 sudo apt-get install certbot
 
 # Get certificate
-sudo certbot certonly --standalone -d autopwn.yourdomain.com
+sudo certbot certonly --standalone -d crackhouse.yourdomain.com
 
-# Certificates will be in /etc/letsencrypt/live/autopwn.yourdomain.com/
+# Certificates will be in /etc/letsencrypt/live/crackhouse.yourdomain.com/
 
 # Copy to nginx directory
-sudo cp /etc/letsencrypt/live/autopwn.yourdomain.com/fullchain.pem ./nginx/ssl/
-sudo cp /etc/letsencrypt/live/autopwn.yourdomain.com/privkey.pem ./nginx/ssl/
+sudo cp /etc/letsencrypt/live/crackhouse.yourdomain.com/fullchain.pem ./nginx/ssl/
+sudo cp /etc/letsencrypt/live/crackhouse.yourdomain.com/privkey.pem ./nginx/ssl/
 
 # Set permissions
 sudo chmod 644 ./nginx/ssl/fullchain.pem
@@ -820,7 +820,7 @@ sudo chmod 600 ./nginx/ssl/privkey.pem
 
 # Auto-renewal (cron)
 sudo crontab -e
-# Add: 0 3 * * * certbot renew --quiet && cp /etc/letsencrypt/live/autopwn.yourdomain.com/*.pem /opt/autopwn/nginx/ssl/ && docker compose -f /opt/autopwn/docker-compose.prod.yml restart nginx
+# Add: 0 3 * * * certbot renew --quiet && cp /etc/letsencrypt/live/crackhouse.yourdomain.com/*.pem /opt/crackhouse/nginx/ssl/ && docker compose -f /opt/crackhouse/docker-compose.prod.yml restart nginx
 ```
 
 ### Let's Encrypt with Traefik
@@ -877,7 +877,7 @@ Returns:
 #!/bin/bash
 # healthcheck.sh
 
-URL="https://autopwn.yourdomain.com/health"
+URL="https://crackhouse.yourdomain.com/health"
 EXPECTED_STATUS="healthy"
 
 RESPONSE=$(curl -s $URL)
@@ -895,7 +895,7 @@ exit 0
 
 Add to cron:
 ```bash
-*/5 * * * * /opt/autopwn/healthcheck.sh
+*/5 * * * * /opt/crackhouse/healthcheck.sh
 ```
 
 ### Logging
@@ -934,25 +934,25 @@ sudo systemctl restart docker
 
 **Monitor container resources:**
 ```bash
-docker stats autopwn-backend autopwn-worker autopwn-db autopwn-redis
+docker stats crackhouse-backend crackhouse-worker crackhouse-db crackhouse-redis
 ```
 
 **Monitor disk usage:**
 ```bash
-du -sh /opt/autopwn/data/*
-df -h /opt/autopwn
+du -sh /opt/crackhouse/data/*
+df -h /opt/crackhouse
 ```
 
 ## Backups
 
 ### Automated Backup Script
 
-Create `/opt/autopwn/backup.sh`:
+Create `/opt/crackhouse/backup.sh`:
 
 ```bash
 #!/bin/bash
 
-BACKUP_DIR="/opt/autopwn/backups"
+BACKUP_DIR="/opt/crackhouse/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 RETENTION_DAYS=30
 
@@ -963,51 +963,51 @@ mkdir -p "$BACKUP_DIR"
 
 # Backup database
 echo "Backing up database..."
-docker exec autopwn-db pg_dump -U autopwn autopwn | gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
+docker exec crackhouse-db pg_dump -U crackhouse crackhouse | gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
 
 # Backup data directory (excluding large files)
 echo "Backing up data directory..."
 tar -czf "$BACKUP_DIR/data_$DATE.tar.gz" \
-  --exclude='/opt/autopwn/data/uploads' \
-  --exclude='/opt/autopwn/data/processed' \
-  /opt/autopwn/data
+  --exclude='/opt/crackhouse/data/uploads' \
+  --exclude='/opt/crackhouse/data/processed' \
+  /opt/crackhouse/data
 
 # Backup configuration
 echo "Backing up configuration..."
 tar -czf "$BACKUP_DIR/config_$DATE.tar.gz" \
-  /opt/autopwn/.env \
-  /opt/autopwn/docker-compose.prod.yml \
-  /opt/autopwn/nginx
+  /opt/crackhouse/.env \
+  /opt/crackhouse/docker-compose.prod.yml \
+  /opt/crackhouse/nginx
 
 # Remove old backups
 echo "Cleaning up old backups..."
 find "$BACKUP_DIR" -name "*.gz" -mtime +$RETENTION_DAYS -delete
 
 # Upload to S3 (optional)
-# aws s3 sync "$BACKUP_DIR" s3://your-backup-bucket/autopwn/
+# aws s3 sync "$BACKUP_DIR" s3://your-backup-bucket/crackhouse/
 
 echo "[$(date)] Backup completed successfully"
 ```
 
 Make executable and schedule:
 ```bash
-chmod +x /opt/autopwn/backup.sh
+chmod +x /opt/crackhouse/backup.sh
 
 # Add to cron (daily at 2 AM)
 crontab -e
-0 2 * * * /opt/autopwn/backup.sh >> /opt/autopwn/backup.log 2>&1
+0 2 * * * /opt/crackhouse/backup.sh >> /opt/crackhouse/backup.log 2>&1
 ```
 
 ### Restore from Backup
 
 ```bash
 # Stop services
-cd /opt/autopwn
+cd /opt/crackhouse
 docker compose -f docker-compose.prod.yml down
 
 # Restore database
 gunzip -c backups/db_20250119_020000.sql.gz | \
-  docker exec -i autopwn-db psql -U autopwn autopwn
+  docker exec -i crackhouse-db psql -U crackhouse crackhouse
 
 # Restore data
 tar -xzf backups/data_20250119_020000.tar.gz -C /
@@ -1086,11 +1086,11 @@ Protect against brute force:
 sudo apt-get install fail2ban
 
 # Create /etc/fail2ban/jail.local
-[autopwn]
+[crackhouse]
 enabled = true
 port = http,https
-filter = autopwn
-logpath = /opt/autopwn/logs/access.log
+filter = crackhouse
+logpath = /opt/crackhouse/logs/access.log
 maxretry = 5
 bantime = 3600
 ```
@@ -1186,7 +1186,7 @@ For lower RPO, increase backup frequency or implement continuous backup strategy
 
 **⚠️ Important Notice:**
 
-Before deploying autopwn:
+Before deploying crackhouse:
 
 1. **Verify legal compliance:** WiFi password cracking may be illegal in your jurisdiction without explicit authorization
 2. **Use responsibly:** Only crack passwords for networks you own or have written permission to test
