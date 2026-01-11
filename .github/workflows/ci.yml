@@ -51,6 +51,11 @@ jobs:
       - name: Typecheck
         run: pnpm --filter web typecheck
 
+      - name: Run database migrations
+        run: pnpm --filter @crackhouse/api db:push
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/crackhouse_test
+
       - name: Test
         run: pnpm --filter @crackhouse/api test:run
         env:
