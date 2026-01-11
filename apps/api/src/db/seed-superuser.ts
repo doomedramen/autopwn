@@ -149,3 +149,15 @@ export async function createUser(email: string, role: 'user' | 'admin' = 'user')
     throw error
   }
 }
+
+// Run when executed directly
+if (require.main === module) {
+  createSuperUser()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Superuser seeding failed:', error);
+      process.exit(1);
+    });
+}

@@ -195,8 +195,12 @@ export async function seedConfig() {
 }
 
 if (require.main === module) {
-  seedConfig().catch((error) => {
-    console.error("Config seeding failed:", error);
-    process.exit(1);
-  });
+  seedConfig()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("Config seeding failed:", error);
+      process.exit(1);
+    });
 }

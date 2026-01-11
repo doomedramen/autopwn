@@ -385,6 +385,10 @@ export async function runHashcatAttack({
 
     // Execute hashcat command with streaming output
     const workDir = path.join(process.cwd(), "temp", "hashcat", jobId);
+
+    // Create working directory for hashcat output
+    await fs.mkdir(workDir, { recursive: true });
+
     let hashcatProcess: any;
     let statusBuffer = '';
     let lastProgressUpdate = Date.now();
@@ -404,6 +408,7 @@ export async function runHashcatAttack({
         `--session=${jobId}`,
         '-o', path.join(workDir, 'hashcat_output.txt'),
         `--potfile-path=${path.join(workDir, 'hashcat.pot')}`,
+        '--potfile-disable', // Disable global potfile to ensure we always run the attack
         '--status',
         '--status-timer=2',
         validatedHandshakePath,
@@ -558,13 +563,13 @@ export async function runHashcatAttack({
         });
       }
 
-      // Update network status with cracked password
+      // Update network with cracked password
       const mainPassword = crackedPasswords[0];
       await db
         .update(networks)
         .set({
-          status: "cracked" as any,
-          password: mainPassword.plaintext,
+          status: "ready", // Back to ready now that we have the password
+          key: mainPassword.plaintext, // Store cracked password in key field
           notes: `Cracked password: ${mainPassword.plaintext}`,
           updatedAt: new Date(),
         })
