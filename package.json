@@ -7,7 +7,9 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "knip": "knip"
+    "knip": "knip",
+    "test:e2e": "docker-compose -f docker-compose.e2e.yml up --abort-on-container-exit --build",
+    "test:e2e:build": "docker build -f Dockerfile.e2e -t crackhouse-e2e ."
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",

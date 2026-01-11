@@ -93,7 +93,9 @@ export async function loginViaUI(page: Page, email: string, password: string, na
     role: email === TEST_ADMIN.email ? 'admin' : 'user',
   });
 
-  await page.goto('/sign-in');
+  // Use baseURL from page or fall back to localhost
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  await page.goto(`${baseUrl}/sign-in`);
   await page.waitForLoadState('networkidle');
 
   // Fill in credentials

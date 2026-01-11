@@ -58,3 +58,4 @@ uploads/
 *.lcov
 apps/web/auth-debug.png
 test-results/.last-run.json
+/apps/api/temp
