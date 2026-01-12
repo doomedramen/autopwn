@@ -57,6 +57,13 @@
       "when": 1736676000000,
       "tag": "0007_add_network_key",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1736676600000,
+      "tag": "0008_add_scheduled_status",
+      "breakpoints": true
     }
   ]
 }
