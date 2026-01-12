@@ -29,8 +29,8 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 hono
 
-# Install hashcat (required for password cracking functionality)
-RUN apk add --no-cache hashcat
+# Install hashcat from community repository (required for password cracking)
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community hashcat
 
 # Install pnpm (needed for tsx at runtime)
 RUN corepack enable && corepack prepare pnpm@latest --activate
