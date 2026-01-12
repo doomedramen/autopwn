@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Hono API with tsx
 # Stage 1: Dependencies
-FROM node:25-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -20,7 +20,7 @@ COPY packages/eslint-config/package.json ./packages/eslint-config/
 RUN pnpm install --frozen-lockfile --filter=@crackhouse/api... --prod
 
 # Stage 2: Runner
-FROM node:25-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
