@@ -3,21 +3,21 @@
 
 -- Email SMTP configuration
 INSERT INTO config (id, value, description, category, type, default_value, min_value, max_value, is_read_only, requires_restart, updated_at, updated_by) VALUES
-  ('email-host', 'smtp.gmail.com', 'SMTP server hostname', 'general', 'string', 'smtp.gmail.com', NULL, NULL, false, false, NOW(), NULL),
+  ('email-host', '"smtp.gmail.com"', 'SMTP server hostname', 'general', 'string', '"smtp.gmail.com"', NULL, NULL, false, false, NOW(), NULL),
   ('email-port', '587', 'SMTP server port', 'general', 'number', '587', '1', '65535', false, false, NOW(), NULL),
   ('email-secure', 'false', 'Use SSL/TLS for SMTP connection', 'general', 'boolean', 'false', NULL, NULL, false, false, NOW(), NULL),
-  ('email-user', '', 'SMTP authentication username', 'general', 'string', '', NULL, NULL, false, false, NOW(), NULL),
-  ('email-password', '', 'SMTP authentication password', 'general', 'string', '', NULL, NULL, false, false, NOW(), NULL),
-  ('email-from', 'noreply@crackhouse.local', 'From email address for system emails', 'general', 'string', 'noreply@crackhouse.local', NULL, NULL, false, false, NOW(), NULL),
+  ('email-user', '""', 'SMTP authentication username', 'general', 'string', '""', NULL, NULL, false, false, NOW(), NULL),
+  ('email-password', '""', 'SMTP authentication password', 'general', 'string', '""', NULL, NULL, false, false, NOW(), NULL),
+  ('email-from', '"noreply@crackhouse.local"', 'From email address for system emails', 'general', 'string', '"noreply@crackhouse.local"', NULL, NULL, false, false, NOW(), NULL),
   ('email-enabled', 'false', 'Enable email notifications', 'general', 'boolean', 'false', NULL, NULL, false, false, NOW(), NULL);
 
 -- Email notification preferences
 INSERT INTO config (id, value, description, category, type, default_value, min_value, max_value, is_read_only, requires_restart, updated_at, updated_by) VALUES
-  ('email-notify-job-complete', 'true', 'Send email when job completes', 'notifications', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
-  ('email-notify-job-failed', 'true', 'Send email when job fails', 'notifications', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
-  ('email-notify-health-degraded', 'true', 'Send email when system health is degraded', 'notifications', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
-  ('email-notify-health-critical', 'true', 'Send email when system health is critical', 'notifications', 'boolean', 'true', NULL, NULL, false, NOW(), NULL),
-  ('email-notify-security-events', 'true', 'Send email for security events', 'notifications', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL);
+  ('email-notify-job-complete', 'true', 'Send email when job completes', 'general', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
+  ('email-notify-job-failed', 'true', 'Send email when job fails', 'general', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
+  ('email-notify-health-degraded', 'true', 'Send email when system health is degraded', 'general', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
+  ('email-notify-health-critical', 'true', 'Send email when system health is critical', 'general', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL),
+  ('email-notify-security-events', 'true', 'Send email for security events', 'security', 'boolean', 'true', NULL, NULL, false, false, NOW(), NULL);
 
 -- Email queue configuration
 INSERT INTO config (id, value, description, category, type, default_value, min_value, max_value, is_read_only, requires_restart, updated_at, updated_by) VALUES
