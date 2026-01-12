@@ -9,7 +9,6 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy workspace root files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY .npmrc .npmrc 2>/dev/null || true
 
 # Copy all package.json files for workspace dependencies
 COPY apps/web/package.json ./apps/web/
