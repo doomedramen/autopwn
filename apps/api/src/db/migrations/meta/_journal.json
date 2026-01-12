@@ -50,6 +50,13 @@
       "when": 1736359900000,
       "tag": "0006_add_progress_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1736676000000,
+      "tag": "0007_add_network_key",
+      "breakpoints": true
     }
   ]
 }
