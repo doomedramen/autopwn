@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Hono API with tsx
-# Stage 1: Dependencies
+# Stage 1: Dependencies (using Alpine for smaller deps layer)
 FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -16,21 +16,21 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --filter=@crackhouse/api... --prod
+# Install production dependencies only (ignore-scripts to skip lefthook)
+RUN pnpm install --frozen-lockfile --filter=@crackhouse/api... --prod --ignore-scripts
 
-# Stage 2: Runner
-FROM node:22-alpine AS runner
+# Stage 2: Runner (using Debian for hashcat availability)
+FROM node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 hono
-
-# Install hashcat from community repository (required for password cracking)
-RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community hashcat
+# Install hashcat and create non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    hashcat \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 nodejs \
+    && useradd --system --uid 1001 --gid nodejs hono
 
 # Install pnpm (needed for tsx at runtime)
 RUN corepack enable && corepack prepare pnpm@latest --activate

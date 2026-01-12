@@ -16,8 +16,8 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --filter=web...
+# Install dependencies (ignore-scripts to skip lefthook)
+RUN pnpm install --frozen-lockfile --filter=web... --ignore-scripts
 
 # Stage 2: Builder
 FROM node:22-alpine AS builder
@@ -31,7 +31,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages ./packages
 
-# Copy source code
+# Copy source code (overlay on deps-installed packages)
+COPY packages ./packages
 COPY apps/web ./apps/web
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
