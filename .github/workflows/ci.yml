@@ -55,12 +55,16 @@ jobs:
         run: pnpm --filter @crackhouse/api db:push
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/crackhouse_test
+          AUTH_SECRET: test-auth-secret-for-ci-only-32chars
+          JWT_SECRET: test-jwt-secret-for-ci-only-32chars
 
       - name: Test
         run: pnpm --filter @crackhouse/api test:run
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:password@localhost:5432/crackhouse_test
+          AUTH_SECRET: test-auth-secret-for-ci-only-32chars
+          JWT_SECRET: test-jwt-secret-for-ci-only-32chars
 
   build-and-push:
     name: Build & Push Docker Images
