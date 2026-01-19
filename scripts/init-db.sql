@@ -41,7 +41,7 @@ SET timezone = 'UTC';
 -- - Causes errors in tmpfs mode (testing) due to write restrictions
 --
 -- HOW TO ENABLE FOR PRODUCTION:
--- Option 1: Set environment variable in docker-compose.prod.yml:
+-- Option 1: Set environment variable in docker-compose.yml:
 --   POSTGRES_SHARED_PRELOAD_LIBRARIES: 'pg_stat_statements'
 --
 -- Option 2: Mount custom postgresql.conf with:

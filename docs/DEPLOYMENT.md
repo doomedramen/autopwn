@@ -23,7 +23,7 @@ nano .env  # Edit with your values
 
 3. Start services
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 4. Run migrations
@@ -69,7 +69,7 @@ LOG_LEVEL=info
 
 ## Docker Compose
 
-The included `docker-compose.yml` uses pre-built images from ghcr.io:
+The included `docker compose.yml` uses pre-built images from ghcr.io:
 
 ```yaml
 services:
@@ -152,8 +152,8 @@ curl https://yourdomain.com/api/health
 
 ### Logs
 ```bash
-docker-compose logs -f api
-docker-compose logs -f web
+docker compose logs -f api
+docker compose logs -f web
 ```
 
 ### Resource Usage
@@ -165,10 +165,10 @@ docker stats crackhouse-api crackhouse-web
 
 ```bash
 # Pull latest images
-docker-compose pull
+docker compose pull
 
 # Recreate containers
-docker-compose up -d
+docker compose up -d
 
 # Run migrations if needed
 docker exec -it crackhouse-api pnpm db:push

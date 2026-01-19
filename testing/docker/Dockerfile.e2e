@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     psmisc \
     procps \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
@@ -28,8 +29,8 @@ COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/ui/package.json ./packages/ui/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (ignore scripts to skip lefthook which requires a git repo)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Install Playwright browsers
 RUN npx playwright install --with-deps chromium

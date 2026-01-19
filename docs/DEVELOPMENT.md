@@ -22,7 +22,7 @@ pnpm install
 
 3. Start services
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 4. Run database migrations
@@ -127,10 +127,11 @@ pnpm test:coverage     # Coverage report
 
 ### E2E Tests
 ```bash
-cd apps/web
-pnpm test:e2e          # Run E2E tests
-pnpm test:e2e:ui       # With UI
+# From repo root
+pnpm test:e2e          # Run E2E tests in Docker
 ```
+
+See [testing/README.md](../testing/README.md) for more details.
 
 ## Code Standards
 
@@ -152,8 +153,8 @@ pnpm db:push           # Apply schema changes
 
 ### Reset database
 ```bash
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 pnpm db:push
 ```
 
@@ -173,7 +174,7 @@ pnpm install
 
 ### Database issues
 ```bash
-docker-compose restart db
+docker compose restart db
 pnpm db:push
 ```
 

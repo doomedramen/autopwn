@@ -26,7 +26,7 @@ CrackHouse is a web application for security professionals to test and audit wir
 pnpm install
 
 # Start services (PostgreSQL, Redis)
-docker-compose up -d
+docker compose up -d
 
 # Run migrations
 cd apps/api && pnpm db:push
@@ -72,8 +72,8 @@ crackhouse/
 # API tests
 cd apps/api && pnpm test
 
-# E2E tests
-cd apps/web && pnpm test:e2e
+# E2E tests (from repo root)
+pnpm test:e2e
 ```
 
 ## Legal Disclaimer
