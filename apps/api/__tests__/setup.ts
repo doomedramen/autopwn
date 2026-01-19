@@ -8,7 +8,7 @@ import * as bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
 // Test database configuration
-const TEST_DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/crackhouse_test'
+const TEST_DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5433/crackhouse_test'
 
 // Track if migrations have been run
 let migrationsRun = false
